@@ -1,6 +1,6 @@
 /**
  * IPC 契约：通道名、请求/响应、事件、渲染桥面。
- * 双壳（TS/Rust）只允许引用此处定义（戒律 #2）；Rust 侧镜像见 docs/contract.md。
+ * 双壳（TS/Rust）只允许引用此处定义；Rust 侧镜像见 docs/contract.md。
  */
 
 import type { AccountView } from './account';
@@ -16,7 +16,7 @@ export type IpcResult<T> = { ok: true; value: T } | { ok: false; error: string }
 
 /** IPC 请求通道（invoke/handle 风格，渲染 → 宿主）。 */
 export const IPC_CHANNELS = {
-  /** 骨架连通性探测（保留为健康检查）。 */
+  /** 连通性健康检查。 */
   PING: 'attic:ping',
   /** 版本清单（缓存优先，端点可配置）。 */
   VERSIONS_LIST: 'attic:versions:list',
@@ -28,7 +28,7 @@ export const IPC_CHANNELS = {
   LAUNCH_DRY_RUN: 'attic:launch:dry-run',
   /** 启动游戏进程。 */
   LAUNCH: 'attic:launch',
-  /** 取消进行中的启动（0.0.2 feat①）：中止启动前的下载/补全链；游戏已 spawn = 无效（走 KILL）。 */
+  /** 取消进行中的启动：中止启动前的下载/补全链；游戏已 spawn = 无效（走 KILL）。 */
   LAUNCH_CANCEL: 'attic:launch:cancel',
   /** 请求终止当前游戏进程。 */
   KILL: 'attic:kill',
@@ -74,7 +74,7 @@ export const IPC_CHANNELS = {
   /** 打开/聚焦独立控制台窗口（v1 语义：MC 日志独立窗，与主页解耦）。 */
   WINDOW_CONSOLE: 'attic:window:console',
   /** 控制台积压日志补拉（backlog）：新建控制台窗订阅后拉取本会话已发射的输出与退出事件，
-   * 消除「spawn 即发射、窗未挂载即丢」竞态（LegacyFix premain 首批日志丢失的根因修复）。 */
+   * 消除「spawn 即发射、窗未挂载即丢」竞态。 */
   GAME_BACKLOG: 'attic:game:backlog',
   /** 自定义版本列表（仅 custom 项：裸 jar=未配置 / .info custom=true=已配置；官方版本不落入）。 */
   CUSTOM_LIST: 'attic:custom:list',
@@ -107,7 +107,7 @@ export const IPC_CHANNELS = {
   IMAGE_DATA_URL: 'attic:image:data-url',
   /** 系统浏览器打开外链（宿主校验 http/https 协议，拒绝其余 scheme）。 */
   SHELL_OPEN_URL: 'attic:shell:open-url',
-  /** 渲染层错误静默上报（P2）：宿主落 launcher.log，不弹任何框（window error/unhandledrejection/Vue errorHandler）。 */
+  /** 渲染层错误静默上报：宿主落 launcher.log，不弹任何框（window error/unhandledrejection/Vue errorHandler）。 */
   CRASH_REPORT: 'attic:crash:report',
   /** 拉取崩溃诊断包（栈 + 环境 + 两日志尾部 + 预填 issue 链接）：CrashPanel 三按钮数据源。 */
   CRASH_BUNDLE: 'attic:crash:bundle',
@@ -121,8 +121,8 @@ export type ServerCategory = 'classic' | 'indev' | 'alpha' | 'beta' | 'release';
 
 /**
  * 社区服务器列表条目（SERVERS_LIST 响应；join:// 四段 `ip:port/mppass/protocol/preferredVersion` 解析产物）。
- * preferredVersion 值形脏（取证 2026-11-01）：干净 id / 带构建后缀 / 第三方客户端名三形态——
- * 版本匹配派生（matchedVersionId）在宿主（戒律 #1：UI 零版本判断），未命中 = 缺省该键。
+ * preferredVersion 值形脏：干净 id / 带构建后缀 / 第三方客户端名三形态——
+ * 版本匹配派生（matchedVersionId）在宿主（UI 零版本判断），未命中 = 缺省该键。
  */
 export interface ServerListView {
   /** 稳定键 = `address:port`。 */
@@ -170,7 +170,7 @@ export interface LaunchCancelResult {
 }
 
 /**
- * 取消启动的归一失败文案（feat①）：宿主 launch() 因取消中止时以此文案抛/回，
+ * 取消启动的归一失败文案：宿主 launch() 因取消中止时以此文案抛/回，
  * UI 据此识别「用户主动取消」落中性态——不记 lastError、不显红态。
  */
 export const LAUNCH_CANCELLED_MESSAGE = '启动已取消';
@@ -199,12 +199,12 @@ export interface SystemInfo {
   /** 壳形态（宿主构造注入：tauri = sidecar 传 'tauri'；electron/legacy 缺省 'electron' 保守）。 */
   shell: 'tauri' | 'electron';
   /**
-   * 上次启动器异常退出简报（P0 脏退出标记的下次启动消费，缺席 = 上次正常退出）：
+   * 上次启动器异常退出简报（脏退出标记的下次启动消费，缺席 = 上次正常退出）：
    * 标记读后即删，本快照只弹一次横幅。stack = 崩溃栈（宿主侧截断），summary = 栈首行。
    */
   lastCrash?: CrashBrief;
   /**
-   * portable 便携态（B 期，plan.md 2026-10-25 终拍；安装版省略本键）：
+   * portable 便携态（安装版省略本键）：
    * 宿主显式传程序目录（sidecar 的 process.execPath = node.exe 不可信，硬纪律），
    * runtime 按双指纹判定 = 程序目录 marker 在场 ∨（exe 旁 `.attic` ∧ 其内 `launcher/portable.anchor`）。
    */
@@ -214,8 +214,8 @@ export interface SystemInfo {
     /** exeDir 实写探针不可写 → 生效根已回落默认根（数据未随盘，UI 常驻徽标）。 */
     fallback: boolean;
     /**
-     * 便携生效根是否已有真实用户数据（B 期修复 2026-10-25：构造期 ensureLayout 前快照，
-     * hasUserData 文件标记口径——骨架不误判）。向导门之三 portable 数据源 = 本键而非
+     * 便携生效根是否已有真实用户数据（构造期 ensureLayout 前快照，
+     * hasUserData 文件标记口径——骨架不误判）。向导弹出口径的 portable 数据源 = 本键而非
      * defaultRootPopulated：安装版/dev 历史在默认根，不得压掉便携首启弹窗；
      * 只读回落态生效根 = 默认根，本键自然回落「默认根老用户」老语义。
      */
@@ -239,7 +239,7 @@ export interface CrashBrief {
   stack: string;
 }
 
-/** 渲染层错误上报（CRASH_REPORT，P2）：静默落 launcher.log，不弹框。 */
+/** 渲染层错误上报（CRASH_REPORT）：静默落 launcher.log，不弹框。 */
 export interface RendererErrorReport {
   /** 来源标识：window-error | unhandled-rejection | vue-error。 */
   source: string;
@@ -282,7 +282,7 @@ export type WindowAction = 'minimize' | 'toggle-maximize' | 'close';
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];
 
-/** 宿主未实现通道的统一错误值（Phase 2/4 实现前，桥面返回该错误而非挂起）。 */
+/** 宿主未实现通道的统一错误值（桥面返回该错误而非挂起）。 */
 export const NOT_IMPLEMENTED = 'not-implemented';
 
 /** 事件通道（宿主 → 渲染，推送式）。 */
@@ -347,7 +347,7 @@ export interface MsDeviceCode {
 
 /**
  * 设备码登录流失败分类码（弹窗按码出文案；HTTP 原文可能含 token/URL 查询串，
- * 一律不过桥——实装安全约束 plan.md §7 微软登录）。
+ * 一律不过桥——微软登录安全约束）。
  */
 export type MsLoginErrorCode =
   /** 用户拒绝授权或账户体系不符（authorization_declined / invalid_user）。 */
@@ -386,9 +386,9 @@ export type DownloadItem =
   | 'legacyfix';
 
 /**
- * 启动补全阶段序（**= runtime.ts launch 编排实际执行序**，HMCL 启动弹窗移植的阶段行数据驱动源，
- * plan.md §4；「越过即 ✓」推断依赖本序与执行序一致——五轮修正：library 实际先于资产、
- * legacyfix 在 java 之后，原按语义归类排序会误判完成态）。
+ * 启动补全阶段序（**= runtime.ts launch 编排实际执行序**，启动弹窗阶段行的数据驱动源；
+ * 「越过即 ✓」推断依赖本序与执行序一致——library 实际先于资产、legacyfix 在 java 之后，
+ * 按语义归类排序会误判完成态）。
  * `version-manifest` 属版本列表刷新通道、不在启动补全链路，故不含。
  */
 export const LAUNCH_DOWNLOAD_STAGES: readonly DownloadItem[] = [
@@ -407,7 +407,7 @@ export interface DownloadProgressEvent {
   item: DownloadItem;
   /** 被下载对象的标识（版本 id / 资产 hash / 文件名）。 */
   id: string;
-  /** 阶段：排队、传输、校验（sha1）、完成、失败、取消（feat①中止——UI 落中性态不报红）。 */
+  /** 阶段：排队、传输、校验（sha1）、完成、失败、取消（中止——UI 落中性态不报红）。 */
   phase: 'queued' | 'transferring' | 'verifying' | 'done' | 'failed' | 'cancelled';
   bytesDone: number;
   /** 未知大小（chunked）时缺省。 */
@@ -447,12 +447,12 @@ export interface LaunchRequest {
   testLaunch?: boolean;
   /**
    * 一次性以无限地图可视化器启动（启动页「≡」菜单动作项，探针命中才可发）：
-   * 注入 `-Dlf.visualizer`（与 addons 同位，§2.6），**不写实例档案**、本次启动后不留痕。
+   * 注入 `-Dlf.visualizer`（与 addons 同位），**不写实例档案**、本次启动后不留痕。
    */
   visualizer?: boolean;
   /**
    * 一次性直连地址 `ip[:port]`（启动页「直连/单人」询问弹窗选「直连」才发，来源 =
-   * 实例档案 `InstanceView.server`）：拼装器解析注入 gameArgs `--server`/`--port`（§2.6），
+   * 实例档案 `InstanceView.server`）：拼装器解析注入 gameArgs `--server`/`--port`，
    * **不写实例档案**、本次启动后不留痕（visualizer 同款一次性语义）。非法格式 = 忽略不拦启动。
    */
   server?: string;
@@ -506,7 +506,7 @@ export interface RendererBridge {
   importCustomJar(): Promise<IpcResult<CustomVersionView | null>>;
   /** 删除自定义版本（jar + .info 一并移除，mod 项联动清 mods.json 登记；官方版本/不存在报错）。 */
   removeCustomVersion(id: string): Promise<IpcResult<void>>;
-  /** Mod 仓库列表（Betacraft 单源；宿主每次全量重拉，无进程内缓存残留——v1 loadMods 追加不清空缺陷的结构性修复）。 */
+  /** Mod 仓库列表（Betacraft 单源；宿主每次全量重拉，无进程内缓存残留）。 */
   listMods(): Promise<IpcResult<ModCategoryView[]>>;
   /** 安装 mod（只落 .info + 登记；full_name 非法或与官方清单同名 = 宿主显式拒绝）。 */
   installMod(request: ModInstallRequest): Promise<IpcResult<void>>;

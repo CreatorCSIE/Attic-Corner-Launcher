@@ -1,12 +1,11 @@
 <script setup lang="ts">
 /**
- * 更新结果弹窗 —— 全局挂 App 层（2026-10-25「更新 UI」设计定稿）：消费 useUpdateCheck
- * 模块级单例的 dialogOpen/dialogResult，自动检查（打扰门裁决后弹）与手动检查（恒弹）共用。
+ * 更新结果弹窗 —— 全局挂 App 层：消费 useUpdateCheck 模块级单例的 dialogOpen/dialogResult，
+ * 自动检查（打扰门裁决后弹）与手动检查（恒弹）共用。
  * update 分支 = 三钮框：忽略此版本（写单槽忽略账+关窗+红点熄灭）/ 取消（关窗，红点保留）/
- * 更新（openExternal 发布页——宿主白名单 attic:shell:open-url；Tauri 壳 plugin 闭环挂账见
- * apps/tauri bridge 注释，浏览器 mock 直放 window.open）。
+ * 更新（openExternal 发布页——宿主白名单 attic:shell:open-url；浏览器 mock 直放 window.open）。
  * 其余分支（upToDate/unconfigured/error）= 单钮信息框，全可见呈现不静默。
- * notes 走 runtime markdown.ts 子集渲染（先转义后注入纪律在渲染器头注）；md 框内 <a>
+ * notes 走 runtime markdown.ts 子集渲染（先转义后注入）；md 框内 <a>
  * 点击委托改走 openExternal——壳内禁渲染导航，target=_blank 不可信。
  */
 import { computed } from 'vue';
@@ -48,7 +47,7 @@ function onNotesClick(e: MouseEvent): void {
   <AppDialog :open="dialogOpen" @close="closeDialog">
     <template v-if="dialogResult">
       <header class="upd-head">
-        <!-- update 分支标题即「发现新版本 vX」（设计点 4），其余分支沿用「检查更新」题头 -->
+        <!-- update 分支标题即「发现新版本 vX」，其余分支沿用「检查更新」题头 -->
         <h2 v-if="dialogResult.status === 'update'" class="upd-title">
           {{ t('settings.about.updateDialog.found', { version: dialogResult.version }) }}
         </h2>

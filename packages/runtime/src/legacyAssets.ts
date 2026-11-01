@@ -1,6 +1,6 @@
 /**
  * legacyfix 资产数据表 —— 逐字移植 legacyfix common/src/main/resources/{version_data,asset_indexes}.json。
- * 机理（源码实锤）：legacyfix AssetUtils.downloadAssets() 只补索引 `custom` 段，`objects` 全体
+ * 机理：legacyfix AssetUtils.downloadAssets() 只补索引 `custom` 段，`objects` 全体
  * 由启动器负责预置（Betacraft v2 C++ bc_game_download_assets 语义）；索引 ID 由本表正则推导
  * （Java Pattern.matches 全串匹配语义，首中即返）；'empty' = 该版本无资产。
  */
@@ -117,7 +117,7 @@ export function resolveAssetIndexId(versionId: string): string | null {
 
 /**
  * BC v2 服务端每版本 JSON 的权威 assetIndex.id（数据源 files.betacraft.uk/launcher/v2/assets/jsons/<id>.json，
- * 23 条 in- 条目逐条实拉核对）。运行时标题探测永远无法产出 20100104/20100110/20100206
+ * 23 条 in- 条目已逐条核对）。运行时标题探测永远无法产出 20100104/20100110/20100206
  * （version_data.json 无对应行），且 Indev 早期版本标题为 "Minecraft 0.31" → c0.31 → 20100124，
  * 与 BC 版本 ID 正则表结果（20100212）不同源——预取与运行时必须以本表为准，并经 -Dlf.assetIndex 注入钉死。
  * 仅列 Indev 年代的分歧项；其余年代 ID 表结果与标题探测同源一致，无需覆盖。
@@ -182,7 +182,7 @@ export interface AssetObjectPlan {
 const MOJANG_OBJECTS_BASE = 'https://resources.download.minecraft.net';
 
 /**
- * 索引 JSON → 对象下载计划。语义对齐两处实锤：
+ * 索引 JSON → 对象下载计划。语义对齐两处上游行为：
  * - legacyfix initAssets：`custom` 段覆盖/追加 `objects` 同名键；
  * - v2 bc_game_download_assets + legacyfix downloadAssets：URL 优先级 obj.url > custom_url > Mojang resources。
  */

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 /**
- * 启动面板 —— 每屏唯一 accent 实心元素 = Play（ui-design.md §2）。
- * 排版（新主页）：Play 置右下角；右侧「| ≡」菜单收纳【实例设置】【测试启动】。
- * 主页保持净空（用户指定）：无卡片底/版本摘要/停止钮，为后续背景图留清晰画布；
+ * 启动面板 —— 每屏唯一 accent 实心元素 = Play。
+ * 排版：Play 置右下角；右侧「| ≡」菜单收纳【实例设置】【测试启动】。
+ * 主页保持净空：无卡片底/版本摘要/停止钮，为后续背景图留清晰画布；
  * 选中版本信息由左下版本面板单卡承载。
- * v1 语义：每次启动成功自动唤起独立控制台窗口（MC 日志与主页解耦）。
- * 请求形状全走契约（LaunchRequest），UI 不拼参数（戒律 #1）。
+ * 每次启动成功自动唤起独立控制台窗口（MC 日志与主页解耦）。
+ * 请求形状全走契约（LaunchRequest），UI 不拼参数。
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { INSTANCE_ADDONS, MULTIPLAYER_JOIN_LAUNCH_METHODS, parseServerAddress } from '@attic/core-spec';
@@ -34,13 +34,13 @@ const { reset: resetDownloads } = useDownloads();
 const { activeName, instances } = useInstances();
 
 const running = computed(() => status.value.running);
-/* 启动进度弹窗（HMCL 移植，plan.md §4）：doLaunch 无条件唤起，spawn 成功即关
+/* 启动进度弹窗：doLaunch 无条件唤起，spawn 成功即关
  * （控制台窗承接后续）；失败/取消后留窗显示 ✗ 行与错误，用户点「关闭」退场。 */
 const progressOpen = ref(false);
 const canPlay = computed(() => hasBridge.value && !!selected.value && !!current.value && !running.value && !busy.value);
-/* 启动/停止/取消三态一体（用户指定）：同一按钮按状态切换动作——
- * 空闲=启动，运行=停止，busy 未运行=取消（0.0.2 feat①：补全资产/下载期间不再纯禁用）。
- * 空闲态真正可用的前置 = 有效账户 + 已选版本（用户指定：UI 侧硬门禁，不靠宿主兜底报错）。 */
+/* 启动/停止/取消三态一体：同一按钮按状态切换动作——
+ * 空闲=启动，运行=停止，busy 未运行=取消（补全资产/下载期间不再纯禁用）。
+ * 空闲态真正可用的前置 = 有效账户 + 已选版本（UI 侧硬门禁，不靠宿主兜底报错）。 */
 const canToggle = computed(
   () =>
     hasBridge.value &&
@@ -96,7 +96,7 @@ function onMenuToggle(): void {
 
 /**
  * 启动编排：accountId = 当前账户（契约可选字段，缺省回落宿主首个账户）；
- * test=true 走测试启动（宿主落盘启动前后日志）；成功后唤起独立控制台窗（v1 语义）——
+ * test=true 走测试启动（宿主落盘启动前后日志）；成功后唤起独立控制台窗——
  * 普通启动受全局开关 consoleOnLaunch（缺省开）约束；测试启动属显式诊断，恒弹。
  * visualizer=true = 一次性带 -Dlf.visualizer 启动（「≡」菜单动作项，不写档案）。
  */
@@ -121,15 +121,15 @@ async function doLaunch(test: boolean, visualizer = false, server?: string): Pro
   if (ok && (test || settings.value.consoleOnLaunch !== false)) void bridge.openConsoleWindow();
 }
 
-/** 弹窗取消（钮 + Esc/遮罩 busy 态同语义，HMCL onEscPressed）：取消启动并关窗
- * （HMCL 同款 onCancel = cancel+close；失败详情仍落面板 lastError 横幅）。 */
+/** 弹窗取消（钮 + Esc/遮罩 busy 态同语义）：取消启动并关窗
+ * （cancel+close 一体；失败详情仍落面板 lastError 横幅）。 */
 function onProgressCancel(): void {
   void cancel();
   progressOpen.value = false;
 }
 
-// —— 直连询问弹窗（Play 前置，MVP）：激活实例档案 server 非空必拦；server 缺省时，选中版本
-// launchMethod 命中 MULTIPLAYER_JOIN_LAUNCH_METHODS（经典多人数据表，戒律 #1）仍拦 = 弹窗现场
+// —— 直连询问弹窗（Play 前置）：激活实例档案 server 非空必拦；server 缺省时，选中版本
+// launchMethod 命中 MULTIPLAYER_JOIN_LAUNCH_METHODS（经典多人数据表）仍拦 = 弹窗现场
 // 填地址一次性直连（不写档案）。测试启动/可视化器属诊断与特殊动作路径不打扰。
 // 关窗（Esc/遮罩）= 放弃本次启动（询问语义：不选就不启动）。
 const serverPrompt = ref(false);
@@ -219,10 +219,10 @@ function onInstanceSettings(): void {
     <p v-if="lastError" class="error">{{ t('launch.failed') }}：{{ lastError }}</p>
     <p v-else-if="status.lastError" class="error">{{ status.lastError }}</p>
 
-    <!-- 动作行：Play+菜单沉底靠右；实例 dock（用户指定）置于 Play 左侧，
-         与版本 dock 同款交互，展开向上浮出、不吃布局空间。
+    <!-- 动作行：Play+菜单沉底靠右；实例 dock 置于 Play 左侧，
+         展开向上浮出、不吃布局空间。
          版本 dock 也在此行（margin-right:auto 钉左缘）：两 dock 同 flex 流互斥收缩，
-         窄窗下不再重叠（曾因 stage-dock 绝对定位与实例 dock 互不感知而压盖）。 -->
+         窄窗下不重叠（绝对定位互不感知会压盖）。 -->
     <div class="actions">
       <VersionSelector class="dock-version" />
       <InstanceDock class="dock-instance" />
@@ -293,7 +293,7 @@ function onInstanceSettings(): void {
       </div>
     </div>
 
-    <!-- 直连询问弹窗（AppDialog 壳，实例删除确认同款配方）：档案有地址 = 确认形态；
+    <!-- 直连询问弹窗（AppDialog 壳）：档案有地址 = 确认形态；
          缺省但版本命中经典多人表 = 手动形态（现场填地址，一次性、不写档案） -->
     <AppDialog :open="serverPrompt" @close="serverPrompt = false">
       <header class="prompt-head">
@@ -327,7 +327,7 @@ function onInstanceSettings(): void {
       </header>
       <footer class="prompt-foot">
         <span class="prompt-spacer"></span>
-        <!-- 显式取消（2026-11-01 用户拍板）：此前出路只有两个启动钮，「不启动了」没有途径 -->
+        <!-- 显式取消：「不启动了」需要出路，不能只有两个启动钮 -->
         <button class="prompt-single" type="button" @click="serverPrompt = false">
           {{ t('launch.serverDialog.cancel') }}
         </button>
@@ -345,7 +345,7 @@ function onInstanceSettings(): void {
       </footer>
     </AppDialog>
 
-    <!-- 启动进度弹窗（HMCL 移植）：doLaunch 无条件唤起；取代原右上聚合进度条 -->
+    <!-- 启动进度弹窗：doLaunch 无条件唤起 -->
     <LaunchProgressDialog
       :open="progressOpen"
       :busy="busy"
@@ -357,7 +357,7 @@ function onInstanceSettings(): void {
 </template>
 
 <style scoped>
-/* 净空容器（用户指定）：无卡片底/描边/投影，为后续背景图留清晰画布 */
+/* 净空容器：无卡片底/描边/投影，为后续背景图留清晰画布 */
 .panel {
   display: flex;
   flex-direction: column;
@@ -415,7 +415,7 @@ function onInstanceSettings(): void {
   transform: translateY(0) scale(0.97);
   box-shadow: var(--btn-primary-active-shadow);
 }
-/* 投影式 focus 环（替代全局描边式，Modrinth ring-4 手法）；置后保证 hover 下环不被覆盖 */
+/* 投影式 focus 环（替代全局描边式）；置后保证 hover 下环不被覆盖 */
 .play:focus-visible {
   outline: none;
   box-shadow: var(--btn-primary-focus-shadow);
@@ -434,7 +434,7 @@ function onInstanceSettings(): void {
   border-bottom: 5px solid transparent;
 }
 /* 运行态：同一按钮切为停止（danger 底 + 方块图标），保持同一质感配方；
-   busy 未运行态切为取消（feat①，同款 danger 视觉语言 = 「中断当前动作」） */
+   busy 未运行态切为取消（danger 视觉语言 = 「中断当前动作」） */
 .play--stop,
 .play--cancel {
   background: var(--danger);
@@ -528,7 +528,7 @@ html[data-bg-image] .menu-btn:hover {
   opacity: 0.4;
   cursor: not-allowed;
 }
-/* 直连询问弹窗（AppDialog 插槽内容，ConfirmDialog 三段式同配方） */
+/* 直连询问弹窗（AppDialog 插槽内容，头/体/脚三段） */
 .prompt-head {
   display: flex;
   flex-direction: column;

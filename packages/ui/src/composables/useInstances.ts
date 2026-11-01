@@ -1,8 +1,8 @@
 /**
  * useInstances —— 实例薄档案共享状态（list/save/激活实例）。
  * 实例数据驱动：name/version/javaPath 全走契约，UI 不派生 gameDir（属宿主）。
- * 激活实例（activeName）本期为 UI 层共享态：localStorage 持久化 + 清单加载后兜底，
- * AppSettings 契约不动（实例页改版时再议是否升为设置项）。
+ * 激活实例（activeName）为 UI 层共享态：localStorage 持久化 + 清单加载后兜底，
+ * AppSettings 契约不动。
  */
 
 import { computed, ref, watch } from 'vue';
@@ -16,7 +16,7 @@ let started = false;
 
 const { bridge } = useBridge();
 
-// —— 激活实例：localStorage 持久化（键名纪律：attic:<域>:v1） ——
+// —— 激活实例：localStorage 持久化（键名规则：attic:<域>:v1） ——
 const ACTIVE_KEY = 'attic:active-instance:v1';
 const activeName = ref<string>('');
 try {
@@ -73,7 +73,7 @@ async function remove(name: string, withFiles: boolean): Promise<boolean> {
   return res.ok;
 }
 
-/** 改名（v1 语义：档案迁移、gameDir 不动）：成功就地替换（改名只动 name，本地视图
+/** 改名（档案迁移、gameDir 不动）：成功就地替换（改名只动 name，本地视图
  * 与宿主返回等价），激活实例被改名时 setActive 跟随防指针失效。返回 null=成功 / 错误文案。 */
 async function rename(name: string, newName: string): Promise<string | null> {
   const res = await bridge.renameInstance(name, newName);
@@ -83,7 +83,7 @@ async function rename(name: string, newName: string): Promise<string | null> {
   return null;
 }
 
-/** 版本选中即写回（v1 SelectVersion.saveVersion 语义，窄通道单字段落盘）：宿主返回的
+/** 版本选中即写回（窄通道单字段落盘）：宿主返回的
  * 权威视图就地 upsert。seq 守卫防快速连选的过期回包把清单拽回旧版本；失败静默
  * （实例页 save 同口径）——下次 load 或启动回写收敛。 */
 let setVersionSeq = 0;

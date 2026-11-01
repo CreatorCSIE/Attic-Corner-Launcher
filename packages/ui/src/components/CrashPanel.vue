@@ -1,8 +1,7 @@
 <script setup lang="ts">
 /**
- * CrashPanel —— 启动器层崩溃呈现（P2 渲染现场 + P0 脏退出「上次崩溃」）。
- * 形态 = AppDialog 模态弹窗（与 UpdateDialog 同款弹子窗口，用户拍板：顶栏下横条位置不行）；
- * 排版与 win32 原生框同构：错误栈先行，再落三按钮
+ * CrashPanel —— 启动器层崩溃呈现（渲染现场 + 脏退出「上次崩溃」）。
+ * 形态 = AppDialog 模态弹窗；排版：错误栈先行，再落三按钮
  * 【复制诊断信息】【打开日志文件夹】【去 GitHub 报告】+ 关闭。
  * 数据面：liveError = useCrash 现场（渲染层错误，宿主已静默落 launcher.log）；
  * lastCrash = SYS_INFO.lastCrash（上次启动脏退出标记消费，读后即删天然只弹一次，关闭仅本会话）。
@@ -52,7 +51,7 @@ const panels = computed<Panel[]>(() => {
   return out;
 });
 
-/** 遮罩/Esc 收口：现场区优先（后挂 = 最前），其次横幅区。 */
+/** 遮罩/Esc：先收现场区（后挂 = 最前），其次横幅区。 */
 function dismissTop(): void {
   if (liveError.value) dismiss();
   else lastDismissed.value = true;
@@ -127,7 +126,7 @@ function formatTime(iso: string): string {
 
       <p class="crash-summary">{{ panel.brief.summary }}</p>
 
-      <!-- 栈先行（win32 同款排版）：超高内滚，等宽字体 -->
+      <!-- 栈先行：超高内滚，等宽字体 -->
       <pre class="crash-stack">{{ panel.brief.stack || panel.brief.summary }}</pre>
 
       <footer class="crash-foot">

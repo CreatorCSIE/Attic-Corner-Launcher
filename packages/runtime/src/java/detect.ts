@@ -1,7 +1,7 @@
 /**
  * Java 探测编排（移植自 MCANextGen java-discovery/detect.ts，逻辑不动）：
  * 收集候选 → 并发执行验证（4 路）→ 应用选择规则。永不抛异常——
- * 没有 Java 8 的机器是一份报告，不是一个错误（失败面板范式，风险 #7）。
+ * 没有 Java 8 的机器是一份报告，不是一个错误（失败面板范式）。
  */
 
 import type { JavaDetectionReport, JavaInstall, JavaProbeFailure } from '@attic/core-spec';

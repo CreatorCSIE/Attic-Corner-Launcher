@@ -1,10 +1,10 @@
 <script setup lang="ts">
 /**
- * Mods 页 —— 双栏形态（镜像 CustomVersionsPanel 排版，用户指定「跟其他页排版基本相同」）：
- * 左 = 搜索框 + 刷新钮 + 组件源列表（一期有且仅有 Betacraft 一个源，不引入加源功能）；
- * 右 = 该源的仓库：分类折页（animated grid-rows 0fr→1fr，模仿 v1 JTree 两级展开），
+ * Mods 页 —— 双栏形态：
+ * 左 = 搜索框 + 刷新钮 + 组件源列表（有且仅有 Betacraft 一个源，不引入加源功能）；
+ * 右 = 该源的仓库：分类折页（animated grid-rows 0fr→1fr 两级展开），
  *     条目右侧「下载」= 只落 .info，jar 与基座合成延迟到启动期（runtime 编排）。
- * 列表每次进页现拉 + 手动刷新（无进程内缓存 = v1 陈旧列表缺陷的修复面）。
+ * 列表每次进页现拉 + 手动刷新（无进程内缓存，保证列表新鲜）。
  */
 import { computed } from 'vue';
 import type { ModCategoryView } from '@attic/core-spec';
@@ -35,7 +35,7 @@ const { hasBridge } = useBridge();
 // 动作面门控与其他页一致（浏览器无桥 = 禁用）；demo 桥的假安装在 useBridge 里可演练，放行。
 const canInstall = computed(() => hasBridge.value || isDemo());
 
-/** 项目主页 = 工程级属性 → 挂组头折页行（用户指定：不再逐版本行放外链钮）。
+/** 项目主页 = 工程级属性 → 挂组头折页行（不在逐版本行放外链钮）。
  * 组内各版本 website 通常同源，取首个非空；全无则不显示。 */
 function catWebsite(cat: ModCategoryView): string | undefined {
   return cat.mods.find((m) => m.website)?.website;
@@ -44,7 +44,7 @@ function catWebsite(cat: ModCategoryView): string | undefined {
 
 <template>
   <section class="mods-page">
-    <!-- 左栏：搜索 + 刷新 + 组件源（一期仅 Betacraft） -->
+    <!-- 左栏：搜索 + 刷新 + 组件源（仅 Betacraft） -->
     <aside class="menu">
       <h2 class="menu-title">{{ t('mods.title') }}</h2>
 
@@ -71,7 +71,7 @@ function catWebsite(cat: ModCategoryView): string | undefined {
 
       <ul class="menu-list">
         <li class="menu-row">
-          <!-- 有且仅有一个源 = 选中态常驻（一期不引入多源/加源，见 plan.md Mods 一期口径） -->
+          <!-- 有且仅有一个源 = 选中态常驻（不引入多源/加源） -->
           <div class="menu-item menu-item--selected" :title="'http://api.betacraft.uk'">
             <span class="mi-name">Betacraft</span>
             <span v-if="modCount" class="badge" :class="installedCount ? 'badge--ok' : 'badge--warn'">
@@ -145,7 +145,7 @@ function catWebsite(cat: ModCategoryView): string | undefined {
             </button>
           </div>
 
-          <!-- animated 折页：grid-template-rows 0fr→1fr（内容免测高，BlockHelm 生长曲线同款 token） -->
+          <!-- animated 折页：grid-template-rows 0fr→1fr（内容免测高） -->
           <div class="fold" :class="{ 'fold--open': isOpen(cat.name) }">
             <div class="fold-inner">
               <ul class="mod-list">
@@ -183,7 +183,7 @@ function catWebsite(cat: ModCategoryView): string | undefined {
 </template>
 
 <style scoped>
-/* 骨架与自定义版本页同构：左 248px 卡片贴左，右栏内容限宽浮中。 */
+/* 双栏骨架：左 248px 卡片贴左，右栏内容限宽浮中。 */
 .mods-page {
   display: flex;
   flex: 1;
@@ -427,7 +427,7 @@ function catWebsite(cat: ModCategoryView): string | undefined {
   font-weight: 500;
   color: var(--text-muted);
 }
-/* 折页动画：0fr→1fr 行高过渡（内容无需测高），生长曲线 = 版本面板同款 token */
+/* 折页动画：0fr→1fr 行高过渡（内容无需测高），生长曲线用 --dur-grow/--ease-grow */
 .fold {
   display: grid;
   grid-template-rows: 0fr;
@@ -536,7 +536,7 @@ function catWebsite(cat: ModCategoryView): string | undefined {
   opacity: 0.5;
   cursor: default;
 }
-/* 页面级状态（加载/错误/空）：居中，对齐母版 .empty 配方 */
+/* 页面级状态（加载/错误/空）：居中 */
 .empty {
   height: 100%;
   display: flex;

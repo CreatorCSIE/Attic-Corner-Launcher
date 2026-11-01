@@ -47,7 +47,7 @@ async function launch(req: LaunchRequest): Promise<boolean> {
   // 不再等下载/游戏进程起来才出现。fire-and-forget：结果由 launch resolve 后的刷新兜底。
   void useInstances().load();
   const res = await resPromise;
-  // 取消（feat①）= 中性态：用户主动中止不记 lastError、不显红态。
+  // 取消 = 中性态：用户主动中止不记 lastError、不显红态。
   if (!res.ok && res.error !== LAUNCH_CANCELLED_MESSAGE) lastError.value = res.error;
   await refresh();
   void useInstances().load();
@@ -56,7 +56,7 @@ async function launch(req: LaunchRequest): Promise<boolean> {
 }
 
 /**
- * 取消进行中的启动（feat①）：中止启动前下载/补全链。
+ * 取消进行中的启动：中止启动前下载/补全链。
  * 返回是否真正发出中止；无在途启动/已 spawn（cancelled:false）静默无操作。
  */
 async function cancel(): Promise<boolean> {

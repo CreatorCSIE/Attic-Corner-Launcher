@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * 添加账户弹窗 —— BlockHelm AddAccountDialogView 两步流程：
- * ① 类型选择（离线 / 正版 Microsoft[0.0.9 实装]；第三方与购买入口按用户指示移除）；
+ * 添加账户弹窗 —— 两步流程：
+ * ① 类型选择（离线 / 正版 Microsoft）；
  * ② 离线用户名输入（MC 规则 3-16 位字母/数字/下划线，与 runtime.addAccount 校验一致）。
  * 底部按钮：名称步左侧"返回"，右侧 取消/确定。
  * 微软路径确定 = 关本窗并向父级发 ms 事件（设备码弹窗由账户页挂载与驱动）。
@@ -27,7 +27,7 @@ const selected = ref<AccountKind | null>(null);
 const name = ref('');
 const submitting = ref(false);
 
-// 与 runtime.addAccount 同款规则（校验前置到 UI，错误文案走 i18n）
+// 校验规则与 runtime.addAccount 一致（校验前置到 UI，错误文案走 i18n）
 const NAME_RE = /^[A-Za-z0-9_]{3,16}$/;
 const nameValid = computed(() => NAME_RE.test(name.value.trim()));
 
@@ -179,7 +179,7 @@ async function onConfirm(): Promise<void> {
   flex-direction: column;
   gap: var(--space-3);
 }
-/* 类型卡：surface-3 底 + 层级描边；选中 = accent 环（DialogChoiceItem 配方） */
+/* 类型卡：surface-3 底 + 层级描边；选中 = accent 环 */
 .option {
   display: flex;
   align-items: center;

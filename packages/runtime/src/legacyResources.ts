@@ -1,31 +1,31 @@
 /**
- * c0.24 家族死链声音预置（F1：喂游戏自己的守卫 —— jar 一字节不改，零 JVM 语义注入）。
+ * c0.24 家族死链声音预置（喂游戏自己的守卫 —— jar 一字节不改，零 JVM 语义注入）。
  *
- * 病灶（`javap -c` 取证 c0.24-dev8 `com/mojang/minecraft/ThreadDownloadResources`）：
+ * 上游病灶（c0.24-dev8 `com/mojang/minecraft/ThreadDownloadResources` 字节码）：
  * `download(URL, File)` 首行守卫 = `new File(<gameDir> + file.getPath()).exists()`，在位即 return、
  * 一个请求都不发；`run()` 拼 19 条 URL（4 材质 × 4 序号 + calm1-3），host 是早已 404 的
  * `s3.amazonaws.com`，scheme 写死 https。URL 端键名 `newsound/step/wood1.ogg` 与落盘端
  * `resources/sound/step/wood1.ogg` **不同源** —— 所以改写 host、或去物化 `newsound/` 目录两条路都是死的。
  *
- * 两态实测（JDK 8u202 反射直调真实 jar 的 `run()`）：
+ * 两态行为（直调真实 jar 的 `run()`）：
  * - 空 gameDir：8-10s 后全部 `FileNotFoundException`，resources 零文件。真实请求只有 5 条
  *   （wood1-4 + calm1）——`run()` 的异常表是粗粒度的：step 段 wood/stone/grass/gravel 四次
- *   `download()` 共用一个 try（7-271），music 段 calm1-3 同理（293-359），wood1 一抛即整块跳出，
- *   stone/grass/gravel 与 calm2/calm3 连请求都发不出去。⇒ 现状损失不止刷日志：四材质脚步声只有
+ *   `download()` 共用一个 try，music 段 calm1-3 同理，wood1 一抛即整块跳出，
+ *   stone/grass/gravel 与 calm2/calm3 连请求都发不出去。⇒ 损失不止刷日志：四材质脚步声只有
  *   wood 那条链有机会拿到文件，音乐只有 calm1 有机会。
  * - 预置 19 个键：40ms、零请求、守卫完全短路。
  *
  * 为什么不是「把 https 降级成 http」：legacyfix `GameArgs` 在无 `lf.proxy.disable` 时调
  * `URL.setURLStreamHandlerFactory(new LegacyURLStreamHandlerFactory())`，该工厂对 http 与 https
  * **都**返回自己的 Handler；JDK 8 一旦工厂设定即 `checkedWithFactory=true`，
- * `java.protocol.handler.pkgs` 分支整段被跳过（实机 Probe5：真实启动次序下我们自研的 https Handler
+ * `java.protocol.handler.pkgs` 分支整段被跳过（真实启动次序下自研的 https Handler
  * 类根本不载入）。抢注工厂则让 legacyfix 自己的调用抛 `Error("factory already defined")`，抢成功反而
  * 顶掉它那 12 条 https 重定向语义。⇒ 协议层无路，只剩数据层。
  *
  * 数据源：启动器已按资产索引下载的 `assets/objects/<2>/<hash>`（与 `-Dlf.assetsDir` 同源），
  * 不新增任何随包内置资源；对象缺席即跳过该键（补下是 `launch()` 既有 `downloadAssetObjects` 的职责）。
  *
- * 闸门两条，全是内容探测，**不写版本号**（戒律 #1；744 jar 全扫：`MinecraftDownload` 只出现在
+ * 闸门两条，全是内容探测，**不写版本号**（`MinecraftDownload` 只出现在
  * c0.24 家族，其中 `c0.24_st*` 5 枚无 https → 判否不预置）：
  * 1) jar 中央目录里有资源下载线程类（`c0.24_dev1` 的类名是 `ResourceDownloadThread`，一并认）；
  * 2) jar 明文里有死链前缀常量。
@@ -57,7 +57,7 @@ const LEGACY_RESOURCE_TABLE: readonly (readonly [string, string, number])[] = [
   ['music/calm', 'music/calm', 3],
 ];
 
-/** 资源下载线程类（闸门阶段一）：两代命名实测于 .betacraft 装机集 c0.24 全族。 */
+/** 资源下载线程类（闸门阶段一）：c0.24 家族存在两代类名，一并认。 */
 const PROBE_CLASS_RE = /(?:ThreadDownloadResources|ResourceDownloadThread)\.class$/;
 
 /** 文件在位则返回字节数，否则 null（闸门与预置共用，不抛错）。 */
@@ -201,7 +201,7 @@ export function materializeLegacyResources(options: {
         else outcome.replaced += 1;
       } catch (error) {
         // temp 清理是尽力而为：祖先链本身不可操作时（gameDir 被文件占位）rmSync 在 POSIX 抛
-        // ENOTDIR（force 只吞 ENOENT）——若让它穿出，逐条 fail-open 就塌成整体 null（CI 实证）。
+        // ENOTDIR（force 只吞 ENOENT）——若让它穿出，逐条 fail-open 就塌成整体 null。
         try {
           fs.rmSync(tmp, { force: true });
         } catch {

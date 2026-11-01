@@ -1,12 +1,12 @@
 <script setup lang="ts">
 /**
- * 设置页 · 关于栏 —— 格式照搬 BlockHelm InfoSettingsView（用户定稿）：
+ * 设置页 · 关于栏：
  * 头区（名称 + v版本号 + GitHub/检查更新按钮）→ 启动器更新（策略单选组 + 通道占位）→
  * 版权及法律声明（版权/开源协议/用户协议三行）→ 引用的项目列表。
  * 许可证均经实查不虚构：上游四项目 LICENSE 逐字为 GPL-3.0，Vue/Electron=MIT，Tauri=MIT/Apache-2.0，Lucide=ISC。
  * 外链走 openExternalUrl（宿主白名单校验；浏览器 mock 直放 window.open，demo 可用）；
  * 打开失败（无默认浏览器等）经 useExternalLink 全局弹窗显式报错，不再静默。
- * 检查更新（2026-10-25「更新 UI」定稿）：手动按钮走 checkManually（无视策略与忽略账恒显弹窗），
+ * 检查更新：手动按钮走 checkManually（无视策略与忽略账恒显弹窗），
  * 结果弹窗全局挂 App 层（UpdateDialog），本页只留红点徽标与策略选择。
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -81,7 +81,7 @@ interface ReferenceProject {
   key: string;
 }
 
-// 壳行只显示壳自身（2026-10-29 用户定稿）：Electron 壳列 Electron、Tauri 壳列 Tauri，
+// 壳行只显示壳自身：Electron 壳列 Electron、Tauri 壳列 Tauri，
 // 探测次序与 useBridge 两级真桥探测一致（window.attic 优先）；浏览器直开/demo 无壳，两行皆不列。
 const shell: 'electron' | 'tauri' | null =
   typeof window === 'undefined'
@@ -242,7 +242,7 @@ function openUrl(url: string): void {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
 }
-/* GroupBox 标题（BlockHelm LauncherContentSection Header 等效） */
+/* GroupBox 标题 */
 .group-title {
   margin: 0;
   font-size: var(--fs-xs);
@@ -292,7 +292,7 @@ function openUrl(url: string): void {
   display: flex;
   gap: var(--space-3);
 }
-/* 声明/引用行：左信息 + 右动作（BlockHelm Grid * / Auto 配方） */
+/* 声明/引用行：左信息 + 右动作 */
 .row {
   display: flex;
   align-items: center;
@@ -348,7 +348,7 @@ function openUrl(url: string): void {
   border: 1px solid var(--danger);
   border-radius: var(--radius-pill);
 }
-/* 更新策略分段单选器（SettingsPanel 主题模式选择器同款样式，弹窗已迁出本页） */
+/* 更新策略分段单选器 */
 .segmented {
   position: relative;
   display: inline-flex;

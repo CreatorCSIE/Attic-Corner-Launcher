@@ -1,11 +1,11 @@
 /**
- * 启动器层崩溃取证（P0~P2 数据面，纯函数 + fs 薄封装，Electron 无关）：
+ * 启动器层崩溃诊断（纯函数 + fs 薄封装，Electron 无关）：
  *  - launcher.log：`<root>/launcher/logs/launcher.log`，v1 语义 = append 跨启动滚动历史
  *    （与 output-client.log「恒等于最近一次启动」互补），行前缀 `(HH:mm:ss.SSS) [OUT|ERR]`；
  *  - crash bundle：环境快照 + 崩溃栈 + 两日志尾部，落 `crash-<ISO>.txt` 并进剪贴板/issue 预填；
  *  - 脏退出标记：`<root>/launcher/crash-dirty.json`，崩溃当场写、下次启动构造期消费即删
  *    （消费语义 = 横幅只弹一次，崩溃后再崩由当场重写覆盖）；
- *  - issues 链接：repo 数据驱动自 releaseRepo（戒律 #1，禁硬编码），端点可 override。
+ *  - issues 链接：repo 数据驱动自 releaseRepo（禁硬编码），端点可 override。
  * stdout/stderr 捕获器由 Electron 主进程显式挂载——sidecar 的 stdout 是 NDJSON 协议面，绝不可装。
  */
 
@@ -17,7 +17,7 @@ import type { CrashBrief } from '@attic/core-spec';
 /** launcher.log 滚动封顶：超限截半保尾（append 语义防无界增长；截半而非清零保留近期现场）。 */
 export const LAUNCHER_LOG_MAX_BYTES = 2 * 1024 * 1024;
 
-/** bundle 内两日志各取尾部行数（取证现场密度经验值）。 */
+/** bundle 内两日志各取尾部行数（现场密度经验值）。 */
 export const CRASH_LOG_TAIL_LINES = 200;
 
 /** 脏退出标记里栈的截断长度（横幅展示用；全量在 crash-*.txt 与 launcher.log）。 */

@@ -1,8 +1,7 @@
 /**
  * useExternalLink —— 外链出门共享状态（模块级单例，全局一枚错误弹窗）。
- * 修「找不到默认浏览器静默失败」（用户报障）：宿主 shell.openExternal 在无
- * http/https 关联时 reject → IpcResult{ok:false}，旧调用面 `void` 丢弃结果 =
- * 点了没反应也没提示。本通道把失败落进 error，由 ExternalLinkErrorDialog 呈现。
+ * 宿主 shell.openExternal 在无 http/https 关联时 reject → IpcResult{ok:false}，
+ * 本通道把失败落进 error，由 ExternalLinkErrorDialog 呈现（不静默失败）。
  */
 import { ref } from "vue";
 import { useBridge } from "./useBridge";

@@ -1,5 +1,5 @@
 /**
- * 基础层 —— 保守 CSS 基线（ui-design.md §8，挂风险 #4）。
+ * 基础层 —— 保守 CSS 基线。
  * 只用近两大版本 WebKitGTK 全绿的特性；backdrop-filter 一律带降级；自定义深色滚动条；五态 focus ring。
  */
 
@@ -72,7 +72,7 @@ a {
   border-radius: var(--radius-sm);
 }
 
-/* —— 数字一律等宽对齐（§2 信息密度） —— */
+/* —— 数字一律等宽对齐 —— */
 .tabular {
   font-variant-numeric: tabular-nums;
 }
@@ -116,7 +116,7 @@ a {
   background: var(--scroll-thumb-hover);
 }
 
-/* 滚动条 reflow 防护（2026-10-23 CDP 真窗逐帧取证）：切到模组页时仓库数据到达 →
+/* 滚动条 reflow 防护：切到模组页时仓库数据到达 →
    .detail 溢出从零变正 → 10px 经典滚动条出现 → 右列 clientWidth 440→430，
    整列内容被压缩重排 = 「意外出现滚动条 + 组件位置更新」闪。
    stable 常留槽位，滚动条出现/消失零 reflow。作用面 = 页面双栏约定命名

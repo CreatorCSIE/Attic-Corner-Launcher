@@ -1,7 +1,7 @@
 /**
- * @attic/core-spec — IPC 契约唯一真相（戒律 #2）。
+ * @attic/core-spec — IPC 契约唯一真相。
  * 纯形状、常量与无副作用校验助手（如 parseServerAddress）：不含任何实现逻辑；
- * quirk/版本判断一律以数据字段表达（戒律 #1）。
+ * quirk/版本判断一律以数据字段表达。
  */
 
 export type { Account, AccountType, AccountView, MicrosoftAccount, OfflineAccount } from './account';

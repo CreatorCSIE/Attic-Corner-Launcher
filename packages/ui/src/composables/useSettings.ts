@@ -39,7 +39,7 @@ let bgSeq = 0;
 
 /**
  * 外置背景图 → `--app-bg-image` + `--app-bg-overlay` + `data-bg-image`（宿主 data URL，双壳统一）。
- * 仅配置时启用（用户定稿 2026-10-31：无内置默认图，缺省 = 纯色主题底）；
+ * 仅配置时启用（无内置默认图，缺省 = 纯色主题底）；
  * 缺省/读取失败 = 全部移除回落纯色（可见失败已由选择动作当场承担，应用侧静默兜底）。
  * data-bg-image 同时驱动舞台浮空元素的亮字重映射（无图浅底时那些覆写必须撤除）。
  */
@@ -93,8 +93,8 @@ async function load(): Promise<void> {
 }
 
 /** 语言单一真相 = settings.language（localStorage 仅 bootstrap 缓存）；load 后即时无感应用。
- *  键缺席 = 系统语言侦测**只发生这一次**：结果立即写回 settings.language 落盘（用户核对
- *  2026-10-31——否则 OS 语言变更后界面会跟着漂），此后该值等同用户选择，不再自动改。 */
+ *  键缺席 = 系统语言侦测**只发生这一次**：结果立即写回 settings.language 落盘
+ *  （否则 OS 语言变更后界面会跟着漂），此后该值等同用户选择，不再自动改。 */
 function applyLanguage(): void {
   const lang = settings.value.language;
   if (lang === 'en' || lang === 'zh-CN' || lang === 'zh-TW') {

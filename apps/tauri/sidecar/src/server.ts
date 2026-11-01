@@ -1,12 +1,12 @@
 /**
- * Attic sidecar —— Tauri 壳的 RPC 承载体（Phase 4 脚手架）。
+ * Attic sidecar —— Tauri 壳的 RPC 承载体。
  *
  * 线协议（stdio NDJSON，一行一帧，定义详见 docs/contract.md「双壳接入模型」）：
  *   请求  {id:number, method:string, params:unknown[]}
  *   响应  {id, result:...} | {id, error:string}          —— 错误以数据返回，不跨进程抛（对齐 IpcResult）
  *   事件  {event:string, payload:...}（无 id，服务端单向推送）
  *
- * 方法面 = packages/core-spec ipc.ts 的通道白名单（戒律 #2：只允许引用契约常量）；
+ * 方法面 = packages/core-spec ipc.ts 的通道白名单（只允许引用契约常量）；
  * 宿主面通道（窗控/对话框/外链/openPath）由 Rust 侧处理，不进入本表。
  * 内部延伸方法（attic:internal:*）：Rust 需要「先拿路径再做宿主动作」的拆分面。
  */
@@ -34,7 +34,7 @@ import {
 const INSTALL_DIR = path.dirname(process.execPath);
 
 /**
- * portable B 期（硬纪律：sidecar 的 process.execPath = node.exe，exeDir 判定面不得依赖它）：
+ * portable（硬纪律：sidecar 的 process.execPath = node.exe，exeDir 判定面不得依赖它）：
  * Rust 壳在 current_exe() 目录双指纹命中时注入 ATTIC_EXE_DIR（程序目录绝对路径），
  * marker 在场再加注 ATTIC_PORTABLE_INI（sidecar/portable.ini 绝对路径）；两键缺席 = 非便携形态
  * （安装版/开发态），判定与指针读写单点在 runtime（detectPortable）。
@@ -115,8 +115,7 @@ function wireEvents(): void {
     backlogFor(payload.pid).exit = payload;
     send({ event: IPC_EVENTS.GAME_EXIT, payload });
   });
-  // MS_LOGIN 与 electron main.ts 同款漏钉（2026-10-31 测试者报障修复）：新增宿主事件
-  // 必须三处同步——本列表、electron main.ts wireEvents、lib.rs EVENT_CHANNELS
+  // 双壳同步要求：新增宿主事件必须三处同步——本列表、electron main.ts wireEvents、lib.rs EVENT_CHANNELS
   for (const event of [IPC_EVENTS.DOWNLOAD_PROGRESS, IPC_EVENTS.CUSTOM_INFO_CHANGED, IPC_EVENTS.MS_LOGIN] as const) {
     runtime.on(event, (payload) => {
       send({ event, payload });

@@ -1,6 +1,6 @@
 /**
  * 游戏进程生命周期：spawn、stdout/stderr 流、崩溃分类器 v0、kill/退出清理。
- * 戒律：游戏开独立顶层窗口，永不嵌入宿主（MCANextGen 风险登记 #3/#6 的全部教训）。
+ * 纪律：游戏开独立顶层窗口，永不嵌入宿主（对照 MCANextGen 风险登记 #3/#6）。
  */
 
 import { spawn, type ChildProcess, type ChildProcessByStdio } from 'node:child_process';
@@ -62,24 +62,23 @@ export interface GameProcessEvents {
  * 窗口看门狗（Windows）：两类覆盖——
  * ① Applet 容器（classic/pre-classic）：游戏循环不检查 isCloseRequested（v1 靠 JVM wrapper 的
  *   windowClosing→exit 兜底，legacyfix AppletFrame 无此监听），关窗后进程空转不退；
- * ② **直连进服的非 Applet 启动**（gameArgs 含 `--server`，2026-11-01 用户报障扩展）：老版本
+ * ② **直连进服的非 Applet 启动**（gameArgs 含 `--server`）：老版本
  *   多人网络读线程为非守护线程，联机中关窗 → 主线程退出但 JVM 被读线程挂住不随窗退出，
- *   进程残留在任务管理器（v1 由 QuitGame addon 兜底，legacyfix 上游空缺 = plan.md 已登记缺口）。
+ *   进程残留在任务管理器（v1 由 QuitGame addon 兜底，legacyfix 上游空缺）。
  * 轮询到游戏窗消失即 SIGTERM，让"关窗=退出"与常规版本行为一致。
  *
  * 游戏主窗识别 = 窗口类：Applet = `SunAwtFrame`（AppletFrame extends Frame 的 AWT 注册类），
  * 直连常规版 = `LWJGL`（LWJGL2 主窗注册类；类过滤同时天然排除 conhost/加载帧）。
- * 不吃 MainWindowHandle/标题字符串（2026-10-30 缺陷修复）：
+ * 不吃 MainWindowHandle/标题字符串：
  *   - legacyfix 的 levelServer 询问弹窗是 SunAwtDialog，且弹窗关闭后到游戏窗出现之间
- *     还有 downloadAssets 合法空窗——旧实现 $seen 被弹窗/瞬窗误闩 → 空窗期误报 CLOSED
- *     → SIGTERM 静默杀进程（用户实测「询问窗挂起 10s 内自动退出」）；
+ *     还有 downloadAssets 合法空窗——按窗口在场判定会被弹窗/瞬窗误闩 $seen → 空窗期误报
+ *     CLOSED → SIGTERM 静默杀进程（表现为询问窗挂起 10s 内自动退出）；
  *   - 标题匹配同样不可用——legacyfix-attic fork 已支持 -Dlf.title 自定义窗口标题，
  *     按 "Minecraft" 匹配会在自定义标题下永不闩上（看门狗失效 = 新缺陷）。
  * 共享 owner 帧（无标题）与隐藏窗被「未离屏 + 标题非空」过滤出局；双向 2 拍去抖
  * 防创建动画期瞬时枚举失败。
  * 实现选型 = UIAutomation（GAC 程序集直加载）——弃 Add-Type -MemberDefinition P/Invoke
- * 路线：那条路要现场跑 csc 编译，宿主环境 LIB 含失效路径时警告被当错误炸编译
- * （2026-10-30 本机实测），看门狗整体瘫痪。
+ * 路线：那条路要现场跑 csc 编译，宿主环境 LIB 含失效路径时警告被当错误炸编译，看门狗整体瘫痪。
  */
 function windowWatchdogScript(pid: number, windowClass: string): string {
   return [
@@ -106,7 +105,7 @@ function windowWatchdogScript(pid: number, windowClass: string): string {
 
 /**
  * 看门狗触发面 + 游戏主窗窗口类（纯函数，独立可测）：Applet 容器恒挂（SunAwtFrame）；
- * 非 Applet 仅直连进服挂（gameArgs 含 `--server` = 一次性直连/服务器页启动实锤信号；
+ * 非 Applet 仅直连进服挂（gameArgs 含 `--server` = 一次性直连/服务器页启动的判定信号；
  * LWJGL2 主窗类 `LWJGL`）；其余常规启动游戏自退、不挂。
  */
 export function watchdogWindowClass(config: LaunchConfig): string | null {
@@ -152,7 +151,7 @@ export class GameProcessManager {
     const pid = child.pid ?? -1;
     this.session = { pid, versionId, startedAt: Date.now() };
 
-    // Windows 下 java.exe 控制台输出走系统代码页（GBK/cp936）：UTF-8 解码中文报错即乱码（用户实测）。
+    // Windows 下 java.exe 控制台输出走系统代码页（GBK/cp936）：UTF-8 解码中文报错即乱码。
     // stream:true 解码器处理跨 chunk 拆开的多字节字符；非 Windows 维持 UTF-8。
     const decodeStdout = makeConsoleDecoder();
     const decodeStderr = makeConsoleDecoder();
@@ -194,7 +193,7 @@ export class GameProcessManager {
     this.child = child;
 
     // 看门狗触发面（见 windowWatchdogScript 头注）：Applet 容器恒挂；非 Applet 仅直连进服挂
-    // （--server 在 gameArgs = 一次性直连/服务器页启动的实锤信号，联机关窗挂线程残留的修复面）。
+    // （--server 在 gameArgs = 一次性直连/服务器页启动的判定信号，对应联机关窗线程残留）。
     if (process.platform === 'win32') {
       const watchdogClass = watchdogWindowClass(config);
       if (watchdogClass) this.startWindowWatchdog(child, pid, watchdogClass);

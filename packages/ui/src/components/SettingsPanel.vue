@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * 设置面板（BlockHelm 形态重写，用户定稿）：左栏分区导航 + 右栏详情，即改即存（防抖 400ms，无保存按钮）。
+ * 设置面板：左栏分区导航 + 右栏详情，即改即存（防抖 400ms，无保存按钮）。
  * 分区：通用 / 语言 / 启动与内存 / Java / 外观 / 关于 / 开发者设置；末项「建议与反馈」弹对话框不切页。
  * 启动/Java/关于属重组件（SettingsLaunch/SettingsJava/SettingsAbout）；
  * 语言热切换（setLocale 即时 + settings.language 单一真相）；主题仅模式可用，强调色/背景占位。
@@ -59,7 +59,7 @@ const pendingRoot = computed(() => {
   return o && o !== info.value?.dataRoot ? o : '';
 });
 
-// —— portable B 期⑥：路径警示常驻黄条 + 面包屑找回一次性提示 ——
+// —— portable：路径警示常驻黄条 + 面包屑找回一次性提示 ——
 /** 警示文案键（分类口径 = runtime classifyPathWarning，向导/设置页共用）。 */
 const PATH_WARN_KEYS = {
   non_ascii: 'portable.warnNonAscii',
@@ -131,11 +131,11 @@ async function chooseLanguage(code: string): Promise<void> {
   await patch({ language: code });
 }
 
-// —— 外观栏：预设 + 主题模式 + 强调色板（Modrinth 六族+琥珀缺省，tokens [data-accent] 静态层）+ 背景图 ——
+// —— 外观栏：预设 + 主题模式 + 强调色板（六族+琥珀缺省，tokens [data-accent] 静态层）+ 背景图 ——
 const themes = ['dark', 'light', 'system'] as const;
 const accentId = computed(() => settings.value.accentColor || 'amber');
 
-// 预设 = theme+accentColor 组合的快捷写入（路线 A 推导式，零落盘键）：
+// 预设 = theme+accentColor 组合的快捷写入（推导式，零落盘键）：
 // 当前预设由两控件现值反查目录全等命中；任何不匹配 = 自定义态（天然已落盘）。
 const activePresetId = computed(
   () =>
@@ -167,22 +167,22 @@ async function clearBackground(): Promise<void> {
 }
 
 // —— 反馈弹屏（功能建议 → Discussions 的 ideas 分区；Bug → Issues 空白新建页。
-// 两侧均不钉模板：仓库无 ISSUE_TEMPLATE/，勿再往 URL 里加 ?template=） ——
+// 两侧均不钉模板：仓库无 ISSUE_TEMPLATE/） ——
 const feedbackOpen = ref(false);
 const FEATURE_URL = 'https://github.com/CreatorCSIE/Attic-Minecraft-Launcher/discussions/new?category=ideas';
 const BUG_URL = 'https://github.com/CreatorCSIE/Attic-Minecraft-Launcher/issues/new';
 
 function feedback(url: string): void {
   feedbackOpen.value = false;
-  // 走 useExternalLink（2026-10-29 用户报障：此处 `void bridge.openExternalUrl` 丢结果 =
-  // 无默认浏览器时静默失败；关于页早已收口，此漏网调用点补上——失败落全局弹窗）
+  // 走 useExternalLink：裸调 openExternalUrl 丢结果 = 无默认浏览器时静默失败，
+  // 统一经它包装，失败落全局弹窗
   openExternal(url);
 }
 </script>
 
 <template>
   <div class="settings">
-    <!-- 左栏：分区导航（BlockHelm SecondaryMenu 形态；反馈为弹屏项不切页） -->
+    <!-- 左栏：分区导航（反馈为弹屏项不切页） -->
     <nav class="menu" :aria-label="t('settings.title')">
       <span class="menu-title">{{ t('settings.title') }}</span>
       <button
@@ -287,7 +287,7 @@ function feedback(url: string): void {
       </button>
     </nav>
 
-    <!-- 右栏：详情（内容列在剩余空间内浮中，同旧页用户指定） -->
+    <!-- 右栏：详情（内容列在剩余空间内浮中） -->
     <div class="detail">
       <div class="detail-inner">
         <!-- 通用 -->
@@ -304,9 +304,9 @@ function feedback(url: string): void {
             </div>
             <p v-if="pendingRoot" class="warn">{{ t('settings.general.rootPending', { path: pendingRoot }) }}</p>
             <p v-if="rootErr" class="warn root-err" role="alert">{{ rootErr }}</p>
-            <!-- B 期⑥：生效根路径警示常驻（警告不拦截，翻车面留给用户决策） -->
+            <!-- 生效根路径警示常驻（警告不拦截，翻车面留给用户决策） -->
             <p v-if="portableWarnText" class="warn">{{ portableWarnText }}</p>
-            <!-- B 期②：面包屑找回一次性提示（ini 自定义后指针丢失的兜底出路） -->
+            <!-- 面包屑找回一次性提示（ini 自定义后指针丢失的兜底出路） -->
             <p v-if="recoverOpen && recoverHintPath" class="warn root-err">
               {{ t('portable.recoverHint', { path: recoverHintPath }) }}
               <button class="mini" type="button" @click="recoverOpen = false">{{ t('portable.recoverDismiss') }}</button>
@@ -444,7 +444,7 @@ function feedback(url: string): void {
           </div>
         </section>
 
-        <!-- 开发者设置（用户拍板：endpoints+username 收编于此，发行时再评估可见性） -->
+        <!-- 开发者设置（endpoints+username 收编于此，发行时再评估可见性） -->
         <section v-else class="pane">
           <h3 class="pane-title">{{ t('settings.sectionDeveloper') }}</h3>
           <div class="card">
@@ -463,7 +463,7 @@ function feedback(url: string): void {
       </div>
     </div>
 
-    <!-- 反馈弹屏（不切页，纯外链两条大按钮；BlockHelm Dialog_Feedback 同款） -->
+    <!-- 反馈弹屏（不切页，纯外链两条大按钮） -->
     <AppDialog :open="feedbackOpen" @close="feedbackOpen = false">
       <header class="fb-head">
         <h2 class="fb-title">{{ t('settings.feedback.title') }}</h2>
@@ -527,8 +527,7 @@ function feedback(url: string): void {
   min-height: 0;
   padding: var(--space-5);
 }
-/* —— 左栏分区导航：与实例/账户/自定义版本页同构的 SecondaryMenuFrame 卡片列
-   （BlockHelm 实况核对：其设置页与游戏下载等页左栏为同一形态，非贴边侧栏） —— */
+/* —— 左栏分区导航：与实例/账户/自定义版本页同构的卡片列（非贴边侧栏） —— */
 .menu {
   flex: 0 0 248px;
   display: flex;
@@ -582,7 +581,7 @@ function feedback(url: string): void {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* —— 右栏详情：滚动 + 内容列浮中（同旧页用户指定） —— */
+/* —— 右栏详情：滚动 + 内容列浮中 —— */
 .detail {
   flex: 1;
   min-width: 0;
@@ -818,7 +817,7 @@ function feedback(url: string): void {
 .mono {
   font-family: var(--font-mono);
 }
-/* 主题分段器（旧 SettingsPanel 配方迁移） */
+/* 主题分段器 */
 .segmented {
   display: inline-flex;
   gap: var(--space-1);

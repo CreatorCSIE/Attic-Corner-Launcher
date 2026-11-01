@@ -1,6 +1,6 @@
 /**
  * Java 选择规则（移植自 MCANextGen java-discovery/select.ts，逻辑不动）。
- * 64 位 Java 8 优先；32 位仅在无 64 位时兜底，且必须告知调用方（风险 #7）。
+ * 64 位 Java 8 优先；32 位仅在无 64 位时兜底，且必须告知调用方。
  */
 
 import type { JavaArchitecture, JavaInstall, JavaSelection } from '@attic/core-spec';

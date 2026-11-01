@@ -1,6 +1,6 @@
 /**
- * 端点配置层（风险 #1）：所有上游 URL 经此层解析，支持部分覆盖。
- * 默认值为 Betacraft v1 实测的 files.betacraft.uk 路径（取证 ReleaseJson.java L39）。
+ * 端点配置层：所有上游 URL 经此层解析，支持部分覆盖。
+ * 默认值为 Betacraft v1 的 files.betacraft.uk 路径（ReleaseJson.java L39）。
  */
 
 import type { EndpointOverrides } from '@attic/core-spec';
@@ -15,7 +15,7 @@ export interface Endpoints {
   /**
    * legacyfix GitHub Release **直链 base**（拼 `<base>/<version>/<asset>`，version 取自
    * agentMount 文件名 = 钉版唯一事实源；不走 api.github.com——未认证 60 req/h/IP 限流
-   * 会直接导致 legacyfix 下载失败，2026-10-28 发版前实测确认）。
+   * 会直接导致 legacyfix 下载失败）。
    */
   legacyfixRelease: string;
   /** Azul Zulu 元数据 API。 */

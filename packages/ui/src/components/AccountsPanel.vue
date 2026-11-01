@@ -1,10 +1,10 @@
 <script setup lang="ts">
 /**
- * 账户页 —— BlockHelm AccountPageView 双栏形态（源码实测）：
- * 左 = SecondaryMenu 列（标题「账户」+ 账户项[头像/名/hover 删除] + 底部「添加账户」），
- * 右 = AccountDetailsView 用户信息（64px 头像 + 名称[离线可重命名] + 类型标签 + UUID 节[只读字段+复制]）。
- * 皮肤/披风节按用户指示不实现（仅留 UUID 部分）；添加账户为弹出子窗口（AddAccountDialog），非页内组件。
- * 选中列表项即设为当前账户（BlockHelm SelectAccountCommand 同款语义）。
+ * 账户页 —— 双栏形态：
+ * 左 = 账户菜单列（标题「账户」+ 账户项[头像/名/hover 删除] + 底部「添加账户」），
+ * 右 = 用户信息（64px 头像 + 名称[离线可重命名] + 类型标签 + UUID 节[只读字段+复制]）。
+ * 皮肤/披风节不实现（仅留 UUID 部分）；添加账户为弹出子窗口（AddAccountDialog），非页内组件。
+ * 选中列表项即设为当前账户。
  */
 import { ref, watch } from 'vue';
 import { useI18n } from '../i18n';
@@ -50,7 +50,7 @@ async function revalidate(account: AccountView): Promise<void> {
   await load();
 }
 
-// 删除确认（防误删，用户指定）：记录目标账户 + 弹窗开关 + 在途态
+// 删除确认（防误删）：记录目标账户 + 弹窗开关 + 在途态
 const removeOpen = ref(false);
 const removeTarget = ref<AccountView | null>(null);
 const removing = ref(false);
@@ -83,7 +83,7 @@ async function copyUuid(): Promise<void> {
 
 <template>
   <section class="accounts-page">
-    <!-- 左栏：账户列表菜单（SecondaryMenuFrame 等效） -->
+    <!-- 左栏：账户列表菜单 -->
     <aside class="menu">
       <h2 class="menu-title">{{ t('account.title') }}</h2>
 
@@ -190,7 +190,7 @@ async function copyUuid(): Promise<void> {
         </section>
       </div>
 
-      <!-- 空态：BlockHelm 同款——无卡片容器，仅一行居中文案 -->
+      <!-- 空态：无卡片容器，仅一行居中文案 -->
       <div v-else class="empty">
         <p class="state-hint">{{ t('account.hint') }}</p>
       </div>
@@ -212,7 +212,7 @@ async function copyUuid(): Promise<void> {
 </template>
 
 <style scoped>
-/* BlockHelm 骨架（用户指定，镜像自定义版本页）：SecondaryMenuFrame 贴左，详情内容浮中见 .info。 */
+/* 双栏骨架：左菜单卡片贴左，详情内容浮中见 .info。 */
 .accounts-page {
   display: flex;
   flex: 1;
@@ -220,7 +220,7 @@ async function copyUuid(): Promise<void> {
   min-height: 0;
   padding: var(--space-5);
 }
-/* —— 左栏：账户菜单（固定宽卡片，BlockHelm SecondaryMenuFrame 248px 等效） —— */
+/* —— 左栏：账户菜单（固定宽卡片 248px） —— */
 .menu {
   flex: 0 0 248px;
   display: flex;
@@ -255,7 +255,7 @@ async function copyUuid(): Promise<void> {
 .menu-row {
   position: relative;
 }
-/* 列表项：头像 + 名；选中 = surface-3 底高亮（SecondaryMenuOptionButton 配方） */
+/* 列表项：头像 + 名；选中 = surface-3 底高亮 */
 .menu-item {
   display: flex;
   align-items: center;
@@ -286,7 +286,7 @@ async function copyUuid(): Promise<void> {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* 令牌失效徽标（warn 配方可选添加弹窗 .soon 同款色系）：行内 + 详情类型行共用 */
+/* 令牌失效徽标（warn 色系）：行内 + 详情类型行共用 */
 .mi-warn {
   flex: 0 0 auto;
   font-size: var(--fs-xs);
@@ -296,7 +296,7 @@ async function copyUuid(): Promise<void> {
   color: var(--warn);
   background: var(--warn-soft);
 }
-/* 删除钮：hover 行时浮现（BlockHelm Opacity 0→1 触发器等效） */
+/* 删除钮：hover 行时浮现（opacity 0→1） */
 .mi-del {
   position: absolute;
   top: 50%;
@@ -332,7 +332,7 @@ async function copyUuid(): Promise<void> {
 .mi-del:disabled {
   display: none;
 }
-/* 添加账户：菜单底部行（SecondaryMenuOptionButton 等效） */
+/* 添加账户：菜单底部行 */
 .menu-add {
   display: flex;
   align-items: center;
@@ -356,7 +356,7 @@ async function copyUuid(): Promise<void> {
 .menu-add:hover {
   background-color: var(--surface-3);
 }
-/* —— 右栏：用户信息（BlockHelm 用户指定：限宽列在剩余空间中水平浮中） —— */
+/* —— 右栏：用户信息（限宽列在剩余空间中水平浮中） —— */
 .detail {
   flex: 1;
   min-width: 0;
@@ -425,7 +425,7 @@ async function copyUuid(): Promise<void> {
   font-weight: 600;
   color: var(--text-primary);
 }
-/* UUID 只读字段（ReadOnlyFieldSurface 配方：控件底 + inset + 右缘复制钮） */
+/* UUID 只读字段：控件底 + inset + 右缘复制钮 */
 .uuid-field {
   display: flex;
   align-items: center;

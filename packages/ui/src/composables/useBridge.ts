@@ -2,9 +2,8 @@
  * useBridge —— 封装 window.attic 桥面。
  * 浏览器直开（无 Electron preload）时返回降级 mock：列表类返回空、动作类返回 no-bridge 错误，
  * 保证 UI 不崩且走"空状态"分支（缺桥横幅由 App.vue 依 hasBridge 展示）。
- * dev 演示模式（?demo=1，见 dev/demo.ts 自述承诺）：无真桥且 isDemo() 时以假数据覆写
- * 列表/设置/Java 探测，支撑"无宿主在场直接在浏览器排版出真稿"的工作流；
- * 动作类仍走 mock 的 no-bridge 错误（不伪装可启动）。
+ * dev 演示模式（?demo=1，见 dev/demo.ts）：无真桥且 isDemo() 时以假数据覆写
+ * 列表/设置/Java 探测，供无宿主时浏览器内排版；动作类仍走 mock 的 no-bridge 错误（不伪装可启动）。
  */
 
 import { computed, type ComputedRef } from 'vue';
@@ -37,7 +36,7 @@ import { buildTauriBridge } from '../bridge/tauri';
 
 const NO_BRIDGE = 'no-bridge';
 
-/** demo 假安装目录（Electron 安装版典型落位）：向导/设置页护栏演练口径用。 */
+/** demo 假安装目录（Electron 安装版典型落位）：供向导/设置页护栏拒绝演练。 */
 const DEMO_INSTALL_DIR = 'C:\\Users\\Player\\AppData\\Local\\Programs\\Attic';
 
 /** demo pickDirectory 轮转值：第 2 次起命中安装目录 → 护栏拒绝错误行可在浏览器里排练。 */
@@ -129,7 +128,7 @@ const mockBridge: RendererBridge = {
       return err<void>(error instanceof Error ? error.message : String(error));
     }
   },
-  // 崩溃取证属宿主 fs/环境语义：浏览器 mock 无真值（CrashPanel 三按钮走可见失败）。
+  // 崩溃上报与诊断包属宿主 fs/环境语义：浏览器 mock 无真值（CrashPanel 三按钮走可见失败）。
   reportRendererError: async () => err<void>(NO_BRIDGE),
   getCrashBundle: async () => err<CrashBundleResult>(NO_BRIDGE),
   on: () => () => {},
@@ -167,8 +166,8 @@ function demoBridge(): RendererBridge {
     msStartLogin: async () =>
       ok<MsDeviceCode>({ userCode: 'ABCD-EFGH', verificationUri: 'https://www.microsoft.com/link', expiresIn: 900, interval: 5 }),
     msCancelLogin: async () => ok<void>(undefined),
-    // demo 假安装目录：演练护栏口径——rootOverride 落进它内即拒绝（文案与 runtime 护栏一致；
-    // 前缀比对去掉尾部分隔符再拼 sep，兄弟前缀不误判 = isPathWithin 同纪律）。
+    // demo 假安装目录护栏：rootOverride 落进它内即拒绝（文案与 runtime 护栏一致；
+    // 前缀比对去掉尾部分隔符再拼 sep，兄弟前缀不误判，与 isPathWithin 同规则）。
     setSettings: async (s: AppSettings) => {
       if (s.rootOverride) {
         const norm = (p: string) => p.replace(/[\\/]+$/, '').toLowerCase();
@@ -249,7 +248,7 @@ function demoBridge(): RendererBridge {
 }
 
 export function useBridge(): BridgeHandle {
-  // 真桥两级探测（Phase 4）：Electron preload 注入的 window.attic 优先；
+  // 真桥两级探测：Electron preload 注入的 window.attic 优先；
   // Tauri 壳（withGlobalTauri）以 __TAURI__ 全局面适配出同款 RendererBridge。
   const real =
     typeof window !== 'undefined'

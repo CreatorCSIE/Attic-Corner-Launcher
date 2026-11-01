@@ -1,5 +1,5 @@
 /**
- * portable 便携态判定与随身指针（B 期，plan.md 2026-10-25 终拍）。
+ * portable 便携态判定与随身指针。
  *
  * 双指纹判定式 = 程序目录 marker ini 在场 ∨（exe 旁 `.attic` 在场 ∧ 其内 `launcher/portable.anchor` 在场）。
  * marker 埋程序目录（tauri = `sidecar/portable.ini`、electron/legacy = `resources/portable.ini`，随 zip 出厂）；
@@ -221,7 +221,7 @@ export function syncPortableRegistry(defaultRoot: string, resolution: PortableRe
 }
 
 /**
- * temp 守卫特征判定（plan.md 终拍⑤，宿主 boot 消费）：exeDir 命中 %TEMP%/%TMP% 前缀
+ * temp 守卫特征判定（宿主 boot 消费）：exeDir 命中 %TEMP%/%TMP% 前缀
  * 或 `Rar$`/`7z$`/`WinRar$` 特征段（压缩软件就地解体的目录指纹）。
  * 「exe 旁无既有 .attic」条件归宿主（与判定式合取后才拒启）。
  */

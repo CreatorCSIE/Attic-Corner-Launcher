@@ -1,20 +1,19 @@
 <script setup lang="ts">
 /**
- * 首启欢迎向导（Phase 5 A 期定稿）：三步 stepper 模态「目录 → 账户 → Java」，安装版/portable 通用。
+ * 首启欢迎向导：三步 stepper 模态「目录 → 账户 → Java」，安装版/portable 通用。
  * 三重门判定（任一不满足即不弹，误弹方向保守）：无本 flavor 完成标记 ∧ 无 rootOverride ∧ 生效根无既有数据；
  * sysinfo 取不到（缺桥/读失败）= 永不弹。判定只发生一次（decided 闩），会话内不因数据回流复弹。
- * B 期④ + 修复（2026-10-25）：门之三 = 「无 wizardFlavor 戳的本 flavor 完成」∧「本 flavor 生效根无数据」
+ * 门之三 = 「无 wizardFlavor 戳的本 flavor 完成」∧「本 flavor 生效根无数据」
  * ——portable 判 portable.rootPopulated（生效根构造期快照），安装版判 defaultRootPopulated；
- * 共享默认根时先完成者/安装版历史都不压掉便携弹窗；存量 wizardDone 无戳 = 视为 installed（plan.md L254 口径）。
- * 目录步骤（B 期）：portable.active 加「exe 旁本地目录（随盘走）」且缺省选中——local = 不写指针；
+ * 共享默认根时先完成者/安装版历史都不压掉便携弹窗；存量 wizardDone 无戳 = 视为 installed。
+ * 目录步骤：portable.active 加「exe 旁本地目录（随盘走）」且缺省选中——local = 不写指针；
  * 安装版维持消解式两选项（默认根 / 自定义）；
  * 手选撞进安装目录由宿主 setSettings 护栏拒绝，拒绝原文（实际动作+出路）直陈错误行。
  * 账户/Java 步骤 = 既有通道纯编排（accounts:add / 微软设备码登录弹窗 / detectJava 全候选 / settings.javaPath），零新 IPC。
- * 2026-11-01 用户拍板两处补强：①账户步引入「添加账户」同款微软登录配方（msOpen 挂 MsLoginDialog，
- * 成功即落账+选中）；②Java 步对齐设置→Java = 候选列表可点选固定 + 「指定 Java 目录」兜底
- * （候选未列出时用 pickDirectory 选 JDK 目录，javaPath 双形态由宿主解析 bin/java，exe 文件对话框退役）。
+ * 账户步挂 MsLoginDialog（成功即落账+选中）；Java 步 = 候选列表可点选固定 + 「指定 Java 目录」兜底
+ * （候选未列出时用 pickDirectory 选 JDK 目录，javaPath 双形态由宿主解析 bin/java）。
  * 完成与跳过皆写 wizardDone（"已见过向导"语义收敛于此键，与指针职责分离）。
- * 视觉纪律（ui-design §2/§6/§7）：每屏恰一 accent（下一步/开始游戏实心）、stepper 顶置、
+ * 视觉规则：每屏恰一 accent（下一步/开始游戏实心）、stepper 顶置、
  * 五态齐全、动效走 AppDialog 既有 200ms 律。
  */
 import { computed, ref, watch } from 'vue';
@@ -40,7 +39,7 @@ const dirChoice = ref<'default' | 'custom' | 'local'>('default');
 const customPath = ref('');
 
 // —— 三重门：两个数据源（settings 视图 + sysinfo 快照）都就绪才判一次 ——
-// B 期④：门之三 = 无本 flavor 完成标记（wizardFlavor 戳）；flavor 在判定时锁定（sysinfo 是启动快照，会话内不翻转）
+// 门之三 = 无本 flavor 完成标记（wizardFlavor 戳）；flavor 在判定时锁定（sysinfo 是启动快照，会话内不翻转）
 const visible = ref(false);
 let decided = false;
 const flavor = ref<'installed' | 'portable'>('installed');
@@ -52,7 +51,7 @@ watch(
     decided = true;
     flavor.value = i.portable?.active ? 'portable' : 'installed';
     const flavorDone = !!settings.value.wizardDone && (settings.value.wizardFlavor ?? 'installed') === flavor.value;
-    // B 期修复（2026-10-25 用户实机取证）：门之三数据源 flavor 感知——portable 判生效根快照
+    // 门之三数据源 flavor 感知——portable 判生效根快照
     // （portable.rootPopulated），不得复用 defaultRootPopulated：安装版/dev 历史都在默认根，
     // 复用则便携首启永不弹。portable 块缺席 = 保守 true（不弹，与「sysinfo 读失败永不弹」同方向）。
     const populated = flavor.value === 'portable' ? (i.portable?.rootPopulated ?? true) : i.defaultRootPopulated;
@@ -66,7 +65,7 @@ const step = ref(0);
 const err = ref<string | null>(null);
 const busy = ref(false);
 
-// —— 路径警示（B 期⑥，警告不拦截）：便携根走 sysinfo 快照，customPath 走 UI 本地小分类器 ——
+// —— 路径警示（警告不拦截）：便携根走 sysinfo 快照，customPath 走 UI 本地小分类器 ——
 // sysinfo 是启动快照覆盖不到"正在选"的路径；分类口径与 runtime classifyPathWarning 一致（非 ASCII > 空格 > 长度 ≥240）
 const PATH_WARN_KEYS = {
   non_ascii: 'portable.warnNonAscii',
@@ -103,7 +102,7 @@ async function pickDir(): Promise<void> {
 
 // —— 步骤 2：账户（已有则纯展示；空则一个输入框，留空 = 跳过本步）——
 const newName = ref('');
-/** 微软登录弹窗（AccountsPanel 同款配方；success 内自刷列表并选中，账户区即时更新）。 */
+/** 微软登录弹窗（success 内自刷列表并选中，账户区即时更新）。 */
 const msOpen = ref(false);
 
 // —— 步骤 3：Java（进步即探测；手动覆盖可选，继续自动 = 不写 javaPath）——
@@ -122,7 +121,7 @@ async function pickJavaDir(): Promise<void> {
   if (res.value) manualJava.value = res.value; // 取消 = 不动
 }
 
-/** 点选候选 = 固定该可执行文件（与设置→Java 手动模式同款语义；再点「继续用自动探测」解除）。 */
+/** 点选候选 = 固定该可执行文件（同手动 javaPath 语义；再点「继续用自动探测」解除）。 */
 function chooseCandidate(executable: string): void {
   manualJava.value = executable;
 }
@@ -166,7 +165,7 @@ async function next(): Promise<void> {
         }
       }
     } else {
-      // 完成：wizardDone + flavor 戳（B 期④三重门之三判据）与 Java 手动覆盖一并落
+      // 完成：wizardDone + flavor 戳（三重门之三判据）与 Java 手动覆盖一并落
       // （undefined = 键不动/清除语义由合并映射处理；portable 落锚是 runtime setSettings 副作用）
       const r = await patchDetailed({ wizardDone: true, wizardFlavor: flavor.value, javaPath: manualJava.value || undefined });
       if (!r.ok) {
@@ -182,7 +181,7 @@ async function next(): Promise<void> {
   }
 }
 
-/** 跳过 = 用默认，同样写 wizardDone + flavor 戳（防"跳过不标记 → 反复弹"，定稿修正点；
+/** 跳过 = 用默认，同样写 wizardDone + flavor 戳（防"跳过不标记 → 反复弹"；
  * portable 跳过 = 随盘根 + 落锚副作用照常，flavor 门不松）。 */
 async function skip(): Promise<void> {
   err.value = null;
@@ -293,7 +292,7 @@ const STEP_KEYS = ['wizard.stepDir', 'wizard.stepAccounts', 'wizard.stepJava'] a
         </p>
         <p v-else class="hint warn-line">{{ t('wizard.javaNone') }}</p>
         <p v-if="javaReport.selection.install" class="mono path-line">{{ javaReport.selection.install.executable }}</p>
-        <!-- 候选列表（设置→Java 同款可点选配方；点选 = 固定手动 javaPath，选中行 accent 描边） -->
+        <!-- 候选列表（可点选固定；点选 = 固定手动 javaPath，选中行 accent 描边） -->
         <p v-if="javaReport.installs.length" class="hint muted">{{ t('wizard.javaPickHint') }}</p>
         <div v-if="javaReport.installs.length" class="cand-list">
           <button
@@ -332,7 +331,7 @@ const STEP_KEYS = ['wizard.stepDir', 'wizard.stepAccounts', 'wizard.stepJava'] a
       <button class="btn btn--text" type="button" :disabled="busy" @click="skip">{{ t('wizard.skip') }}</button>
       <span class="spacer"></span>
       <button v-if="step > 0" class="btn btn--ghost" type="button" :disabled="busy" @click="back">{{ t('wizard.back') }}</button>
-      <!-- 每屏唯一 accent 实心元素（§2） -->
+      <!-- 每屏唯一 accent 实心元素 -->
       <button class="btn btn--accent" type="button" :disabled="busy" @click="next">
         {{ step === 2 ? t('wizard.finish') : t('wizard.next') }}
       </button>
@@ -504,7 +503,7 @@ const STEP_KEYS = ['wizard.stepDir', 'wizard.stepAccounts', 'wizard.stepJava'] a
 .cand-line {
   word-break: break-all;
 }
-/* Java 候选列表（SettingsJava 下沉井配方按向导密度收紧） */
+/* Java 候选列表（按向导密度收紧） */
 .cand-list {
   display: flex;
   flex-direction: column;

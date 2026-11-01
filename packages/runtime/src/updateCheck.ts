@@ -18,7 +18,7 @@ import type { UpdateCheckResult } from '@attic/core-spec';
 import type { FetchImpl } from './betacraft';
 
 /**
- * 默认发布仓库（2026-10-25 拍板 = 同仓收口：开发仓即发布仓）。
+ * 默认发布仓库（同仓：开发仓即发布仓）。
  * 依据：releases 构件 = 纯启动器二进制（与源码仓同一零版权面）；`releases/latest` API
  * 天然排除 prerelease/draft（nightly/0.0.x/台账不污染通道）；同仓 = Actions GITHUB_TOKEN
  * 零跨仓 PAT。env ATTIC_RELEASE_REPO / 构造选项 = 测试仓彩排逃生舱；显式空串 = 强制关通道（unconfigured）。
@@ -160,7 +160,7 @@ export async function checkLatestRelease(deps: UpdateCheckDeps): Promise<UpdateC
   }
   const [owner, name] = parts as [string, string];
   const current = deps.currentVersion;
-  // 轨分流：nightly 构件走列表轨中匹配；stable 与其余预发布构件照旧 /latest 单请求（行为零变化）。
+  // 轨分流：nightly 构件走列表轨中匹配；stable 与其余预发布构件 = /latest 单请求。
   const nightlyTrack = current.includes('-nightly.');
   const repoBase = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`;
   const url = nightlyTrack ? `${repoBase}/releases?per_page=30` : `${repoBase}/releases/latest`;

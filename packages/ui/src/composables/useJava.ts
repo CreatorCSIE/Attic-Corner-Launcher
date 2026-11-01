@@ -1,5 +1,5 @@
 /**
- * useJava —— Java 探测全量报告（风险 #7：失败面板列全部候选与原因）。
+ * useJava —— Java 探测全量报告（失败面板列全部候选与原因）。
  */
 
 import { ref } from 'vue';

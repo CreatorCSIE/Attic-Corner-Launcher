@@ -1,6 +1,6 @@
 /**
  * 存储层：`.attic/` 数据根（三平台路径 + portable + rootDir 可配置），
- * 内部结构与 Betacraft v1 完全一致（plan.md「数据目录布局」，取证 BC.java + Launcher.java L256-261）。
+ * 内部结构与 Betacraft v1 完全一致（对照 BC.java + Launcher.java L256-261）。
  */
 
 import crypto from 'node:crypto';
@@ -117,14 +117,12 @@ export function ensureLayout(root: string): void {
 }
 
 /**
- * 根是否已有真实用户数据（首启向导门之三「有数据 = 老用户」的统一口径，B 期修复 2026-10-25）。
- * 前史 = hasAnyEntries 裸条目计数：ensureLayout 骨架 = 纯目录零文件，骨架一旦落位判定恒真
- * ——安装版新机永不弹（构造期 ensureLayout 先于 sysinfo）、便携中断残留次启被压。
- * 改按文件标记判定：launcher.settings / accounts.json / mods.json / instances 任一文件 /
- * versions 顶层任一文件（游戏 jar）/ bin 顶层任一文件（库池 jar）——骨架目录零文件，天然不误判。
+ * 根是否已有真实用户数据（首启向导门之三「有数据 = 老用户」的统一口径）。
+ * 按文件标记判定：launcher.settings / accounts.json / mods.json / instances 任一文件 /
+ * versions 顶层任一文件（游戏 jar）/ bin 顶层任一文件（库池 jar）——ensureLayout
+ * 骨架是纯目录零文件，天然不误判（裸条目计数会被骨架恒真击穿）。
  * settings 须含**便携登记簿之外的键**才算数：`lastPortableRoot`/`portableFallback` 是 portable
- * 激活时写进默认根的机器生成面包屑（syncPortableRegistry），非用户数据——先用过便携版的机器
- * 再装安装版，不得被它压掉向导（2026-10-25 用户拍板口径）。
+ * 激活时写进默认根的机器生成面包屑（syncPortableRegistry），非用户数据——不得被它压掉向导。
  * 读失败 = false（未初始化方向；向导其余两门仍把误弹）。
  */
 export function hasUserData(root: string): boolean {
@@ -309,8 +307,8 @@ export function setInstanceVersionField(root: string, name: string, version: str
 /** 整档案保存 = properties 级合并写回（setSettings 同款纪律，setInstanceVersionField 同构）：
  * 托管键集内 defined → 原位写入、undefined → 删键（视图字段"清空"语义）；托管集之外的键
  * （未来发现的 v1 遗留键、用户手加的未知键）原样保留、键序不动。
- * 曾经的整档案盲写覆盖会静默丢 `proxy/keepopen/RPC/console/isJavaPathNew`——视图不携带的键
- * 由 facade 层以既有档案为底稿带走（runtime.saveInstance），storage 层只认 config 形状。 */
+ * 视图不携带的键（proxy/keepopen/RPC/console/isJavaPathNew…）由 facade 层以既有档案
+ * 为底稿带走（runtime.saveInstance），storage 层只认 config 形状——整档案盲写会静默丢键。 */
 export function saveInstance(root: string, config: InstanceConfig): void {
   assertInstanceName(config.name);
   const file = INSTANCE_FILE(root, config.name);
@@ -353,7 +351,7 @@ export function scanBinPool(root: string): string[] {
 }
 
 /** 已安装（有客户端 jar）版本：versions/*.jar。"已安装"徽标的唯一真相源——
- * 仅有 .info 元数据而无 jar 不算安装（用户指定）。 */
+ * 仅有 .info 元数据而无 jar 不算安装。 */
 export function scanInstalledJars(root: string): string[] {
   const ids = new Set<string>();
   try {

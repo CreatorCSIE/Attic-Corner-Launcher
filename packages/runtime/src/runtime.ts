@@ -172,7 +172,7 @@ export interface AtticRuntimeOptions {
    */
   installDir?: string;
   /**
-   * portable B 期：程序目录（exe 所在目录）。宿主显式传——sidecar 的 process.execPath = node.exe
+   * portable 形态：程序目录（exe 所在目录）。宿主显式传——sidecar 的 process.execPath = node.exe
    * 不可信（硬纪律），exeDir 判定面不得依赖它。在场 = runtime 做双指纹便携判定。
    */
   exeDir?: string;
@@ -259,10 +259,10 @@ export class AtticRuntime {
   readonly defaultRoot: string;
   /** 宿主安装目录（护栏参照；缺省 = 无护栏，测试/程序化场景）。 */
   readonly installDir: string | undefined;
-  /** portable B 期双指纹判定结果（exeDir 缺席或非便携 = null）。pointerRoot 随 setSettings 指针写回同步。 */
+  /** portable 双指纹判定结果（exeDir 缺席或非便携 = null）。pointerRoot 随 setSettings 指针写回同步。 */
   readonly portable: PortableResolution | null;
   /**
-   * 便携生效根「已有真实数据」构造期快照（B 期修复 2026-10-25，sysinfo portable.rootPopulated 数据源）：
+   * 便携生效根「已有真实数据」构造期快照（SYS_INFO portable.rootPopulated 数据源）：
    * ensureLayout 之前取（读的是启动前状态）；hasUserData 文件标记口径 = 中断残留骨架不误判。
    * 只读回落态 root = defaultRoot，快照自然回落「默认根老用户」老语义，无需特判。
    */
@@ -285,7 +285,7 @@ export class AtticRuntime {
   private readonly processes: GameProcessManager;
   private readonly listeners = new Map<string, Set<(payload: never) => void>>();
   private lastLaunchError: string | null = null;
-  /** 在途启动的取消控制器（feat①）：launch() 建、finally 清；cancelLaunch() 消费。 */
+  /** 在途启动的取消控制器：launch() 建、finally 清；cancelLaunch() 消费。 */
   private launchAbort: AbortController | null = null;
   /** 在途微软设备码流（single-flight）：msStartLogin 建、链终局清；msCancelLogin 消费 abort。 */
   private msLoginFlow: { controller: AbortController } | null = null;
@@ -298,8 +298,8 @@ export class AtticRuntime {
   constructor(options: AtticRuntimeOptions = {}) {
     // 平台默认根（rootOverride 指针落位/向导三重门判定基线/只读回落目标）：同参数但不带 override/portable。
     this.defaultRoot = resolveDataRoot({ platform: options.platform, env: options.env, execPath: options.execPath });
-    // portable B 期双指纹判定（exeDir 缺席 = 非便携：测试/程序化场景天然不命中）。
-    // 硬纪律：exeDir 宿主显式传（sidecar 的 process.execPath = node.exe 不可信），判定逻辑单点在 runtime。
+    // portable 双指纹判定（exeDir 缺席 = 非便携：测试/程序化场景天然不命中）。
+    // exeDir 必须宿主显式传（sidecar 的 process.execPath = node.exe 不可信），判定逻辑单点在 runtime。
     this.portable = options.exeDir
       ? detectPortable({
           exeDir: options.exeDir,
@@ -320,18 +320,18 @@ export class AtticRuntime {
       rootDirOverride: options.rootDir ?? (this.portable?.active ? this.portable.root : undefined),
     });
     this.installDir = options.installDir;
-    // 门之三 flavor 感知数据源（B 期修复）：便携态在 ensureLayout 落骨架前快照生效根数据态。
+    // flavor 感知数据源：便携态在 ensureLayout 落骨架前快照生效根数据态。
     this.portableRootPopulated = this.portable?.active ? hasUserData(this.root) : false;
     ensureLayout(this.root);
     this.lastCrash = consumeCrashMarker(this.root);
     this.version = options.version ?? '0.0.0';
-    // 检查更新仓库：构造参数 > env ATTIC_RELEASE_REPO > 默认同仓（2026-10-25 收口：开发仓即发布仓）。
+    // 检查更新仓库：构造参数 > env ATTIC_RELEASE_REPO > 默认同仓。
     // 显式空串 = 强制关通道（unconfigured 数据分支，不炸）；env/选项非空 = 测试仓彩排逃生舱。
     this.releaseRepo = options.releaseRepo ?? (options.env ?? process.env)['ATTIC_RELEASE_REPO'] ?? DEFAULT_RELEASE_REPO;
     this.shell = options.shell ?? 'electron';
     this.platform = options.platform ?? process.platform;
     this.msDeps = options.msDeps ?? {};
-    // 便携态构造期副作用（幂等、值变才写）：面包屑登记 / 只读回落标记（默认根登记簿，plan.md 终拍②③）。
+    // 便携态构造期副作用（幂等、值变才写）：面包屑登记 / 只读回落标记（默认根登记簿）。
     if (this.portable?.active) syncPortableRegistry(this.defaultRoot, this.portable);
     // 端点优先级：构造参数（测试/程序化）> launcher.settings 的 endpoint.* 覆盖 > 默认。
     this.endpoints = options.endpoints
@@ -355,7 +355,7 @@ export class AtticRuntime {
     const set = this.listeners.get(event) ?? new Set();
     set.add(cb as (payload: never) => void);
     this.listeners.set(event, set);
-    // jsons 监视器懒启停：无订阅者不开句柄（探针实测 Windows 下未 close 的 fs.watch 会钉住
+    // jsons 监视器懒启停：无订阅者不开句柄（Windows 下未 close 的 fs.watch 会钉住
     // node --test 子进程退出，unref 不解除）；宿主 wireEvents 常驻订阅 → 等价全程监视。
     if (event === IPC_EVENTS.CUSTOM_INFO_CHANGED) this.startInfoWatcher();
     return () => {
@@ -371,11 +371,11 @@ export class AtticRuntime {
   }
 
   /**
-   * jsons 目录监视（外部编辑 .info 实时更新，用户指定）：只认 `*.info`，编辑器保存常伴随
+   * jsons 目录监视（外部编辑 .info 实时更新）：只认 `*.info`，编辑器保存常伴随
    * 多事件/temp+rename，按 id 去抖 250ms 合并后发 CUSTOM_INFO_CHANGED。
    * 启动器自身保存的回声由 UI 侧 selfWrite 窗口吸收（配置页保存后已自刷新，不依赖本事件）。
-   * 由 on(CUSTOM_INFO_CHANGED) 首个订阅者懒启动（见上）；unref + 订阅清零时 close：
-   * 探针实测 Windows 未 close 的 fs.watch 句柄会钉住 node --test 子进程退出。
+   * 由 on(CUSTOM_INFO_CHANGED) 首个订阅者懒启动（见上）；unref + 订阅清零时 close
+   * （Windows 未 close 的 fs.watch 句柄会钉住 node --test 子进程退出）。
    */
   private startInfoWatcher(): void {
     if (this.infoWatcher) return;
@@ -438,13 +438,11 @@ export class AtticRuntime {
   }
 
   /**
-   * 缓存优先（stale-while-revalidate，2026-10-22 修「版本列表首帧空窗」纯视觉 bug）：
-   * 缓存即在 → 即返缓存 + fire-and-forget 后台刷新（最终一致：下一次拉取即新数据；
-   * UI 每次展开都重拉，钉开态滞留一帧可接受）。缓存缺席 → 等网络（首次运行的诚实等待），
-   * 再失败 → refs=null。旧策略「永远 await 网络、失败才看缓存」让 UI 每一帧都为网络
-   * 让路——缓存明明在场（versionListCacheFile 早已落盘）却从不作首帧数据源。
+   * 缓存优先（stale-while-revalidate）：缓存即在 → 即返缓存 + fire-and-forget 后台刷新
+   * （最终一致：下一次拉取即新数据；UI 每次展开都重拉，钉开态滞留一帧可接受）。
+   * 缓存缺席 → 等网络（首次运行的诚实等待），失败 → refs=null。
    * installed/custom 判定面每次现扫磁盘 + 读缓存文件，不受本方法返回新鲜度影响。
-   * 注意：需要「刷新完成」语义的调用方（installMod 官方同名门禁，用户拍板）必须直接
+   * 注意：需要「刷新完成」语义的调用方（installMod 官方同名门禁）必须直接
    * await refreshVersionListCache()——本方法缓存即在时不等网络。
    */
   async listVersions(): Promise<VersionRef[]> {
@@ -463,11 +461,11 @@ export class AtticRuntime {
       }
     }
 
-    // "已安装"= jar 实存（用户指定）；jar∪info 并集仅用于离线兜底列出本地版本
+    // "已安装"= jar 实存；jar∪info 并集仅用于离线兜底列出本地版本
     const jars = new Set(scanInstalledJars(this.root));
     const infos = new Set(scanInstalledInfos(this.root));
-    // 官方清单 id 集（网络/缓存 refs 同源）：**官方命中 > 本地声明**（inf-20100227-1433 实案——
-    // BC 版本地 .info 缺失或残留 custom=true 都不得判 custom；前者"未落元数据"，后者为陈旧误写）。
+    // 官方清单 id 集（网络/缓存 refs 同源）：**官方命中 > 本地声明**——
+    // BC 版本地 .info 缺失或残留 custom=true 都不得判 custom（前者"未落元数据"，后者为陈旧误写）。
     const official = new Set((refs ?? []).map((ref) => ref.id));
     const isCustom = (id: string): boolean =>
       // v1 语义（offlineVersionList）：裸 jar（有 jar 无 .info）或 .info 显式声明，且不在官方清单
@@ -533,10 +531,10 @@ export class AtticRuntime {
   }
 
   /**
-   * 每次启动重下 .info（v2 已知坑：元数据陈旧）；网络失败退本地。
+   * 每次启动重下 .info（防元数据陈旧）；网络失败退本地。
    * v1 豁免（Launcher.java L412/L432）：custom=true 的 .info 归用户所有，跳过重下/覆盖。
    * Mods 安装器登记的 mod 走独立通道：按 launcher/mods.json 登记的直链刷新（autoupdate/缺失才拉），
-   * 绝不回落官方默认 versionJson(id) URL——v1 Launcher.java L410-414「离线误路由官方 URL」的结构性修复。
+   * 绝不回落官方默认 versionJson(id) URL（v1 Launcher.java L410-414 离线误路由官方 URL 的坑）。
    */
   private async refreshVersionInfo(versionId: string): Promise<VersionJson> {
     // HMCL 阶段行可见性：version-json 每次启动必刷（本地命中也走），合成 queued/done 对括住刷新
@@ -567,10 +565,10 @@ export class AtticRuntime {
   }
 
   /**
-   * 已登记 mod 的 .info 刷新（v1 Launcher.java L417-426 语义 + 两处修复）：
+   * 已登记 mod 的 .info 刷新（v1 Launcher.java L417-426 语义）：
    * - autoupdate=false 且本地在位 → 直接用本地，不联网；
    * - 刷新失败但本地在位 → 留旧文件离线启动（原子写保证旧文件未被破坏）；
-   * - 刷新失败且本地缺失 → 显式报错（v1「静默假可用」修复：绝不带残缺进 spawn）。
+   * - 刷新失败且本地缺失 → 显式报错（v1「静默假可用」的坑：绝不带残缺进 spawn）。
    */
   private async refreshRegisteredModInfo(versionId: string, entry: ModRegistryEntry): Promise<VersionJson> {
     const localText = readTextIfPresent(infoFile(this.root, versionId));
@@ -605,7 +603,7 @@ export class AtticRuntime {
   }
 
   /**
-   * indev 混代归位（用户报障：早期 indev jar 无 Minecraft.main → "找不到主类"）：
+   * indev 混代归位（早期 indev jar 无 Minecraft.main → "找不到主类"）：
    * launch-method=indev 覆盖 2.0-preview→1.5.2，按本地 jar 探测——仅 MinecraftApplet 形态
    * 改走 legacyfix AppletLauncher 容器（候选表首项即 net.minecraft.client.MinecraftApplet，
    * jar 已在 classpath，无需 --appletClass）；beta+ 维持 Minecraft 主类直启。
@@ -621,10 +619,9 @@ export class AtticRuntime {
   /**
    * pre-Classic（launch-method=preclassic，rd 代 jar）的 --appletClass 显式注入：
    * rd 系 jar 仅含 RubyDung 入口，26.8 AppletLauncher 候选表两个 MinecraftApplet 名
-   * 皆不存在 → main 返回、进程 code=0 静默秒退（pc-132011 实测定格；level.dat 缺失
-   * 只是开局噪音，注入后窗口与游戏循环正常）。探测失败 = 不注入（维持可见失败，
+   * 皆不存在 → main 返回、进程 code=0 静默秒退。探测失败 = 不注入（维持可见失败，
    * probeIndevEntry 同纪律）。
-   * 已知不修（用户拍板，视为 Pre-Classic 特色）：rd 窗口内容 LWJGL Display 右下偏移。
+   * 已知不修（视为 Pre-Classic 特色）：rd 窗口内容 LWJGL Display 右下偏移。
    */
   private resolvePreclassicAppletClass(json: VersionJson): string | undefined {
     if (json.betacraft?.launchMethod !== 'preclassic') return undefined;
@@ -643,7 +640,7 @@ export class AtticRuntime {
     try {
       indexJson = JSON.parse(fs.readFileSync(assetIndexFile(this.root, assetIndexId), 'utf8')) as unknown;
     } catch {
-      return; // 索引缺席 → 无从预置，游戏行为与今天一致
+      return; // 索引缺席 → 无从预置，游戏行为不变
     }
     materializeLegacyResources({
       indexJson,
@@ -670,9 +667,9 @@ export class AtticRuntime {
   }
 
   /**
-   * 启动（0.0.2 feat①）：全程挂一个 AbortController，cancelLaunch() 中止下载/补全链；
+   * 启动：全程挂一个 AbortController，cancelLaunch() 中止下载/补全链；
    * 各阶段边界 + spawn 前最后一道 throwIfAborted 防竞态。取消中止以 LAUNCH_CANCELLED_MESSAGE
-   * 失败且不记 lastLaunchError（中性态，UI 不报崩）。feat②：进链先清扫上次进程被杀留下的 `.part`。
+   * 失败且不记 lastLaunchError（中性态，UI 不报崩）。进链先清扫上次进程被杀留下的 `.part`。
    */
   async launch(request: LaunchRequest): Promise<GameSession> {
     const controller = new AbortController();
@@ -682,10 +679,8 @@ export class AtticRuntime {
       const signal = controller.signal;
       this.sweepStaleParts();
       // v1 语义（InstanceSettings.java L556）：选中版本写回实例属性——同实例切版本 gameDir 不变、存档共享。
-      // 时序前移（2026-10-21 修复「点启动后实例列表迟迟不出现」）：建档+回写必须落在 launch 的
-      // **首个 await 之前的同步段**——UI 在发起 launch IPC 后立即重拉实例清单，Electron IPC 消息
-      // FIFO 保证本同步段先于清单 IPC 执行，新实例点击即得见；旧时序里回写在全部下载/启动之后，
-      // 列表要等游戏真起来才动。
+      // 建档+回写必须落在 launch 的**首个 await 之前的同步段**：UI 在发起 launch IPC 后立即重拉
+      // 实例清单，Electron IPC 消息 FIFO 保证本同步段先于清单 IPC 执行，新实例点击即得见。
       this.persistInstanceVersion(request);
       // 设置页开关的消费点（properties 三态：缺键=缺省开/关按各键注释）
       const settings = loadSettings(this.root);
@@ -720,8 +715,8 @@ export class AtticRuntime {
         });
       }
       if (baseId) {
-        // v1 readyVersion + assembleWithBaseVersion 一期复刻（用户拍板「每次启动重合成」——
-        // 修 v1 hasJar 判定的陈旧合成 jar 失配）：mod jar 补全（sha1 强制）→ 基座在前、mod 同名
+        // v1 readyVersion + assembleWithBaseVersion 语义：每次启动重合成（修 hasJar 存在性判定的陈旧合成 jar 失配）：
+        // mod jar 补全（sha1 强制）→ 基座在前、mod 同名
         // 覆盖、剥签名 → 原子落 versions/<id>.jar（launch.ts classpath[0] 天然命中，组装面不动）。
         const modJar = await this.client.ensureModJar(json, this.root, {
           verify: settings['checkIntegrity'] !== 'false',
@@ -749,7 +744,7 @@ export class AtticRuntime {
       this.client.emitProgress({ item: 'library', id: metaJson.id, phase: 'done', bytesDone: 0 });
       this.extractNatives();
       // 资产补全（v2 语义）：索引 + objects 全体由启动器预置——legacyfix 只自动补 custom 段，
-      // objects 缺失即游戏内 CodecJOrbis/OpenAL 声音 NPE（用户实测 c0.0.22a）。
+      // objects 缺失即游戏内 CodecJOrbis/OpenAL 声音 NPE。
       signal.throwIfAborted();
       const assetIndexId = await this.client.downloadAssetIndex(json, this.root, { force: forceUpdate, signal });
       if (assetIndexId) await this.client.downloadAssetObjects(this.root, assetIndexId, { force: forceUpdate, signal });
@@ -779,9 +774,9 @@ export class AtticRuntime {
         fs.copyFileSync(source, path.join(targetDir, path.basename(mount.path)));
       }
 
-      // 微软验证预注册（plan.md §7 启动编排插 join）：server 直连 ∧ 微软账户 → spawn 前 joinServer
+      // 微软验证预注册：server 直连 ∧ 微软账户 → spawn 前 joinServer
       // （token 过期先自动刷新链重放）。join 失败 = 不拦截启动，spawn 后向游戏输出面推一行可见警告；
-      // 离线账户路径零改动。戒律 #1：零版本判断。
+      // 离线账户路径零改动（零版本判断纪律）。
       let joinWarning: string | null = null;
       if (context.server && launchAccount.type === 'microsoft') {
         try {
@@ -833,7 +828,7 @@ export class AtticRuntime {
   }
 
   /**
-   * 取消进行中的启动（feat①，LAUNCH_CANCEL 通道）：中止在途下载/补全链。
+   * 取消进行中的启动（LAUNCH_CANCEL 通道）：中止在途下载/补全链。
    * 游戏已 spawn 或无在途启动 = cancelled:false（取消窗口已过，终止应走 KILL）。
    */
   cancelLaunch(): LaunchCancelResult {
@@ -842,7 +837,7 @@ export class AtticRuntime {
     return { cancelled: true };
   }
 
-  /** 清扫 feat② 原子写残留的 `.part`（进程被杀/断电留下的半截文件，回收磁盘）。 */
+  /** 清扫原子写残留的 `.part`（进程被杀/断电留下的半截文件，回收磁盘）。 */
   private sweepStaleParts(): void {
     sweepPartFiles(versionsDir(this.root), 2);
     sweepPartFiles(binDir(this.root), 2);
@@ -871,10 +866,10 @@ export class AtticRuntime {
   }
 
   /**
-   * skinUrl 惰性回填（2026-10-31 皮肤直链上线的迁移面）：旧版落盘的微软账户没有 skinUrl
-   * （当时 profile 步未解 textures），首拉账户列表时后台补跑一次刷新链回填；失败静默，
-   * 下次启动再试。第三方头像生态已随 Mojang 匿名 profile 端点退役而失效（minotar 等仅存
-   * 旧缓存），带 token 的 services 链是唯一皮肤数据源——不回填则头像永远默认脸。
+   * skinUrl 惰性回填：皮肤直链上线前的旧版落盘微软账户没有 skinUrl（当时 profile 步未解 textures），
+   * 首拉账户列表时后台补跑一次刷新链回填；失败静默，下次启动再试。
+   * 第三方头像生态已随 Mojang 匿名 profile 端点退役而失效，带 token 的 services 链
+   * 是唯一皮肤数据源——不回填则头像永远默认脸。
    */
   private skinBackfillStarted = false;
   private backfillMicrosoftSkins(): void {
@@ -895,7 +890,7 @@ export class AtticRuntime {
 
   /**
    * 添加离线账户：MC 用户名规则（3-16 位字母/数字/下划线，BlockHelm AccountNameValidator 同款）；
-   * 同名幂等返回既有账户（不重复建档）。微软账户无此通道（占位，登录流程未实现）。
+   * 同名幂等返回既有账户（不重复建档）。微软账户无此通道（登录走 MS_LOGIN 三通道）。
    */
   addAccount(name: string): AccountView {
     const trimmed = name.trim();
@@ -938,7 +933,7 @@ export class AtticRuntime {
 
   // ---------- 微软登录（ACCOUNTS_MS_* 三通道 + MS_LOGIN 事件面） ----------
 
-  /** 生效 CLIENT_ID：settings.microsoftClientId 覆盖 > 内嵌缺省（plan.md §7 安全约束③：public client 公开常量）。 */
+  /** 生效 CLIENT_ID：settings.microsoftClientId 覆盖 > 内嵌缺省（OAuth public client 公开常量）。 */
   private msClientId(): string {
     const override = settingsFromProps(loadSettings(this.root)).microsoftClientId?.trim();
     return override && override.length > 0 ? override : DEFAULT_MS_CLIENT_ID;
@@ -1029,7 +1024,7 @@ export class AtticRuntime {
 
   /**
    * 账户落盘（同 profileId 幂等覆盖）：token 磁盘形态 = DPAPI 密文 `dpapi:v1:<b64>`
-   * （plan.md §7 安全约束①——refresh token 是长期凭证，禁明文）；返回内存态明文账户。
+   * （refresh token 是长期凭证，禁明文）；返回内存态明文账户。
    */
   private async upsertMicrosoftAccount(chain: MsChainResult): Promise<MicrosoftAccount> {
     const deps = this.msDpapi();
@@ -1080,11 +1075,11 @@ export class AtticRuntime {
   // ---------- 自定义版本配置页（CUSTOM_* 四通道） ----------
 
   /**
-   * 自定义版本列表：custom 项 + Mods 仓库托管项（用户拍板：mod 的删除途径 = 本页，
+   * 自定义版本列表：custom 项 + Mods 仓库托管项（mod 的删除途径 = 本页，
    * 故 .info 含 base-version 的模组版本也落入，打 mod 标、编辑禁用）——
    * `.info` custom=true = 已配置；裸 jar（有 jar 无 .info 且不在官方清单）= 未配置。
    * Betacraft 官方版本不落入本页：含 .info 无 custom=true/base-version 的，也含 **官方清单 id 的裸 jar**
-   * （inf-20100227-1433 实案修复：BC 版本地 .info 缺失 ≠ 用户导入）。官方集取版本清单缓存
+   * （BC 版本地 .info 缺失 ≠ 用户导入）。官方集取版本清单缓存
    * （仅 fetchVersionList 成功时写入=纯 BC 列表；缓存缺席=还没联网拉过，维持 v1 裸 jar 语义）。
    * 列表不跑 jar 检测（zip 开销留给按需 get）。
    */
@@ -1094,7 +1089,7 @@ export class AtticRuntime {
     const official = this.cachedOfficialVersionIds();
     const out: CustomVersionView[] = [];
     for (const id of infos) {
-      // 官方清单命中即官方（> 本地 custom=true 残留声明，inf-20100227-1433 实案）
+      // 官方清单命中即官方（> 本地 custom=true 残留声明）
       if (official.has(id)) continue;
       const props = readPropertiesFile(infoFile(this.root, id));
       const isMod = Boolean(props['base-version']?.trim());
@@ -1216,7 +1211,7 @@ export class AtticRuntime {
     assertSafeVersionId(id);
     const target = clientJarFile(this.root, id);
     if (fs.existsSync(target)) throw new Error(`已存在同名版本 jar：${id}`);
-    // 官方清单 id 拒绝导入（inf-20100227-1433 事故的源头封堵）：BC 版本走正常下载/启动链路，
+    // 官方清单 id 拒绝导入：BC 版本走正常下载/启动链路，
     // 导成裸 jar 只会得到无元数据的残缺本地版。
     if (this.cachedOfficialVersionIds().has(id)) {
       throw new Error(`${id} 是 Betacraft 官方版本 id，不能作为自定义版本导入（启动页直接选择该版本即可）`);
@@ -1234,8 +1229,8 @@ export class AtticRuntime {
    * 门禁 = listCustomVersions 成员判定（与列表页同源）：官方版本（.info 无 custom=true/base-version）拒绝，
    * 从入口排除误删 BC 文件；不存在/非 custom 均显式报错。
    *
-   * 实例指针联动清理（悬空指针缺陷修复）：`launch()` 每次启动都把选中版本写回实例档案
-   * （v1 `persistInstanceVersion` 语义），故刚启动过该版本的实例会留下指向已消失版本的 `version`；
+   * 实例指针联动清理：`launch()` 每次启动都把选中版本写回实例档案，
+   * 故刚启动过该版本的实例会留下指向已消失版本的 `version`；
    * 删除是不可逆的（jar+.info+登记三清，无"日后重新导入同名"可恢复语义），悬空 id 既不能启动
    * 也让实例页/dock 显示已不存在的版本 → 逐个档案把该字段写成空串（= 未选择版本，UI 出占位文案）。
    * 只清 `version` 恰好等于被删 id 的档案，其余实例一字不动；写空串而非删键：`loadInstance` 的
@@ -1256,11 +1251,11 @@ export class AtticRuntime {
     }
   }
 
-  // ---------- Mods 页（MODS_* 两通道；Betacraft 单源，一期不引入多源） ----------
+  // ---------- Mods 页（MODS_* 两通道；Betacraft 单源） ----------
 
   /**
-   * 仓库列表 = 每次调用现拉（v1 ModsRepository「进程级追加不清空、永不刷新」的结构性修复——
-   * 无进程内缓存）。installed = versions/jsons/<full_name>.info 在位；上游脏 id（路径穿越等）
+   * 仓库列表 = 每次调用现拉（无进程内缓存，区别于 v1 ModsRepository 的「进程级追加不清空、永不刷新」）。
+   * installed = versions/jsons/<full_name>.info 在位；上游脏 id（路径穿越等）
    * 不触文件系统，按未安装处理。
    */
   async listMods(): Promise<ModCategoryView[]> {
@@ -1281,11 +1276,11 @@ export class AtticRuntime {
   }
 
   /**
-   * 安装 = 只下 .info（jar 在启动期补全；用户拍板「只安装不动实例」——v1 Load 顺带写
-   * currentInstance.version 的行为不照抄）。门禁三道：id 安全、http(s) 协议白名单、同名拒绝
-   * （用户拍板：先 await listVersions 尝试刷新官方清单缓存，官方清单命中即拒，网络失败按现有缓存判）。
+   * 安装 = 只下 .info（jar 在启动期补全；v1 Load 顺带写 currentInstance.version 的行为
+   * 不照抄——只安装不动实例）。门禁三道：id 安全、http(s) 协议白名单、同名拒绝
+   * （先尝试刷新官方清单缓存，官方清单命中即拒，网络失败按现有缓存判）。
    * 落位后写 launcher/mods.json 登记 {infoUrl, autoupdate}——启动期刷新的唯一来源（v1 离线
-   * 误路由官方 URL 的修复）；.info watcher 会自动发 CUSTOM_INFO_CHANGED，无需新增事件。
+   * 误路由官方 URL 的坑）；.info watcher 会自动发 CUSTOM_INFO_CHANGED，无需新增事件。
    */
   async installMod(request: ModInstallRequest): Promise<void> {
     const id = request.fullName.trim();
@@ -1301,7 +1296,7 @@ export class AtticRuntime {
       throw new Error(`拒绝非 HTTP(S) 下载地址：${url.protocol}`);
     }
     try {
-      // 直网面（非 listVersions——SWR 下缓存即在即返不等网络，会破坏本门禁的「先刷新」拍板）：
+      // 直接刷新（非 listVersions——SWR 下缓存即在即返不等网络，保证不了本门禁的「先刷新」语义）：
       // 刷新成功即最新、网络失败按现有缓存判。
       await this.refreshVersionListCache();
     } catch {
@@ -1321,7 +1316,7 @@ export class AtticRuntime {
   /**
    * 社区服务器列表 = 每次调用现拉 HTML 宽松解析（无进程内缓存，listMods 同款）；
    * 失败以异常上抛、壳层 IpcResult 封装为错误字符串（UI 空态+重试）。
-   * matchedVersionId 派生在此（戒律 #1：UI 零版本判断）：版本目录取 listVersions
+   * matchedVersionId 派生在此（UI 零版本判断纪律）：版本目录取 listVersions
    * 缓存优先面；清单不可得（无缓存且断网）= 全未命中降级，列表照常返回（UI 走手动选版本）。
    */
   async listServers(): Promise<ServerListView[]> {
@@ -1377,9 +1372,9 @@ export class AtticRuntime {
   /**
    * 合并落盘（未知键保留），返回保存后的视图。端点改动下次启动应用生效。
    * 安装版落盘前护栏：rootOverride 若落在宿主安装目录之内 = 卸载器 `{app}` 整删射程
-   * （Inno `[UninstallDelete]` 无排除机制），数据必丢且不可逆 → 显式拒绝（微文案：实际动作 + 出路）。
+   * （Inno `[UninstallDelete]` 无排除机制），数据必丢且不可逆 → 显式拒绝。
    * 向导/设置页/手改 settings 三入口共用本道闸；宿主侧 bootstrap peek 另有同款兜底。
-   * 便携形态（B 期）：rootOverride 落点改道 marker ini 的 rootDir（随盘指针面，不落 settings）；
+   * 便携形态：rootOverride 落点改道 marker ini 的 rootDir（随盘指针面，不落 settings）；
    * 安装目录护栏跳过（无卸载器，{app} 风险面不存在）；向导 portable flavor 完成时幂等落锚。
    */
   setSettings(settings: AppSettings): AppSettings {
@@ -1396,7 +1391,7 @@ export class AtticRuntime {
           this.portable.pointerRoot = resolved || undefined;
         }
       }
-      // 落锚副作用（plan.md 终拍②自愈指纹，幂等保留首锚）：只读回落态跳过（写不进盘，
+      // 落锚副作用（自愈指纹，幂等保留首锚）：只读回落态跳过（写不进盘，
       // 待可写态下向导再落——flavor 戳本身照常落 settings，回落根可达）。
       if (settings.wizardDone === true && settings.wizardFlavor === 'portable' && !this.portable.fallback) {
         writePortableAnchor(this.portable.exeDir, this.version);
@@ -1434,7 +1429,7 @@ export class AtticRuntime {
       shell: this.shell,
       // 上次异常退出简报（构造期消费脏标记；缺席 = 上次正常退出，UI 不弹横幅）。
       ...(this.lastCrash ? { lastCrash: this.lastCrash } : {}),
-      // portable 便携态（B 期）：安装版缺席本键；rebuilt/pathWarning 仅命中时带出（契约可选字段口径）。
+      // portable 便携态：安装版缺席本键；rebuilt/pathWarning 仅命中时带出（契约可选字段口径）。
       ...(this.portable?.active
         ? {
             portable: {
@@ -1452,7 +1447,7 @@ export class AtticRuntime {
   /**
    * 检查更新（GitHub Releases latest，数据面见 updateCheck.ts）。
    * 全分支数据化返回（unconfigured/error 也在 value 内，不抛异常）——UI 弹窗可见呈现；
-   * 动作分叉现状 = 全壳统一「提示 + Releases 链接」（tauri updater plugin 闭环待依赖决策，挂账）。
+   * 动作 = 全壳统一「提示 + Releases 链接」（tauri updater plugin 闭环未接）。
    */
   checkUpdate(): Promise<UpdateCheckResult> {
     return checkLatestRelease({ releaseRepo: this.releaseRepo, currentVersion: this.version, fetchImpl: this.fetchImpl });
@@ -1481,8 +1476,8 @@ export class AtticRuntime {
   }
 
   /**
-   * 读图片字节转 base64 data URL（IMAGE_DATA_URL，背景图进 webview：双壳统一走宿主读，
-   * 弃 Tauri convertFileSrc 单壳方案）。扩展白名单 + 大小上限在宿主侧把关，
+   * 读图片字节转 base64 data URL（IMAGE_DATA_URL，背景图进 webview：双壳统一走宿主读）。
+   * 扩展白名单 + 大小上限在宿主侧把关，
    * 违规/不可读 = 显式抛错（IPC 层转 IpcResult error，UI 可见失败）。
    */
   readImageAsDataUrl(filePath: string): string {
@@ -1503,7 +1498,7 @@ export class AtticRuntime {
     return `data:${mime};base64,${buf.toString('base64')}`;
   }
 
-  // ---------- 启动器层崩溃取证（P0~P2 数据面；纯逻辑在 crash.ts，本区只接 fs/环境） ----------
+  // ---------- 启动器层崩溃诊断（纯逻辑在 crash.ts，本区只接 fs/环境） ----------
 
   /** launcher.log 路径（启动器自身 append 滚动历史，跨启动；与 output-client.log 互补）。 */
   launcherLogPath(): string {
@@ -1525,7 +1520,7 @@ export class AtticRuntime {
       }
       fs.appendFileSync(file, `${launcherLogLine(stream, text)}\n`, 'utf8');
     } catch {
-      /* 取证面写失败不影响主流程 */
+      /* launcher.log 写失败不影响主流程 */
     }
   }
 
@@ -1583,7 +1578,7 @@ export class AtticRuntime {
 
   /** v1 Instance Settings 可编辑集全量落盘；gameDir 缺省派生 root/<实例名>，已存在实例保留其落位。
    * 以既有档案为底稿：视图不携带的 v1 遗留键（proxy/keepopen/RPC/console/isJavaPathNew）原样
-   * 带走不丢（实例页保存静默丢键缺陷的修复位）；视图字段显式 undefined = 清空删键语义不变。 */
+   * 带走不丢（防实例页保存静默丢键）；视图字段显式 undefined = 清空删键语义不变。 */
   saveInstance(view: InstanceView): InstanceView {
     const existing = loadInstance(this.root, view.name);
     saveInstance(this.root, {
@@ -1716,7 +1711,7 @@ export class AtticRuntime {
   }
 
   /**
-   * 手动 javaPath 双形态语义（2026-11-01 用户拍板，向导「指定 Java 目录」入口）：
+   * 手动 javaPath 双形态语义（向导「指定 Java 目录」入口）：
    * 可执行文件路径原样；JDK 目录 → 向下至多两层找 bin/java（Zulu 供给同款 findJavaExecutable）。
    * 返回 null = 目录里没找到（调用方决定报错/保留原值进探测失败面）。
    */
@@ -1725,7 +1720,7 @@ export class AtticRuntime {
     try {
       isDir = fs.statSync(raw).isDirectory();
     } catch {
-      return raw; // 不存在/不可 stat = 原样交给探测报错（旧语义不变）
+      return raw; // 不存在/不可 stat = 原样交给探测报错
     }
     if (!isDir) return raw;
     return findJavaExecutable(raw, this.platform);
@@ -1745,7 +1740,7 @@ export class AtticRuntime {
     return paths;
   }
 
-  /** agentMount 区间判定序：按编译日期升序（实测 version_list.txt 是乱序手工清单，不可当年代序用）。 */
+  /** agentMount 区间判定序：按编译日期升序（version_list.txt 是乱序手工清单，不可当年代序用）。 */
   private cachedVersionOrder(): string[] {
     const cache = readJsonIfPresent<VersionManifest>(versionListCacheFile(this.root));
     const refs = cache?.versions ?? [];
@@ -1792,7 +1787,7 @@ export class AtticRuntime {
       intelFix: this.platform === 'win32' && instance.intelFix !== false,
       // 一次性可视化器（「≡」菜单动作项）：true 才带键，false/缺省不落（dryRun/launch 同走此路）
       visualizer: request.visualizer === true ? true : undefined,
-      // 一次性直连（启动询问弹窗「直连」才带键，来源 = 档案 server；拼装器解析，§2.6）
+      // 一次性直连（启动询问弹窗「直连」才带键，来源 = 档案 server；拼装器解析）
       server: request.server,
       width: instance.width,
       height: instance.height,
@@ -1810,7 +1805,7 @@ export class AtticRuntime {
   }
 
   /**
-   * LWJGL2 原生库架构闸门（arm64 死区，判定表与取证见 depends.ts checkLwjgl2Arch）：
+   * LWJGL2 原生库架构闸门（arm64 死区，判定表见 depends.ts checkLwjgl2Arch）：
    * 仅 arm 宿主触发；darwin arm64 需实测所选 JVM 架构（探测失败放行，不抢自身报错）。
    */
   private async gateLwjgl2Arch(javaPath: string): Promise<void> {
@@ -1858,13 +1853,13 @@ export class AtticRuntime {
     }
   }
 
-  /** 探测 → 没有则 Zulu 自动供给（失败抛全因，手动导入兜底，风险 #7）。 */
+  /** 探测 → 没有则 Zulu 自动供给（失败抛全因，手动导入兜底）。 */
   private async ensureJavaPath(settings: Record<string, string>, signal?: AbortSignal): Promise<string> {
     const report = await detectJavaRuntime({ manualPaths: this.manualJavaPaths(settings) });
     if (report.selection.install) return report.selection.install.executable;
 
-    // 供给缓存命中：zuluJavaDir 已有上次解压好的 java 则直接复用。
-    // 缺这一步 = 无系统 Java 的机器每次启动重下 111MB zip（2026-10-25 WSL 实机取证）。
+    // 供给缓存命中：zuluJavaDir 已有上次解压好的 java 则直接复用
+    // （缺这一步 = 无系统 Java 的机器每次启动重下 111MB zip）。
     const cached = findJavaExecutable(zuluJavaDir(this.root), this.platform);
     if (cached) return cached;
 

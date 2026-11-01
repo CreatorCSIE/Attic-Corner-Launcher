@@ -1,6 +1,6 @@
 /**
  * useVersions —— 版本清单共享状态（模块级单例，多处消费只拉一次）。
- * 年代分组属信息架构（ui-design.md §2），数据来自清单 era 字段，客户端零推断（戒律 #1）。
+ * 年代分组属信息架构：数据来自清单 era 字段，客户端零推断。
  */
 
 import { computed, ref, type ComputedRef } from 'vue';
@@ -63,9 +63,9 @@ const groups = computed<EraGroup[]>(() => {
 const total = computed(() => filtered.value.length);
 
 /** 在途请求共享：load/refresh 汇入同一次在途拉取。
- * 关键时序（引入"上次版本缓存"后必现）：启动即恢复 selectedId，用户首帧悬停展开时
- * 初始 load 尚未返回——refresh 若直接跳过，展开定位会打在未渲染的列表上（静默失准，
- * 数据到达后也不补定位）。join 保证 refresh resolve 时数据必已就绪。 */
+ * 关键时序：启动即恢复 selectedId，首帧悬停展开时初始 load 可能尚未返回——
+ * refresh 若直接跳过，展开定位会打在未渲染的列表上（静默失准，数据到达后也不补定位）。
+ * join 保证 refresh resolve 时数据必已就绪。 */
 let inflight: Promise<void> | null = null;
 
 function fetchVersions(): Promise<void> {
@@ -91,7 +91,7 @@ async function load(): Promise<void> {
 }
 
 /** 静默刷新：不翻动 loading 骨架，但汇入在途的初始 load（供面板每次展开重扫磁盘，
- * 修 v1 "运行期不更新版本列表"缺陷）。 */
+ * 保证运行期版本列表新鲜）。 */
 async function refresh(): Promise<void> {
   await fetchVersions();
 }

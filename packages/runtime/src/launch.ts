@@ -1,5 +1,5 @@
 /**
- * LaunchConfig 拼装器（契约 §2.6 固定组顺序 + 6 条不变量，由 core-spec 夹具固化）。
+ * LaunchConfig 拼装器（固定组顺序 + 6 条不变量，由 core-spec 夹具固化）。
  * 路径一律正斜杠字符串拼接——夹具是中性 POSIX 风格，拼装不得有平台假设。
  */
 
@@ -7,7 +7,7 @@ import { INSTANCE_ADDONS, type AgentMount, type LaunchConfig, type VersionJson }
 
 import { resolveLaunchAssetIndexId } from './legacyAssets';
 
-/** 拼装输入：宿主侧运行上下文（binPool/versionOrder 由运行时注入，见 contract.md §4）。 */
+/** 拼装输入：宿主侧运行上下文（binPool/versionOrder 由运行时注入）。 */
 export interface LaunchContext {
   javaPath: string;
   gameDir: string;
@@ -16,7 +16,7 @@ export interface LaunchContext {
   username: string;
   uuid: string;
   accessToken: string;
-  /** 启动器版本（宿主注入 runtime.version；进游戏侧 token `launcher_version`——2026-10-25 接线，此前硬编码 0.0.0 发版即错版）。 */
+  /** 启动器版本（宿主注入 runtime.version；进游戏侧 token `launcher_version`，须为真实版本）。 */
   launcherVersion: string;
   maxMemoryMb: number;
   minMemoryMb?: number;
@@ -65,7 +65,7 @@ export interface AssembleOptions {
 
 /**
  * 非代理白名单：BC 代理（.info proxy-args 注入 -Dhttp.proxyHost=betacraft.uk:11707）只服务
- * 老端点（skins.minecraft.net 等），对 textures.minecraft.net 返回 404（实测：直连 200、BC 代理 404）
+ * 老端点（skins.minecraft.net 等），对 textures.minecraft.net 返回 404（直连 200、BC 代理 404）
  * → 皮肤贴图主机必须直通，否则 MinecraftApi.fetchSkin 抛 FileNotFoundException、皮肤缺失。
  */
 const NON_PROXY_HOSTS = 'api.betacraft.uk|files.betacraft.uk|checkip.amazonaws.com|textures.minecraft.net';
@@ -77,7 +77,7 @@ export const APPLET_LAUNCHER_CLASS = 'uk.betacraft.legacyfix.applet.AppletLaunch
  * Applet 容器子类型 → 游戏参数 `--appletClass`（legacyfix AppletLauncher.java L56 读取，
  * launchEntry 检查直接父类 = java.applet.Applet 则 AppletFrame 嵌入）。
  * 缺省不传 = legacyfix 候选表自动探测（MinecraftApplet 系）；4k-* jar 仅含 M.class，
- * 须显式指定（v1 FkWrapper loadClass("M") 同语义）。表按启动方法键控（戒律 #1）。
+ * 须显式指定（v1 FkWrapper loadClass("M") 同语义）。表按启动方法键控。
  */
 export const APPLET_CLASS_BY_METHOD: Record<string, string> = {
   '4k': 'M',
@@ -151,10 +151,10 @@ export function assembleLaunchConfig(
       `无法确定主类：.info 无 main-class，launch-method "${versionJson.betacraft?.launchMethod ?? '(无)'}" 不在数据表中`,
     );
   }
-  // Applet 容器（pre-classic/classic）：legacyfix 实测铁律（c0.0.12a 窗口事故）——
-  // classpath 上有 launchwrapper 时 agent 走 LaunchWrapperInjector 提前 return，全部补丁
-  // （含 proxy/game-dir/classic-resize/deawt）被跳过且帧永不显示；容器不用 tweaker，剔除即恢复全量挂载。
-  // deawt 保持开启（实测窗口正常）：游戏走 LWJGL 窗口，关窗后进程 MainWindowHandle 归零，
+  // Applet 容器（pre-classic/classic）：classpath 上有 launchwrapper 时 agent 走
+  // LaunchWrapperInjector 提前 return，全部补丁（含 proxy/game-dir/classic-resize/deawt）
+  // 被跳过且帧永不显示；容器不用 tweaker，剔除即恢复全量挂载。
+  // deawt 保持开启（窗口正常）：游戏走 LWJGL 窗口，关窗后进程 MainWindowHandle 归零，
   // 壳侧窗口看门狗据此判定"用户关窗"并 kill（classic 循环不检查 isCloseRequested，进程不自退）。
   const isAppletContainer = mainClass === APPLET_LAUNCHER_CLASS;
   const mounts = filterAgentMounts(
@@ -192,27 +192,26 @@ export function assembleLaunchConfig(
   // 一次性可视化器（LaunchRequest.visualizer，菜单动作项）：同位补注；档案已含则上面已注入，不重复。
   if (context.visualizer && !context.addons?.includes('visualizer')) jvmArgs.push('-Dlf.visualizer');
   jvmArgs.push('-Djava.util.Arrays.useLegacyMergeSort=true');
-  // （历史注）曾注入 -Dsun.java2d.dpiaware=false 试图对症 applet 容器高 DPI 窗口右下偏移——
-  // 实机+对照实验双重证伪：该 Oracle JDK8 扩展属性只影响 Java2D 字体/渲染缩放，不影响 LWJGL
-  // 原生窗 SetWindowPos 坐标语义，对偏移无任何作用，已摘除。根因（legacyfix DeAwtPatch 不交接
-  // frame 位置 + LWJGL getWindowX/Y 混源居中公式）未修——组合代理修复路线实机引入双窗/挂起，
-  // 已回滚；后续修复需另寻方案（上游 PR 或宿主侧）。
+  // 注：-Dsun.java2d.dpiaware 对 applet 容器高 DPI 窗口右下偏移无效——该 Oracle JDK8
+  // 扩展属性只影响 Java2D 字体/渲染缩放，不影响 LWJGL 原生窗 SetWindowPos 坐标语义，勿注入。
+  // 根因（legacyfix DeAwtPatch 不交接 frame 位置 + LWJGL getWindowX/Y 混源居中公式）未修；
+  // 组合代理修复路线会引入双窗/挂起，后续修复需另寻方案（上游 PR 或宿主侧）。
   jvmArgs.push(`-Dhttp.nonProxyHosts=${NON_PROXY_HOSTS}`);
   const natives = `${dataDir}/bin/natives`;
   jvmArgs.push(`-Dorg.lwjgl.librarypath=${natives}`);
   jvmArgs.push(`-Dnet.java.games.input.librarypath=${natives}`);
   for (const arg of versionJson.betacraft?.proxyArgs ?? []) jvmArgs.push(arg);
-  // 属性优先于 gameDir/legacyfix/level-server.txt（LevelProxyConfig 源码实锤）：
+  // 属性优先于 gameDir/legacyfix/level-server.txt（LevelProxyConfig 源码）：
   // 设置里有值即直通覆盖，用户无需删 txt 重触发一次性对话框；缺省不传，保留 LegacyFix 原行为。
   if (context.levelServer) jvmArgs.push(`-Dlf.proxy.levelServer=${context.levelServer}`);
-  // 版本钉（c0.0.15a 服务器端口补丁事故根因，2026-10-21）：legacyfix 的按版本等值补丁
-  // （Classic15aServerPortPatch.shouldApply 判 lf.version=="c0.0.15a"）在 Agent.premain 的
-  // Patcher.apply 决策——早于 main 的 --version 解析与游戏窗口标题探测（两条晚到的注入通道
-  // 都追不上决策点）。-Dlf.* 走 Agent 静态块系统属性收集（Agent.java L237-242），premain 前
-  // 即入 SETTINGS = 唯一确定通道。数据表键控戒律不破：值取 versionJson.id，无版本判断代码。
+  // 版本钉：legacyfix 的按版本等值补丁（Classic15aServerPortPatch.shouldApply 判
+  // lf.version=="c0.0.15a"）在 Agent.premain 的 Patcher.apply 决策——早于 main 的 --version
+  // 解析与游戏窗口标题探测（两条晚到的注入通道都追不上决策点）。-Dlf.* 走 Agent 静态块
+  // 系统属性收集（Agent.java L237-242），premain 前即入 SETTINGS = 唯一确定通道。
+  // 数据表键控原则：值取 versionJson.id，无版本判断代码。
   jvmArgs.push(`-Dlf.version=${versionJson.id}`);
   // legacyfix GameArgs.getAssetsDir() 缺省回退 = cwd 相对 "assets"（即 gameDir/assets），读不到启动器共享资产根
-  // （c0.0.22a 声音 NPE 根因之一）。官方提示通道 -Dlf.assetsDir 显式钉死共享根，initAssets 的 objects 路径随之前移。
+  // （声音 NPE）。官方提示通道 -Dlf.assetsDir 显式钉死共享根，initAssets 的 objects 路径随之前移。
   jvmArgs.push(`-Dlf.assetsDir=${context.assetsDir.replace(/\\/g, '/')}`);
   // 资产索引钉死（BC v2 语义：每版本 JSON 权威 assetIndex.id）。legacyfix 运行时标题探测
   // （ProxyPatch→setVersion→resolveIndex）无条件覆写 GameArgs.assetIndex 静态字段，标题变换串
@@ -258,9 +257,8 @@ export function assembleLaunchConfig(
   }
   // 一次性直连（启动询问弹窗「直连」，LaunchRequest.server 透传，不写档案）：legacyfix GameArgs
   // 消费 --server/--port。**端口恒显式传**（缺省 25565 由本侧注入）：CLI --server 路径端口缺省 = -1
-  // （GameArgs.getServerPort()），游戏自动加入要求 server+port 参数齐（裸指令实锤 2026-10-30：
-  // 带 --port 真实发起 TCP 连接；缺 --port 直进单人）。25565 缺省只存在于 readServer（-Dlf.server
-  // 属性路径），不吃 CLI 路径——「不显传避免双真相源」的早期假设已被现场证伪。
+  // （GameArgs.getServerPort()），游戏自动加入要求 server+port 参数齐（带 --port 真实发起 TCP 连接；
+  // 缺 --port 直进单人）。25565 缺省只存在于 readServer（-Dlf.server 属性路径），不吃 CLI 路径。
   // 非法格式 = 忽略（诊断），不拦启动；插入位 = gameParams 之后、Applet --width/--height 之前。
   if (context.server) {
     const m = /^([^:/\s]+)(?::(\d{1,5}))?$/.exec(context.server.trim());
@@ -283,7 +281,7 @@ export function assembleLaunchConfig(
   }
   // Applet 子类型指定（4k-* → --appletClass M；pre-Classic → 宿主按 jar 探测注入 RubyDung）。
   // 注入值优先于方法表：rd 系 launch-method 同键（preclassic）但 jar 形态跨两代类名，表无法表达。
-  // deawt 保持缺省开启（4k 纯 AWT 渲染是否需 -Dlf.deawt.disable 以实机窗口测试为准，见 launch 实测记录）。
+  // deawt 保持缺省开启（4k 纯 AWT 渲染是否需 -Dlf.deawt.disable 以实机窗口测试为准）。
   if (isAppletContainer) {
     const appletClass =
       context.appletClass ??

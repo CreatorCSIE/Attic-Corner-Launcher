@@ -1,11 +1,10 @@
 /**
  * i18n —— 手写深合并（零依赖）。
- * 策略：en 为 base/fallback，zh-CN/zh-TW 覆盖同名键；settings.language 缺席时做
+ * en 为 base/fallback，zh-CN/zh-TW 覆盖同名键；settings.language 缺席时做
  * **一次性**系统语言侦测（zh-TW/HK/MO → 繁體中文，其余 zh* → 简体中文，其他 → English），
- * 结果由 useSettings 写回 settings.language 落盘、本层同步落 localStorage 缓存——
- * 此后不再自动改（2026-10-31 用户核对：侦测只在缺省时发生一次）。
+ * 结果由 useSettings 写回 settings.language 落盘、本层同步落 localStorage 缓存——此后不再自动改。
  * t(key) 走点路径；缺键回落 en，仍缺则原样返回路径。
- * 词典形态 = JSON（2026-10-29「从 TS 解放」）：翻译贡献者零工具链直接 PR locales/*.json，
+ * 词典为 JSON 文件（locales/*.json，翻译贡献者零工具链直接 PR）；
  * 外挂语言包通道（launcher/lang/<locale>.json 运行期覆盖层）与仓内词典同形同校验。
  */
 
@@ -16,8 +15,7 @@ import zhTW from './locales/zh-TW.json';
 
 export type Locale = 'en' | 'zh-CN' | 'zh-TW';
 
-/** 可选界面语言（自名形态，不随 locale 翻译）；语言栏下拉的唯一数据源。
- *  排序 = 用户拍板 2026-10-31：English 第一、简体中文次之、繁體中文第三。 */
+/** 可选界面语言（自名形态，不随 locale 翻译）；语言栏下拉的唯一数据源。 */
 export const AVAILABLE_LOCALES: { code: Locale; name: string }[] = [
   { code: 'en', name: 'English' },
   { code: 'zh-CN', name: '简体中文' },

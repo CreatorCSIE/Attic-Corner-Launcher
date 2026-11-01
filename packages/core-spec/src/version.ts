@@ -1,12 +1,12 @@
 /**
  * 版本数据契约：VersionRef（清单条目）、VersionJson（Mojang 兼容 + Betacraft 扩展）、
- * AgentMount（legacyfix 挂载决策——戒律 #1：quirk 矩阵是数据，不是客户端代码）。
+ * AgentMount（legacyfix 挂载决策——quirk 矩阵是数据，不是客户端代码）。
  */
 
-/** 版本来源仓库（端点可配置，风险 #1）。 */
+/** 版本来源仓库（端点可配置）。 */
 export type VersionRepository = 'betacraft' | 'local' | 'custom';
 
-/** 年代分层（UI 信息架构用，Phase 3；数据来自清单而非客户端推断）。 */
+/** 年代分层（UI 信息架构用；数据来自清单而非客户端推断）。 */
 export type VersionEra =
   | 'pre-classic'
   | 'classic'
@@ -90,7 +90,7 @@ export interface AgentMount {
   quirk?: string;
 }
 
-/** Betacraft 扩展（来自版本 `.info` 属性文件，v1 实测字段集）。 */
+/** Betacraft 扩展（来自版本 `.info` 属性文件，v1 字段集）。 */
 export interface BetacraftExtension {
   /** 代理 JVM 参数（默认 `-Dhttp.proxyHost=betacraft.uk`），正版验证/皮肤/资产走代理。 */
   proxyArgs?: string[];
@@ -111,9 +111,9 @@ export interface BetacraftExtension {
 }
 
 /**
- * 支持经典多人「加入服务器」的 launchMethod 值（数据表键控，非版本 id 判断，戒律 #1）。
+ * 支持经典多人「加入服务器」的 launchMethod 值（数据表键控，非版本 id 判断）。
  * 启动页直连询问弹窗的缺省触发面：激活实例未配 `server` 时，选中版本命中此表仍弹窗
- * （现场填地址一次性直连，不写实例档案）；配了 server 则无条件弹（§2.7）。
+ * （现场填地址一次性直连，不写实例档案）；配了 server 则无条件弹。
  * 事实来源：Betacraft `.info` launch-method——ClassicMpWithSaving = c0.28+（MP + 存档）。
  */
 export const MULTIPLAYER_JOIN_LAUNCH_METHODS: readonly string[] = ['ClassicMpWithSaving'];
@@ -121,7 +121,7 @@ export const MULTIPLAYER_JOIN_LAUNCH_METHODS: readonly string[] = ['ClassicMpWit
 /**
  * 版本 JSON：Mojang 兼容字段 + Betacraft 扩展。
  * 远古版本 JSON 大量字段缺失（无 arguments/无 downloads.client），全部可选；
- * 运行时按"缺什么补什么"的解析器策略处理（Phase 2），契约只声明形状。
+ * 运行时按"缺什么补什么"的解析器策略处理，契约只声明形状。
  */
 export interface VersionJson {
   id: string;

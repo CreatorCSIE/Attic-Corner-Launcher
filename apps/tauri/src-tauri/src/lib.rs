@@ -1,4 +1,4 @@
-//! Attic Tauri 壳（Phase 4 脚手架）。
+//! Attic Tauri 壳。
 //!
 //! 接入模型（docs/contract.md「双壳接入模型」）：
 //!   渲染层 --invoke--> Rust 命令 --(sidecar 通道)--> stdio NDJSON RPC --> Node sidecar(@attic/runtime)
@@ -20,7 +20,7 @@ use tauri_plugin_dialog::{DialogExt, FilePath};
 use tauri_plugin_opener::OpenerExt;
 use tokio::sync::oneshot;
 
-/// 通道镜像（值域源头 = packages/core-spec ipc.ts；与 fixture 的等式由 contract_tests 把关，戒律 #2）。
+/// 通道镜像（值域源头 = packages/core-spec ipc.ts；与 fixture 的等式由 contract_tests 把关）。
 pub mod channels {
     pub const ALL_CHANNELS: &[&str] = &[
         "attic:ping",
@@ -162,7 +162,7 @@ struct Sidecar {
 }
 
 /// 解析 sidecar 启动命令：env 覆盖（开发/调试逃生舱）→ 安装态（资源目录 server.cjs + 随行 node）→ 开发态回退。
-/// TODO(Phase 5 发布 SOP)：CI 产物里在 exe 同目录放置便携 node.exe（bundle 面「sidecar 运行时打包」条目）。
+/// TODO(发布 SOP)：CI 产物里在 exe 同目录放置便携 node.exe（bundle 面「sidecar 运行时打包」条目）。
 fn resolve_sidecar_launch(app: &AppHandle) -> Result<(PathBuf, PathBuf), String> {
     let node = std::env::var_os("ATTIC_SIDECAR_NODE")
         .map(PathBuf::from)
@@ -206,7 +206,7 @@ fn resolve_sidecar_launch(app: &AppHandle) -> Result<(PathBuf, PathBuf), String>
 /// Releases 页（temp 守卫指路位；与 UI 关于页 REPO_URL 同源）。
 const RELEASES_URL: &str = "https://github.com/CreatorCSIE/Attic-Minecraft-Launcher/releases";
 
-/// portable B 期双指纹（plan.md 终拍②，判定单点在 runtime，本函数只负责宿主显式传参）：
+/// portable 双指纹（判定单点在 runtime，本函数只负责宿主显式传参）：
 /// 程序目录 marker（`sidecar/portable.ini`）在场 ∨（exe 旁 `.attic` ∧ 其内 `launcher/portable.anchor`）
 /// → 注入 ATTIC_EXE_DIR（程序目录）；marker 在场再加注 ATTIC_PORTABLE_INI（ini 绝对路径）。
 /// 硬纪律：sidecar 的 process.execPath = node.exe 不可信，exeDir 判定面必须由壳显式传。
@@ -224,9 +224,9 @@ fn portable_launch_env() -> Option<(PathBuf, Option<PathBuf>)> {
     Some((exe_dir, if marker_hit { Some(marker) } else { None }))
 }
 
-/// temp 守卫特征判定（plan.md 终拍⑤，runtime looksLikeTempExtraction 同款口径）：
+/// temp 守卫特征判定（runtime looksLikeTempExtraction 同款口径）：
 /// exeDir 命中 temp 目录前缀或 `Rar$`/`7z$`/`WinRar$` 特征段 ∧ exe 旁无既有 `.attic` → true。
-/// 小白在压缩包里直接双击：只抽 exe → marker 没跟出来判成安装态写 %APPDATA%；
+/// 防压缩包内直接双击：只抽 exe → marker 没跟出来判成安装态写 %APPDATA%；
 /// 整目录抽到 temp → 数据随 temp 蒸发——两坑同由本守卫在 boot 拒服务。
 fn temp_trap_hit() -> bool {
     let Some(exe_dir) = std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.to_path_buf())) else {
@@ -263,7 +263,7 @@ fn strip_verbatim(p: PathBuf) -> PathBuf {
 }
 
 /// Windows：控制台子系统子进程（node.exe / taskkill.exe）由 GUI 壳裸 spawn 会闪黑窗
-/// （产线真机实测：sidecar 弹 node 控制台）。CREATE_NO_WINDOW 抑制；POSIX 下为空操作。
+/// （sidecar 弹 node 控制台）。CREATE_NO_WINDOW 抑制；POSIX 下为空操作。
 #[cfg(windows)]
 fn hide_console(cmd: &mut StdCommand) {
     use std::os::windows::process::CommandExt;
@@ -284,7 +284,7 @@ impl Sidecar {
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
             .env("ATTIC_LAUNCHER_VERSION", &version);
-        // portable B 期：双指纹命中才注入（缺席 = sidecar 走安装/开发形态，判定复核在 runtime）
+        // portable：双指纹命中才注入（缺席 = sidecar 走安装/开发形态，判定复核在 runtime）
         if let Some((exe_dir, marker)) = portable_launch_env() {
             cmd.env("ATTIC_EXE_DIR", &exe_dir);
             if let Some(ini) = marker {
@@ -587,7 +587,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
-            // temp 守卫（plan.md 终拍⑤）：conf 建窗先于 setup，命中即藏窗 + 原生对话框讲清
+            // temp 守卫：conf 建窗先于 setup，命中即藏窗 + 原生对话框讲清
             // 「实际动作 + 出路」+ 指路 Releases，再退出；sidecar 不 spawn（不产生便携态副作用）。
             if temp_trap_hit() {
                 if let Some(win) = app.get_webview_window("main") {
@@ -671,7 +671,7 @@ pub fn run() {
         });
 }
 
-// ————————————————————————— 契约镜像闸门（戒律 #2 的跨语言半边） —————————————————————————
+// ————————————————————————— 契约镜像闸门（跨语言半边） —————————————————————————
 
 #[cfg(test)]
 mod contract_tests {

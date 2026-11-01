@@ -1,16 +1,15 @@
 <script setup lang="ts">
 /**
- * 版本选择器 —— BlockHelm 式浮动面板，交互为鼠标驱动（用户指定）：
+ * 版本选择器 —— 浮动面板，交互为鼠标驱动：
  * 悬浮 dock = 伸展列表；移出 dock = 收起（图钉固定时移出也不收）；
  * 图钉/收起按钮为显式操作。
  * 显式收起后直到鼠标移出 dock 前不再被 hover 重新展开（dismissed 标志，防止"点了收起没反应"）。
  * 默认折叠：仅持久化图钉偏好，不持久化展开态。
- * 列表项为纯文本双行（Name 主标题 / Subtitle 小字），不用 BlockHelm 方块图标（用户撤回项）。
- * 数据驱动：分组/排序全来自清单 era + 日期字段，UI 零版本判断（戒律 #1）。
+ * 列表项为纯文本双行（主标题 / 小字副标题），无图标。
+ * 数据驱动：分组/排序全来自清单 era + 日期字段，UI 零版本判断。
  *
- * 几何 = BlockHelm HomeLaunchGameListView 单组件配方（用户指定移植）：
- * 裁剪窗固定为展开高度（实测 scrollHeight，UpdateMenuClipHost 同语义），面板**始终挂载**，
- * 收起=面板整体下移 (panelH - peekH)、露出多少由静态裁剪窗决定（XAML.cs L393-395 同式）；
+ * 几何：裁剪窗固定为展开高度（实测 scrollHeight），面板**始终挂载**，
+ * 收起=面板整体下移 (panelH - peekH)、露出多少由静态裁剪窗决定；
  * 收起态卡片 = 覆盖在面板顶缘的 peekbar（绝对定位，不占内容流 → panelH 恒稳），
  * 展开时淡出上移、被裁剪窗顶缘吞掉——无 v-if/Transition，动画纯 transform+opacity。
  */
@@ -46,13 +45,12 @@ function persist(): void {
   }
 }
 
-// 收起防抖 = BlockHelm HomeLaunchMenuCollapseDelayMilliseconds(110ms)：
-// 鼠标移出后延迟 110ms 才收起，穿越缝隙/短暂出界不闪收
+// 收起防抖 110ms：鼠标移出后延迟才收起，穿越缝隙/短暂出界不闪收
 const COLLAPSE_DELAY_MS = 110;
 let leaveTimer: ReturnType<typeof setTimeout> | null = null;
 
 // 选中收起后的重入抑制窗：收起瞬间指针仍悬在 dock 盒上方，会合成触发
-// mouseleave→mouseenter，dismissed 被复位后 hover 立即再展开（用户报"选中后不关闭"）。
+// mouseleave→mouseenter，dismissed 被复位后 hover 立即再展开。
 // 窗口期内拒绝 hover 展开；显式点击/图钉不受限。
 const SUPPRESS_REENTER_MS = 600;
 let suppressUntil = 0;
@@ -96,7 +94,7 @@ function onPick(id: string): void {
   if (!pinned.value) collapse(true);
 }
 
-// —— 高度实测（BlockHelm MeasureExpandedHeight / GetCollapsedHeight 同语义）：
+// —— 高度实测：
 // panelH = 面板内容流全高（peekbar 绝对定位不计入，值恒稳）；
 // peekH = peekbar 自然高（内容决定，零硬编码）。两者写进 CSS 变量驱动平移与裁剪。
 // onMounted 同步测（DOM 已插入、浏览器尚未绘制）→ 无闪帧；内容变化经 nextTick 重测。
@@ -121,11 +119,11 @@ watch([groups, search, loading, error], () => void nextTick(remeasure));
 // 选中版本变化 → peekbar 文案双行长度变化，高度可能微差 → 一并重测
 watch(selectedId, () => void nextTick(remeasure));
 
-// —— 每次展开：静默重扫磁盘（修 v1 "运行期丢 jar 不更新列表"缺陷，超越其重启才可见）
+// —— 每次展开：静默重扫磁盘（运行期丢 jar 也能即时更新列表）
 // + 定位到已选中版本（无选中回顶部）。列表滚动容器 = .list。
-// 竞态戒律：refresh 是异步 IPC，resolve 时面板可能已被收起——必须用序号守卫放弃后续定位。
-// 曾因收起后仍执行 scrollIntoView，把祖先滚动容器（.window overflow:hidden）一并滚动，
-// peekbar 被位移到光标下 → 命中测试合成 mouseenter → 面板秒弹回（用户报"有时关不上"）。
+// 竞态护栏：refresh 是异步 IPC，resolve 时面板可能已被收起——必须用序号守卫放弃后续定位。
+// scrollIntoView 会把祖先滚动容器（.window overflow:hidden）一并滚动，
+// peekbar 被位移到光标下 → 命中测试合成 mouseenter → 面板秒弹回。
 // 故定位只做 .list 容器内手动 scrollTop，绝不碰祖先。
 const listEl = ref<HTMLElement | null>(null);
 let expandSeq = 0;
@@ -161,24 +159,23 @@ function eraKey(era: VersionEra | 'unknown'): string {
   return era === 'release-1.0-1.5.2' ? 'release' : era;
 }
 
-/** 加粗位 = 启动 id（与 jar/实例配置一致，如 pc-132011）；别名（如 rd-132211）降为第二行。
- * 用户指定互换：旧版 displayName 占主位导致 id/别名位置颠倒。 */
+/** 加粗位 = 启动 id（与 jar/实例配置一致，如 pc-132011）；别名（如 rd-132211）降为第二行。 */
 function titleOf(v: VersionRef): string {
   return v.id;
 }
 
-/** 别名（仅当存在且不同于 id）；日期不再显示（用户指定：太占空间）。 */
+/** 别名（仅当存在且不同于 id）；行副标题不显示日期（太占空间）。 */
 function aliasOf(v: VersionRef): string {
   return v.displayName && v.displayName !== v.id ? v.displayName : '';
 }
 
-/** 行副标题 = 别名（仅当存在且不同于 id）+ Custom 标记。
- * 用户指定：Custom 与别名同放第二行（加粗主位只留启动 id），不再挂行右侧徽标。 */
+/** 行副标题 = 别名（仅当存在且不同于 id）+ Custom 标记，同放第二行
+ * （加粗主位只留启动 id，不挂行右侧徽标）。 */
 function rowSubtitle(v: VersionRef): string {
   const parts: string[] = [];
   const alias = aliasOf(v);
   if (alias) parts.push(alias);
-  if (v.custom) parts.push('Custom'); // v1 [Custom] 后缀语义（英文原样，与 era 标签同策略）
+  if (v.custom) parts.push('Custom'); // 英文原样，与 era 标签同策略
   return parts.join(' · ');
 }
 
@@ -186,7 +183,7 @@ function subtitleOf(v: VersionRef): string {
   const parts = [t(`era.${eraKey(v.era ?? 'unknown')}`)];
   const date = fmtDate(v.compileDate ?? v.releaseDate);
   if (date) parts.push(date);
-  if (v.custom) parts.push('Custom'); // v1 customSuffix 语义（英文原样，与 era 标签同策略）
+  if (v.custom) parts.push('Custom'); // 英文原样，与 era 标签同策略
   return parts.join(' · ');
 }
 </script>
@@ -202,12 +199,12 @@ function subtitleOf(v: VersionRef): string {
     @mouseenter="onEnter"
     @mouseleave="onLeave"
   >
-    <!-- 裁剪窗：BlockHelm HomeLaunchMenuClipHost——底缘锚定、高度固定为展开值，
+    <!-- 裁剪窗：底缘锚定、高度固定为展开值，
          overflow 决定露出多少；窗本身不吃指针（收起态只有 peekbar 可点）。 -->
     <div class="window">
-      <!-- 面板：常驻挂载。收起=整体下移 (panel-h - peek-h)（targetPanelOffset 同式），
+      <!-- 面板：常驻挂载。收起=整体下移 (panel-h - peek-h)，
            顶缘 peekbar 恰好落进 dock 槽位；展开=平移归零，顶缘上移、内容随之显形。
-           时长/缓动沿用既定配方（--dur-grow 380ms / --ease-grow）。 -->
+           时长/缓动 = --dur-grow / --ease-grow。 -->
       <section ref="panelEl" class="panel" :class="{ 'panel--open': expanded }">
         <!-- 收起态卡片：覆盖面板顶缘（不占内容流 → panel-h 恒稳）。展开时淡出上移，
              被裁剪窗顶缘吞掉；收起态点击=伸展。 -->
@@ -312,7 +309,7 @@ function subtitleOf(v: VersionRef): string {
 <style scoped>
 .dock {
   position: relative;
-  /* 与 InstanceDock 同级：展开面板浮在 Play/相邻内容之上（原由父层 stage-dock 承担） */
+  /* 展开面板浮在 Play/相邻内容之上 */
   z-index: 10;
   width: 300px;
   max-width: 100%;
@@ -325,12 +322,12 @@ function subtitleOf(v: VersionRef): string {
   right: 0;
   bottom: 0;
   /* border-box：内高 = panel-h - 1px，面板底缘恰好悬出裁剪线 1px
-     （BlockHelm MenuPanelBottomOverhang 同语义）→ 面板自带底描边永不可见，
+     → 面板自带底描边永不可见，
      底缘线统一由窗的 border-bottom 提供，收起/展开两态一致。 */
   height: var(--panel-h);
   overflow: hidden;
   pointer-events: none;
-  /* 静态底缘端帽 = BlockHelm HomeLaunchMenuBottomEdge 的 CSS 等价：
+  /* 静态底缘端帽：
      圆角裁剪 + 1px 底描边，收起态被裁平的卡片底缘由此复原。 */
   border-bottom: 1px solid var(--card-border);
   border-radius: var(--radius-lg);
@@ -426,8 +423,8 @@ function subtitleOf(v: VersionRef): string {
 .subtitle {
   font-size: var(--fs-xs);
   color: var(--text-muted);
-  /* 显式行高（=InstanceDock 同值）：sans/mono 字体 normal 行高差 ~3px，
-     两个 dock 同款配方曾因此一高一矮（用户实测“实例菜单偏小”） */
+  /* 显式行高：sans/mono 字体 normal 行高差 ~3px，
+     不写死会让两个 dock 一高一矮 */
   line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -534,8 +531,8 @@ function subtitleOf(v: VersionRef): string {
 .chip[data-era='alpha'] { --chip: var(--era-alpha); --chip-soft: var(--era-alpha-soft); }
 .chip[data-era='beta'] { --chip: var(--era-beta); --chip-soft: var(--era-beta-soft); }
 .chip[data-era='release-1.0-1.5.2'] { --chip: var(--era-release); --chip-soft: var(--era-release-soft); }
-/* 列表项：纯文本双行（Name/Subtitle），点击选中；未固定时选中即收起。
-   列表始终"已准备好"（用户指定：无逐行动画），展开观感全部交给面板平移 */
+/* 列表项：纯文本双行（主标题/副标题），点击选中；未固定时选中即收起。
+   列表始终"已准备好"（无逐行动画），展开观感全部交给面板平移 */
 .row {
   display: flex;
   align-items: center;

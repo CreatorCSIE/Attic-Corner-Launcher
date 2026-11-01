@@ -1,10 +1,10 @@
 /**
- * Tauri 桥适配器（Phase 4 脚手架）：UI 跑在 Tauri 壳（withGlobalTauri=true）时，
+ * Tauri 桥适配器：UI 跑在 Tauri 壳（withGlobalTauri=true）时，
  * window.__TAURI__ 在场 —— 以此全局面（core.invoke / event.listen）实现 RendererBridge 全桥。
  *
  * 设计约束：
  *  - 不 import 任何 @tauri-apps npm 包（UI 与壳技术栈解耦，浏览器/Electron 线零连带）；
- *  - 通道名一律引用 @attic/core-spec 契约常量（戒律 #2）；
+ *  - 通道名一律引用 @attic/core-spec 契约常量；
  *  - sidecar 通道走 Rust 的 ipc_forward 白名单转发；宿主面走 Rust 专用命令；
  *  - Rust 返回的已是 IpcResult 封装（{ok,value|error}），本层原样透传。
  */

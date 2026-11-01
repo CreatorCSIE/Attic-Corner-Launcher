@@ -1,6 +1,6 @@
 /**
- * 渲染侧 AppSettings / InstanceView ↔ 宿主 properties 文件的映射（Phase 3）。
- * 戒律 #1：设置是数据，落 `launcher.settings`（v1 格式）；本模块只做形状转换，不碰文件。
+ * 渲染侧 AppSettings / InstanceView ↔ 宿主 properties 文件的映射。
+ * 设置是数据，落 `launcher.settings`（v1 格式）；本模块只做形状转换，不碰文件。
  * 未知键一律保留——launcher.settings 可能含 v1 遗留键，写回时不得丢失。
  */
 
@@ -66,7 +66,7 @@ export function settingsFromProps(props: Record<string, string>): AppSettings {
   const portableFallback = boolFromProps(props['portableFallback']);
   if (portableFallback !== undefined) out.portableFallback = portableFallback;
   if (props['levelServer']) out.levelServer = props['levelServer'];
-  // 更新策略/忽略账（2026-10-25「更新 UI」设计）：非法值缺省省略（消费端 ?? 'startup'）；
+  // 更新策略/忽略账：非法值缺省省略（消费端 ?? 'startup'）；
   // updateIgnoreVersion 空串视同无键（与其余字符串 managed 键同纪律）。
   if (UPDATE_POLICIES.includes(props['updatePolicy'] ?? '')) {
     out.updatePolicy = props['updatePolicy'] as 'startup' | 'off';
@@ -107,7 +107,7 @@ export function applySettingsToProps(
   put('javaPath', settings.javaPath);
   put('maxMemoryMb', settings.maxMemoryMb === undefined ? undefined : String(settings.maxMemoryMb));
   put('memoryMode', settings.memoryMode);
-  // username（v1 遗留键）已退出 managed 键集（2026-10-22 拍板）：本行不再出现 = 文件里
+  // username（v1 遗留键）不在 managed 键集：本行不再出现 = 文件里
   // 既有的 username 键按「未知键原样保留」纪律自然不动，v1 数据面零破坏。
   put('theme', settings.theme);
   put('language', settings.language);

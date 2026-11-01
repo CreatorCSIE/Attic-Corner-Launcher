@@ -1,13 +1,13 @@
 <script setup lang="ts">
 /**
- * 实例 dock —— 启动页 Play 左侧的实例切换浮层（用户指定：与版本列表同款 dock）。
- * 几何/交互 = VersionSelector 同款 BlockHelm 配方：裁剪窗固定展开高度（实测 scrollHeight）、
+ * 实例 dock —— 启动页 Play 左侧的实例切换浮层（与版本列表同款 dock 交互）。
+ * 几何/交互：裁剪窗固定展开高度（实测 scrollHeight）、
  * 面板常驻挂载、收起=整体下移 (panelH - peekH)、hover 展开 + 110ms 收起防抖 +
  * 600ms 选中重入抑制窗、图钉偏好独立持久化。
- * 本期语义（"先搬过去"）：选中 = 切换激活实例（useInstances.activeName，localStorage 持久化，
+ * 选中 = 切换激活实例（useInstances.activeName，localStorage 持久化，
  * AppSettings 契约不动）；版本联动由 useSelection 对 active 的 watch 统一承担
- * （与宿主 persistInstanceVersion 的回写方向一致）。实例页改版时本组件与 InstanceList 统一收编到同一主从骨架。
- * 数据驱动：列表/计数全走契约，UI 零版本判断（戒律 #1）。
+ * （与宿主 persistInstanceVersion 的回写方向一致）。
+ * 数据驱动：列表/计数全走契约，UI 零版本判断。
  */
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useI18n } from '../i18n';
@@ -38,11 +38,11 @@ function persist(): void {
   }
 }
 
-// 收起防抖 = BlockHelm HomeLaunchMenuCollapseDelayMilliseconds(110ms)：穿越缝隙不闪收
+// 收起防抖 110ms：穿越缝隙不闪收
 const COLLAPSE_DELAY_MS = 110;
 let leaveTimer: ReturnType<typeof setTimeout> | null = null;
 
-// 选中收起后的重入抑制窗（同版本 dock：防合成 mouseenter 秒弹回"关不上"）
+// 选中收起后的重入抑制窗：防合成 mouseenter 秒弹回"关不上"
 const SUPPRESS_REENTER_MS = 600;
 let suppressUntil = 0;
 
@@ -95,7 +95,7 @@ const filtered = computed(() => {
   );
 });
 
-// —— 高度实测（BlockHelm MeasureExpandedHeight / GetCollapsedHeight 同语义）：
+// —— 高度实测：
 // panelH = 面板内容流全高（peekbar 绝对定位不计入）；peekH = peekbar 自然高。
 // 双 rAF 锚定真实绘制帧后才允许过渡（防重挂载首帧 0px→实测值被播成收缩动画）。
 const panelEl = ref<HTMLElement | null>(null);
@@ -116,7 +116,7 @@ watch([filtered, query, loading, error], () => void nextTick(remeasure));
 watch(activeName, () => void nextTick(remeasure));
 
 // —— 每次展开：静默重扫实例档案 + 定位到激活行。
-// 竞态戒律（同版本 dock）：refresh 异步 IPC resolve 时面板可能已收起——序号守卫放弃定位；
+// 竞态护栏：refresh 异步 IPC resolve 时面板可能已收起——序号守卫放弃定位；
 // 定位只碰 .list 自身 scrollTop，绝不滚动任何祖先容器。
 const listEl = ref<HTMLElement | null>(null);
 let expandSeq = 0;
@@ -248,9 +248,9 @@ watch(expanded, async (open) => {
 </template>
 
 <style scoped>
-/* 视觉与几何全部镜像 VersionSelector（同款 BlockHelm 配方），差异仅：
+/* 视觉与几何与 VersionSelector 一致，差异仅：
    z-index 抬高覆盖 stage-hero（z5）、版本分组/chip/已装徽标去除（实例扁平列表）、
-   版本副标题 mono 字体。实例页改版时两者与 InstanceList 一并收编共享骨架。 */
+   版本副标题 mono 字体。 */
 .dock {
   position: relative;
   z-index: 10;
@@ -351,8 +351,8 @@ watch(expanded, async (open) => {
 .subtitle {
   font-size: var(--fs-xs);
   color: var(--text-muted);
-  /* 显式行高（=VersionSelector 同值）：mono 字体 normal 行高比 sans 矮 ~3px，
-     两 dock 同款配方曾因此一高一矮（用户实测"实例菜单偏小"） */
+  /* 显式行高：mono 字体 normal 行高比 sans 矮 ~3px，
+     不写死会让两 dock 一高一矮 */
   line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;

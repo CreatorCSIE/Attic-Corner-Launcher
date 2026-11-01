@@ -1,12 +1,12 @@
 <script setup lang="ts">
 /**
- * 实例页 —— BlockHelm 双栏骨架（镜像账户页配方，用户指定）：
+ * 实例页 —— 双栏骨架：
  * 左 = SecondaryMenu 列（248px：实例行[名/版本子行/激活标记/hover 删除] + 底部「新建实例」），
  * 右 = 详情编辑列（目录/JVM 参数/Java 路径/窗口尺寸），限宽浮中。
- * 版本不在本页编辑（用户拍板）：档案版本 = 上次启动版本（宿主回写），编辑态只读展示；
+ * 版本不在本页编辑：档案版本 = 上次启动版本（宿主回写），编辑态只读展示；
  * 新建实例默认取启动页当前选中版本（useSelection，与激活实例联动）。
  * 激活实例（启动页 dock 共享同一状态）与浏览选中分离：点行 = 浏览，「设为启动实例」= 激活。
- * 名字为档案主键（v1 语义）：编辑态经铅笔内联改名（只迁档案、gameDir 不动）；
+ * 名字为档案主键：编辑态经铅笔内联改名（只迁档案、gameDir 不动）；
  * 删除走 ConfirmDialog（默认只删档案，勾选才连目录）。
  */
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
@@ -32,7 +32,7 @@ const gameDir = ref('');
 const launchArgs = ref('');
 const javaPath = ref('');
 // 多人直连（Attic 扩展键，独立 card + 单开保存；空 = 未配置不询问）：
-// UI 双框（地址/端口），档案单串 `ip[:port]`（契约不变 §2.7）——保存拼接、载入拆解。
+// UI 双框（地址/端口），档案单串 `ip[:port]`——保存拼接、载入拆解。
 // 常量必须声明在 watch(immediate) 之前（const 无提升）：loadForm 同步引用，setup 期即执行。
 const SERVER_RE = /^([^:/\s]+)(?::(\d{1,5}))?$/;
 const SERVER_PORT_OK = (v: string): boolean => /^\d{1,5}$/.test(v) && Number(v) >= 1 && Number(v) <= 65535;
@@ -40,7 +40,7 @@ const serverHost = ref('');
 const serverPort = ref('');
 const width = ref<number | ''>(854);
 const height = ref<number | ''>(480);
-// v1 intelFix 缺键 = 开（v1 语义）；forceUpdate（Attic 扩展键）缺省 = 关
+// intelFix 缺键 = 开；forceUpdate（Attic 扩展键）缺省 = 关
 const intelFix = ref(true);
 const forceUpdate = ref(false);
 const newName = ref('');
@@ -88,14 +88,14 @@ function loadForm(inst: InstanceView): void {
   height.value = inst.height ?? 480;
   // 无 addons 键的老档案：展示按默认开集（与 legacyfix 缺省行为一致，保存时显式落键）
   addonsSel.value = inst.addons ? [...inst.addons] : [...DEFAULT_ADDONS];
-  // v1 缺键语义：intelFix 缺省开、forceUpdate 缺省关
+  // 缺键语义：intelFix 缺省开、forceUpdate 缺省关
   intelFix.value = inst.intelFix !== false;
   forceUpdate.value = inst.forceUpdate === true;
   dirError.value = null;
   flashSaved(false);
 }
 
-// —— 改名（v1 语义：档案迁移、gameDir 不动）：内联编辑态 + 在途 + 宿主错误内联 ——
+// —— 改名（档案迁移、gameDir 不动）：内联编辑态 + 在途 + 宿主错误内联 ——
 // 必须声明在 watch(immediate) 之前：其回调同步走 onSelect → cancelRename（const 无提升）
 const renaming = ref(false);
 const renameValue = ref('');
@@ -261,7 +261,7 @@ async function onSave(): Promise<void> {
 
 // —— 多人直连 card（单开保存）：格式校验 = 拼装器同源宽松版（host[:port]，端口 1-65535）；
 // 空 = 未配置（保存即删键）；校验只拦 card 自己的保存钮，不拦基本设置保存（地址缺席由 trim 判定）。
-// SERVER_RE / SERVER_PORT_OK 声明在上方 refs 区（watch(immediate) 的 const 无提升纪律）。
+// SERVER_RE / SERVER_PORT_OK 声明在上方 refs 区（watch(immediate) 需先声明，const 无提升）。
 const savingServer = ref(false);
 const serverSavedFlash = ref(false);
 let serverSavedTimer: ReturnType<typeof setTimeout> | undefined;
@@ -299,7 +299,7 @@ async function onOpenDir(): Promise<void> {
   dirError.value = await openDir(selectedName.value);
 }
 
-// —— 删除确认（防误删，账户页同款）：目标 + 开关 + 在途态 + 可选连删目录 ——
+// —— 删除确认（防误删）：目标 + 开关 + 在途态 + 可选连删目录 ——
 const delOpen = ref(false);
 const delTarget = ref<InstanceView | null>(null);
 const deleting = ref(false);
@@ -330,7 +330,7 @@ async function onConfirmRemove(): Promise<void> {
 
 <template>
   <section class="instances-page">
-    <!-- 左栏：实例菜单（SecondaryMenuFrame 248px 等效） -->
+    <!-- 左栏：实例菜单（248px） -->
     <aside class="menu">
       <h2 class="menu-title">{{ t('nav.instances') }}</h2>
 
@@ -346,7 +346,7 @@ async function onConfirmRemove(): Promise<void> {
             @click="onSelect(inst)"
           >
             <span class="mi-body">
-              <!-- 名字让位、徽标免疫收缩（对齐自定义版本页 flex 形态，防 ellipsis 截徽标） -->
+              <!-- 名字让位、徽标免疫收缩（防 ellipsis 截徽标） -->
               <span class="mi-name">
                 <span class="mi-text">{{ inst.name }}</span>
                 <span v-if="activeName === inst.name" class="mi-active">{{ t('instance.active') }}</span>
@@ -502,7 +502,7 @@ async function onConfirmRemove(): Promise<void> {
             />
             <p v-if="existsError" class="field-err">{{ t('instance.exists') }}</p>
           </div>
-          <!-- 版本不在本页展示（用户拍板）：新建静默取启动页当前选中版本，编辑态在标题下 kind 行 -->
+          <!-- 版本不在本页展示：新建静默取启动页当前选中版本，编辑态在标题下 kind 行 -->
           <!-- 目录路径长（数据根/<实例名>），独占整行避免截断；JVM 参数顺延第二行 -->
           <div class="field field--full">
             <label class="label" for="inst-dir">{{ t('instance.gameDir') }}</label>
@@ -524,7 +524,7 @@ async function onConfirmRemove(): Promise<void> {
             <label class="label" for="inst-h">{{ t('instance.height') }}</label>
             <input id="inst-h" v-model.number="height" class="input" type="number" min="1" step="1" />
           </div>
-          <!-- 开关组（用户指定归置）：v1 两开关（Intel 修复/强制更新）+ 高频 addon 四项。
+          <!-- 开关组：两开关（Intel 修复/强制更新）+ 高频 addon 四项。
                addon 项数据仍是 addonsSel 数组（-Dlf.* 注入链不动），仅渲染归属换到基本设置。 -->
           <div class="toggles">
             <div class="addon-row">
@@ -572,7 +572,7 @@ async function onConfirmRemove(): Promise<void> {
           <p v-if="dirError" class="field-err">{{ dirError }}</p>
         </form>
 
-        <!-- 多人直连（Attic 扩展键，用户指定单开 card + 单开保存）：非空 = 启动页 Play 前置
+        <!-- 多人直连（Attic 扩展键，单开 card + 单开保存）：非空 = 启动页 Play 前置
              「直连/单人」询问弹窗（一次性注入，不因启动改写本档案）；空 = 不询问。新建态不展示（先建档再配）。 -->
         <section v-if="!creating && selected" class="card server-card">
           <h4 class="card-title">{{ t('instance.server.title') }}</h4>
@@ -636,7 +636,7 @@ async function onConfirmRemove(): Promise<void> {
         </section>
       </div>
 
-      <!-- 空态：BlockHelm 同款——无卡片容器，仅一行居中文案 -->
+      <!-- 空态：无卡片容器，仅一行居中文案 -->
       <div v-else class="empty">
         <p class="state-hint">{{ instances.length === 0 ? t('instance.emptyHint') : t('instance.hint') }}</p>
       </div>
@@ -659,7 +659,7 @@ async function onConfirmRemove(): Promise<void> {
 </template>
 
 <style scoped>
-/* BlockHelm 骨架（镜像账户页）：SecondaryMenuFrame 贴左 248px，详情列在剩余空间浮中。 */
+/* 双栏骨架：左列贴左 248px，详情列在剩余空间浮中。 */
 .instances-page {
   display: flex;
   flex: 1;
@@ -704,7 +704,7 @@ async function onConfirmRemove(): Promise<void> {
 .menu-row {
   position: relative;
 }
-/* 列表项：名 + 版本子行；选中 = surface-3 底高亮（SecondaryMenuOptionButton 配方） */
+/* 列表项：名 + 版本子行；选中 = surface-3 底高亮 */
 .menu-item {
   display: flex;
   align-items: center;
@@ -764,7 +764,7 @@ async function onConfirmRemove(): Promise<void> {
   background: var(--accent-soft);
   border-radius: var(--radius-pill);
 }
-/* 删除钮：hover 行时浮现（BlockHelm Opacity 0→1 触发器等效） */
+/* 删除钮：hover 行时浮现 */
 .mi-del {
   position: absolute;
   top: 50%;
@@ -823,7 +823,7 @@ async function onConfirmRemove(): Promise<void> {
 .menu-add:hover {
   background-color: var(--surface-3);
 }
-/* —— 右栏：详情编辑列（限宽浮中，账户页同款） —— */
+/* —— 右栏：详情编辑列（限宽浮中） —— */
 .detail {
   flex: 1;
   min-width: 0;

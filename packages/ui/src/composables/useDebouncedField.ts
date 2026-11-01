@@ -1,10 +1,9 @@
 /**
- * useDebouncedField —— 即改即存页的文本/滑杆防抖写入（BlockHelm 350ms 防抖的 Attic 简版）。
+ * useDebouncedField —— 即改即存页的文本/滑杆防抖写入。
  * 本地态即改即显，落盘延后 400ms；settings 外部变化（保存回执/demo 复位）回同步本地，
  * 但防抖窗口内不打断用户输入。
- * savedFlash（2026-10-22 用户拍板）：commit 落盘后 1.5s 内为 true——即改即存页缺的不是
- * 保存按钮（自动保存已在），是「已保存」的视觉回执。展示面自选（文本字段挂徽标，
- * 滑杆类不挂避免拖拽期间频闪）。
+ * savedFlash：commit 落盘后 1.5s 内为 true——即改即存页缺的不是保存按钮（自动保存已在），
+ * 是「已保存」的视觉回执。展示面自选（文本字段挂徽标，滑杆类不挂避免拖拽期间频闪）。
  */
 
 import { ref, watch, type Ref } from 'vue';

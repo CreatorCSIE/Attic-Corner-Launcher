@@ -1,10 +1,10 @@
 <script setup lang="ts">
 /**
- * 应用壳 —— 顶栏 + 缺桥横幅 + 左侧图标+文字侧栏 + 主体（ui-design.md §3 布局范式）。
+ * 应用壳 —— 顶栏 + 缺桥横幅 + 左侧图标+文字侧栏 + 主体。
  * 侧栏最上端 = BrandWordmark（≡ + 完整名称双行）；底部保留作者头像。
  * 启动视图：主区左上 = AccountHero（皮肤头+用户名+欢迎语）；版本列表 | 启动面板（Play 右下）。
- * 控制台解耦（v1 语义）：主页不再内嵌 ConsolePanel；?window=console 的独立窗只渲染顶栏+全屏控制台。
- * view 切换仍是 ref 状态，零 vue-router；图标为内联 lucide 路径（MIT），零新依赖。
+ * 控制台解耦：主页不内嵌 ConsolePanel；?window=console 的独立窗只渲染顶栏+全屏控制台。
+ * view 切换是 ref 状态，零 vue-router；图标为内联 lucide 路径（MIT），零新依赖。
  */
 import { onMounted, ref, watch } from 'vue';
 import { useI18n } from './i18n';
@@ -36,8 +36,7 @@ const isConsoleWindow =
 type View = 'launch' | 'instances' | 'accounts' | 'custom' | 'mods' | 'servers' | 'settings';
 const view = ref<View>('launch');
 
-// —— 页面切换方向（BlockHelm GetTransitionStartOffset 实测配方，用户指定）：
-//    按导航序前进 → 新页自下方 +22px 浮现；后退 → 自上方 -22px。 ——
+// —— 页面切换方向：按导航序前进 → 新页自下方 +22px 浮现；后退 → 自上方 -22px。 ——
 const VIEW_ORDER: readonly View[] = ['launch', 'instances', 'accounts', 'custom', 'mods', 'servers', 'settings'];
 const pageDy = ref('22px');
 watch(view, (next, prev) => {
@@ -48,7 +47,7 @@ const { hasBridge } = useBridge();
 
 // —— 侧栏折叠：≡ 切换 图标+文字 ↔ 窄图标 rail，偏好持久化 ——
 const SIDEBAR_KEY = 'attic:sidebar-collapsed:v1';
-// 首启缺省 = 折叠（用户拍板 2026-11-01）：无存档键走折叠态；已存 '0'/'1' 的既有偏好原样尊重。
+// 首启缺省 = 折叠：无存档键走折叠态；已存 '0'/'1' 的既有偏好原样尊重。
 const sidebarCollapsed = ref(true);
 try {
   const raw = localStorage.getItem(SIDEBAR_KEY);
@@ -111,7 +110,7 @@ async function loadCreatorAvatar(): Promise<void> {
   }
 }
 
-// 检查更新链（策略门控：startup = 启动自动查一次，off = 从不自动查；24h 轮询已删）：
+// 检查更新链（策略门控：startup = 启动自动查一次，off = 从不自动查；无 24h 轮询）：
 // 只挂主页，控制台窗不重复发请求；自动结果过打扰门才打扰（弹窗+关于栏红点，
 // useUpdateCheck 模块级单例共享，UpdateDialog 全局挂本层——关于页外也要能弹）。
 const updateCheck = useUpdateCheck();
@@ -120,15 +119,15 @@ onMounted(() => {
   if (!isConsoleWindow) {
     void loadCreatorAvatar();
     updateCheck.start();
-    // Java 探测启动预热（2026-10-31 用户拍板）：useJava 模块级缓存，进设置 Java 栏/向导
-    // 直接命中不再干等扫描；「刷新检测」按钮强制重探行为不变。
+    // Java 探测启动预热：useJava 模块级缓存，进设置 Java 栏/向导直接命中不再干等扫描；
+    // 「刷新检测」按钮强制重探行为不变。
     void useJava().detect();
   }
 });
 </script>
 
 <template>
-  <!-- 独立控制台窗：顶栏 + 全屏控制台，与主页完全解耦（v1 语义） -->
+  <!-- 独立控制台窗：顶栏 + 全屏控制台，与主页完全解耦 -->
   <div v-if="isConsoleWindow" class="app console-app">
     <TitleBar />
     <div class="console-full"><ConsolePanel /></div>
@@ -323,7 +322,7 @@ onMounted(() => {
         </button>
 
         <!-- 侧栏底部作者头像（GitHub 在线获取 + 本地缓存；未就绪时保留圆形占位）；
-             点击进入设置页·关于分区（BlockHelm 同款入口，GitHub 外链收进关于页） -->
+             点击进入设置页·关于分区（GitHub 外链收进关于页） -->
         <div class="sidebar-foot">
           <button
             class="sidebar-avatar-btn"
@@ -342,15 +341,10 @@ onMounted(() => {
       </nav>
 
       <main class="body">
-        <!-- 页面切换浮现动画（BlockHelm PageTransitionService 实测配方，用户指定）：
-             240ms ease-out，淡入 + Y 轴 22px 位移，方向随导航序（前进自下、后退自上）；
-             key=view 保证每次切换都重新触发入场过渡。
-             切页闪两段史（2026-10-23 逐帧取证）：①默认并发下新旧两页在流中共存
-             ~2 帧，双 flex:1 各被压半高 → 滚动条闪现+组件位移（浏览器 rAF 取证）；
-             ②改 mode="out-in" 后旧页先撤、新页再挂 → 中间 ~2-4 帧全空白，整卡
-             「消失再淡入」又是一种闪（CDP 截屏流取证，f02-f04 空白帧）。
-             终态方案 = 并发挂载 + 旧页 leave 期间脱离文档流（.page-leave-active
-             绝对定位，见样式注）：无挤压、无空窗，新页与旧页同帧交接。 -->
+        <!-- 页面切换浮现动画：240ms ease-out，淡入 + Y 轴 22px 位移，
+             方向随导航序（前进自下、后退自上）；key=view 保证每次切换都重新触发入场过渡。
+             并发挂载 + 旧页 leave 期间脱离文档流（.page-leave-active 绝对定位，见样式注）：
+             无挤压、无空窗，新页与旧页同帧交接。 -->
         <Transition name="page">
           <div v-if="view === 'launch'" key="launch" class="launch-stage" :style="{ '--page-dy': pageDy }">
             <AccountHero class="stage-hero" @open-accounts="view = 'accounts'" />
@@ -368,7 +362,7 @@ onMounted(() => {
       </main>
     </div>
 
-    <!-- 崩溃呈现模态弹窗（P2 现场 + P0 上次崩溃；栈先行 + 三按钮，win32 原生框同构，AppDialog 同款形态） -->
+    <!-- 崩溃呈现模态弹窗（现场错误 + 上次崩溃；栈先行 + 三按钮，win32 原生框同构，AppDialog 同款形态） -->
     <CrashPanel />
 
     <!-- 外链打开失败全局弹窗（useExternalLink 单例状态；Mods 页与关于页共用） -->
@@ -390,8 +384,7 @@ onMounted(() => {
   background: var(--surface-1);
   color: var(--text-primary);
 }
-/* Tailwind 试点：原 padding: var(--space-2) var(--space-4) 与 font-size: var(--fs-sm)
-   已替换为模板上的等效工具类 py-2 px-4 text-sm（映射同一组 token）。 */
+/* Tailwind 试点：padding/font-size 走模板工具类 py-2 px-4 text-sm（映射同一组 token）。 */
 .banner {
   background: var(--warn-soft);
   color: var(--warn);
@@ -402,7 +395,7 @@ onMounted(() => {
   flex: 1;
   min-height: 0;
 }
-/* —— 左侧图标+文字侧栏（BlockHelm 式：字标置顶、导航行全宽、激活态 overlay 底圆角高亮、作者头像沉底） —— */
+/* —— 左侧图标+文字侧栏：字标置顶、导航行全宽、激活态 overlay 底圆角高亮、作者头像沉底 —— */
 .sidebar {
   flex: 0 0 var(--sidebar-width);
   display: flex;
@@ -417,7 +410,7 @@ onMounted(() => {
     padding var(--dur-base) var(--ease-out);
 }
 /* 折叠态：收窄为图标 rail（--rail-width）。
-   零离散切换（用户报"折叠/展开抖动"根因）：display:none、justify-content、
+   零离散切换（防折叠/展开抖动）：display:none、justify-content、
    padding 瞬跳都会在 t=0 造成位置突变，再叠加 200ms 宽度过渡 = 两段式运动。
    文字收放走 nav-label 的 max-width/opacity/margin 过渡；图标"居中"由
    padding-inline 连续过渡达成——折叠态内容列宽 = rail - 2*space-2 = 44，
@@ -493,7 +486,7 @@ onMounted(() => {
   border: none;
   border-radius: var(--radius-pill);
   cursor: pointer;
-  line-height: 0; /* 消除行内基线间隙，按钮与头像严丝合缝（零抖动延续） */
+  line-height: 0; /* 消除行内基线间隙，按钮与头像严丝合缝 */
   transition: box-shadow var(--dur-fast) var(--ease-out);
 }
 .sidebar-avatar-btn:hover {
@@ -509,8 +502,7 @@ onMounted(() => {
   display: block;
 }
 /* 主区裁剪：入场过渡的 translateY(+22px) 会短暂超出下缘，若不裁剪会泄漏成
-   视口 scrollable overflow——切换瞬间闪出滚动条（浏览器实测：html 溢出 32px 随动衰减）。
-   位移是装饰性溢出，理应 clip 在主区内（BlockHelm WPF 容器同为 ClipToBounds）。 */
+   视口 scrollable overflow——切换瞬间闪出滚动条。位移是装饰性溢出，理应 clip 在主区内。 */
 .body {
   position: relative; /* 旧页 leave 脱离流后的包含块（.page-leave-active） */
   flex: 1;
@@ -520,18 +512,11 @@ onMounted(() => {
   flex-direction: column;
   overflow: hidden;
 }
-/* —— 页面切换浮现（BlockHelm PageTransitionService 实测配方，用户指定）：仅入场过渡——
-   新页淡入 + translateY(±22px→0)，240ms（--dur-page）ease-out；位移方向由 --page-dy
-   注入（前进 +22 自下、后退 -22 自上）。只动 transform/opacity。
-   "切换闪一下"真因（2026-10-23 浏览器 rAF 逐帧取证）：Transition 默认并发模式下
-   新旧两页在流中共存 ~2 帧（leave 无动画也要等 nextFrame），双 flex:1 各被压成
-   半高 → 新页内部滚动容器瞬时溢出闪出滚动条、组件位移，旧页撤除后回弹——
-   三壳（Tauri/Electron/浏览器）皆可复现。修复 = <Transition mode="out-in">
-   （见模板注），与合成层/窗底色无关（早先"WebView2 白闪"诊断为误判，已撤销）。
-   二段修复（用户复报卡片右缘仍闪，CDP 真窗取证）：模组页数据到达时 .detail
-   溢出从零变正，10px 经典滚动条出现致整列 440→430 reflow——修复见 base.css
-   滚动条节的 .menu/.detail scrollbar-gutter: stable（槽位常留、零 reflow）。
-   过渡元素垫不透明底色（.launch-stage/.content）保留：淡入期间背景不穿透，无害。—— */
+/* —— 页面切换浮现：仅入场过渡——新页淡入 + translateY(±22px→0)，240ms（--dur-page）
+   ease-out；位移方向由 --page-dy 注入（前进 +22 自下、后退 -22 自上）。只动 transform/opacity。
+   右缘滚动条闪另由 base.css 滚动条节的 .menu/.detail scrollbar-gutter: stable 根治
+   （滚动条出现致整列 reflow——槽位常留、零 reflow）。
+   过渡元素垫不透明底色（.launch-stage/.content）：淡入期间背景不穿透。—— */
 .page-enter-active {
   transition:
     opacity var(--dur-page) var(--ease-out),
@@ -541,13 +526,12 @@ onMounted(() => {
   opacity: 0;
   transform: translateY(var(--page-dy, 22px));
 }
-/* 旧页交接帧：leave 无动画（配方「即刻替换」），但 DOM 移除要等 ~2 帧 nextFrame。
-   并发改 key 时若旧页仍在流中 = 双 flex:1 挤压闪；out-in 先撤后挂 = 空白窗闪
-   （两段史见模板注）。绝对定位让旧页原地脱流叠在包含块 .body 上：尺寸不变、
-   不占流，新页同帧挂载淡入，交接零空窗。
-   选择器须带 .body 前缀提权（CDP 截屏流取证：裸 .page-leave-active 与
-   .launch-stage 同特异度且在前，被其 position: relative 覆盖 → 离开启动页时
-   旧页未脱流、dock 被压到半高中部 = 用户所见「整个 card 在闪」）。 */
+/* 旧页交接帧：leave 无动画（即刻替换），但 DOM 移除要等 ~2 帧 nextFrame。
+   并发改 key 时若旧页仍在流中 = 双 flex:1 挤压闪；out-in 先撤后挂 = 空白窗闪。
+   绝对定位让旧页原地脱流叠在包含块 .body 上：尺寸不变、不占流，
+   新页同帧挂载淡入，交接零空窗。
+   选择器须带 .body 前缀提权：裸 .page-leave-active 与 .launch-stage 同特异度且在前，
+   被其 position: relative 覆盖 → 离开启动页时旧页未脱流、dock 被压到半高。 */
 .body .page-leave-active {
   position: absolute;
   inset: 0;
@@ -557,9 +541,8 @@ onMounted(() => {
     transition: none;
   }
 }
-/* —— 内容页容器（BlockHelm/图2 骨架，用户指定）：铺满主区，不整块居中——
-   整块居中会把左菜单从侧栏旁拽走（"还是居中"根因）。行级排版归各页组件：
-   左菜单贴左（SecondaryMenuFrame），详情列在剩余空间内浮中（DetailPageContentMaxWidth）。 —— */
+/* —— 内容页容器：铺满主区，不整块居中——整块居中会把左菜单从侧栏旁拽走。
+   行级排版归各页组件：左菜单贴左，详情列在剩余空间内浮中。 —— */
 .content {
   flex: 1;
   min-height: 0;
@@ -577,17 +560,16 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   padding: var(--space-5);
-  /* 启动舞台背景（用户定稿 2026-10-31：仅配置背景图时启用，无内置默认图）：
-     遮罩/图两变量由 useSettings 在图可用时成对写入（缺省 = none 回落纯色底）；
-     末层 surface-1 色垫 = 淡入期间背景不穿透（原注释语义保留）。
-     LaunchPanel .panel 透明即为此画布设计。 */
+  /* 启动舞台背景：仅配置背景图时启用（无内置默认图）——遮罩/图两变量由 useSettings
+     在图可用时成对写入（缺省 = none 回落纯色底）；末层 surface-1 色垫 = 淡入期间
+     背景不穿透。LaunchPanel .panel 透明即为此画布设计。 */
   background:
     var(--app-bg-overlay, none),
     var(--app-bg-image, none) center / cover no-repeat,
     var(--surface-1);
 }
 /* 背景图启用态 = 固定暗上下文（图 + 暗遮罩）：舞台浮空元素文字 token 局部重映射为
-   暗主题亮值，否则浅色主题深字压暗图不可读（2026-10-31 用户实机报障）；
+   暗主题亮值，否则浅色主题深字压暗图不可读；
    无图时选择器不命中，全部回落主题值（浅底深字）。底部不透明卡片不在本子树，不受影响 */
 html[data-bg-image] .stage-hero {
   --text-primary: #e8e4dc;
@@ -606,8 +588,8 @@ html[data-bg-image] .stage-hero {
   flex-direction: column;
   padding-top: 96px; /* 给左上 AccountHero 让位 */
 }
-/* 版本 dock 已迁入 LaunchPanel 动作行（窄窗下与实例 dock 同 flex 流互斥，
-   不再绝对定位压盖实例 dock——遮挡 bug 的根因即两套布局互不感知） */
+/* 版本 dock 在 LaunchPanel 动作行（窄窗下与实例 dock 同 flex 流互斥，
+   不绝对定位压盖实例 dock——两套布局互不感知会遮挡） */
 /* —— 独立控制台窗：全屏控制台 —— */
 .console-app {
   height: 100vh;

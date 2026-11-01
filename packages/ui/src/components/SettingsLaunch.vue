@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
- * 设置页 · 启动与内存栏（BlockHelm 部分复制，用户定稿）：
+ * 设置页 · 启动与内存栏：
  * 启动行为开关（完整性复核/缺失补全联动、启动后最小化、服务器地址收编 levelServer）+
  * 内存（auto/manual + 滑杆 + 系统内存摘要）+ 全局 JVM 参数。
- * 明示不搬：全屏启动（老游戏不认启动参数，v1 靠 addon 已列 addons 占位）、pre/post 命令（价值低）。
+ * 明示不提供：全屏启动（老游戏不认启动参数）、pre/post 命令（价值低）。
  */
 import { computed } from 'vue';
 import { useI18n } from '../i18n';
@@ -26,7 +26,7 @@ const memoryMode = computed(() => settings.value.memoryMode ?? 'manual');
 
 const totalMemMb = computed(() => info.value?.totalMemMb ?? 0);
 
-/** 滑杆上限（BlockHelm 公式：min(总-2GB, 75%总)，取 128 对齐；无宿主数据回退 8192） */
+/** 滑杆上限：min(总-2GB, 75%总)，取 128 对齐；无宿主数据回退 8192 */
 const sliderMax = computed(() => {
   if (totalMemMb.value <= 0) return 8192;
   const cap = Math.min(totalMemMb.value - 2048, Math.floor((totalMemMb.value * 3) / 4));
@@ -182,7 +182,7 @@ function setMemoryMode(mode: 'auto' | 'manual'): void {
   flex-direction: column;
   gap: var(--space-2);
 }
-/* 即改即存回执徽标（与 SettingsPanel 开发页同款；label 行右侧绝对定位零抖动） */
+/* 即改即存回执徽标（label 行右侧绝对定位零抖动） */
 .saved-flash {
   position: absolute;
   top: 0;
@@ -238,7 +238,7 @@ function setMemoryMode(mode: 'auto' | 'manual'): void {
   color: var(--accent);
   font-weight: 600;
 }
-/* 内存滑杆：accent 进度段 + 圆形 thumb（BlockHelm Slider 等效的零依赖实现） */
+/* 内存滑杆：accent 进度段 + 圆形 thumb（零依赖实现） */
 .slider {
   appearance: none;
   width: 100%;

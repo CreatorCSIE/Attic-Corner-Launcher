@@ -1,11 +1,9 @@
 <script setup lang="ts">
 /**
- * 主题化动画下拉（BlockHelm AnimatedComboBox 移植，GPL-3.0 参考项目——版式与动画参数
- * 取自 ControlStyles.Inputs.xaml L208-560 + AnimatedComboBox.cs 源码实测值）：
- * 替换原生 <select>——OS 级弹层不跟主题、圆角/字体与整窗违和（用户反馈"被误识别为弹窗"）。
+ * 主题化动画下拉——替换原生 <select>：OS 级弹层不跟主题、圆角/字体与整窗违和。
  * 动画规格：开 210ms Cubic-EaseOut / 关 180ms Cubic-EaseInOut，opacity + scaleY .92 +
- * translateY ∓10/∓8（方向感知，向上翻时符号反转、原点换底部）；展开时描边 accent（= v1 的
- * BorderExpanded 主题色语义）；浮层 6px 间隙、max-height 260、条目 38px/圆角 7；禁用态 .58。
+ * translateY ∓10/∓8（方向感知，向上翻时符号反转、原点换底部）；展开时描边 accent；
+ * 浮层 6px 间隙、max-height 260、条目 38px/圆角 7；禁用态 .58。
  */
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
 
@@ -37,8 +35,8 @@ const rootEl = ref<HTMLElement | null>(null);
 const btnEl = ref<HTMLElement | null>(null);
 const flyoutEl = ref<HTMLElement | null>(null);
 /**
- * 弹层 Teleport 到 body + fixed 定位（2026-11-01 修「弹窗内下拉被截断」）：
- * 原 absolute 挂在 AppDialog 滚动容器里，超出窗体即裁。视口坐标直落，配 scroll
+ * 弹层 Teleport 到 body + fixed 定位（修弹窗内下拉被截断）：
+ * absolute 挂在 AppDialog 滚动容器里，超出窗体即裁。视口坐标直落，配 scroll
  * （capture，弹窗内滚动也重定位）/resize 监听保持贴合。
  */
 const flyStyle = ref<Record<string, string>>({});
@@ -47,7 +45,7 @@ const listId = `app-select-list-${Math.random().toString(36).slice(2, 8)}`;
 const selected = computed(() => props.options.find((o) => o.value === props.modelValue));
 const selectedLabel = computed(() => selected.value?.label ?? '');
 
-/** 条目高 38 + 上下内衬 10 的 BlockHelm 估值式：决定向上翻的空间判定。 */
+/** 弹层高度估值：条目高 38 + 上下内衬 10；决定向上翻的空间判定。 */
 function estimateFlyoutHeight(): number {
   return Math.min(260, props.options.length * 38 + 10);
 }
@@ -216,7 +214,7 @@ onBeforeUnmount(() => closeList());
 .app-select {
   position: relative;
   display: inline-block;
-  min-width: 160px; /* = BlockHelm LauncherComboBoxStyle MinWidth */
+  min-width: 160px;
 }
 
 .trigger {
@@ -241,7 +239,7 @@ onBeforeUnmount(() => closeList());
 .trigger:hover:not(:disabled) {
   background: var(--surface-4);
 }
-/* 展开描边 accent（BlockHelm Brush.Input.ComboBox.BorderExpanded 的主题色语义） */
+/* 展开描边 accent */
 .trigger--open,
 .trigger:focus-visible {
   box-shadow: var(--input-inset), 0 0 0 1.5px var(--accent);
@@ -251,7 +249,7 @@ onBeforeUnmount(() => closeList());
   box-shadow: var(--input-inset), 0 0 0 1px var(--danger);
 }
 .trigger:disabled {
-  opacity: 0.58; /* = BlockHelm 禁用值 */
+  opacity: 0.58;
   cursor: default;
 }
 .trigger-label {
@@ -271,7 +269,7 @@ onBeforeUnmount(() => closeList());
   position: fixed;
   z-index: 1000;
   max-width: 420px;
-  max-height: 260px; /* = BlockHelm MaxDropDownHeight */
+  max-height: 260px;
   overflow-y: auto;
   padding: 5px;
   background: var(--overlay);
@@ -309,7 +307,7 @@ onBeforeUnmount(() => closeList());
   cursor: default;
 }
 
-/* 动画参数 = AnimatedComboBox.cs 实测值：开 210ms Cubic EaseOut、关 180ms Cubic EaseInOut */
+/* 动画参数：开 210ms Cubic EaseOut、关 180ms Cubic EaseInOut */
 .pop-enter-active {
   transition:
     opacity 210ms cubic-bezier(0.215, 0.61, 0.355, 1),

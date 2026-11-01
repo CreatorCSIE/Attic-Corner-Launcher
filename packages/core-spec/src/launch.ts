@@ -27,7 +27,7 @@ export interface LaunchConfig {
   minMemoryMb?: number;
 }
 
-/** 崩溃分类器 v0 的类别（Phase 2 实现判定逻辑；契约先固定枚举）。 */
+/** 崩溃分类器的类别（判定逻辑在 runtime；契约固定枚举）。 */
 export type CrashCategory =
   | 'none'
   | 'java-missing'

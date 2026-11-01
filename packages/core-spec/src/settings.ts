@@ -1,8 +1,8 @@
 /**
- * 应用设置与实例的渲染侧契约（Phase 3 UI v0）。
- * 戒律 #1：设置/实例是数据，落盘走宿主 `launcher.settings` / `instances/*.txt`（v1 格式兼容）；
+ * 应用设置与实例的渲染侧契约。
+ * 设置/实例是数据，落盘走宿主 `launcher.settings` / `instances/*.txt`（v1 格式兼容）；
  * 渲染侧只通过本契约读写，绝不直接碰文件。
- * 戒律 #2：本文件与 ipc.ts 通道、runtime 映射、docs/contract.md 四处同步。
+ * 本文件与 ipc.ts 通道、runtime 映射、docs/contract.md 四处同步。
  */
 
 /** 主题模式（持久化以便双壳一致；解析/应用属渲染侧）。 */
@@ -18,7 +18,7 @@ export type MemoryMode = 'auto' | 'manual';
 export type UpdatePolicy = 'startup' | 'off';
 
 /**
- * 端点覆盖（风险 #1）：全部为可 IPC 序列化的纯字符串。
+ * 端点覆盖：全部为可 IPC 序列化的纯字符串。
  * 函数形态的 `versionJson(id)`/`assetIndex(id)` 由 `filesBase` 在 runtime 侧派生，
  * 契约层不携带可调用形状（跨进程不可序列化）。
  */
@@ -41,15 +41,12 @@ export interface EndpointOverrides {
 
 /** 全局应用设置（`launcher.settings` 的渲染侧视图；缺省字段 = 沿用宿主默认）。 */
 export interface AppSettings {
-  /** 手动 Java 路径；缺省 = 自动探测（探测失败再 Zulu 供给，风险 #7）。设置即手动模式，清空即回自动（Java 栏双态由此派生）。 */
+  /** 手动 Java 路径；缺省 = 自动探测（探测失败再 Zulu 供给）。设置即手动模式，清空即回自动（Java 栏双态由此派生）。 */
   javaPath?: string;
   /** 堆内存上限 MB；缺省 = 1024（memoryMode=auto 时被宿主估算值取代）。 */
   maxMemoryMb?: number;
   /** 内存分配模式；缺省 = manual（保持老用户/老档案既有的定值 1024 语义，auto 属 opt-in）。 */
   memoryMode?: MemoryMode;
-  // （原 username 字段已删，2026-10-22 用户拍板：账户体系落地后零消费方的孤儿设置——
-  // 启动玩家名恒取所选账户 account.name；launcher.settings 里的 v1 遗留 username 键
-  // 按「未知键原样保留」纪律不再读写、不清除。）
   /** 主题；缺省 = system。 */
   theme?: ThemeMode;
   /** 启动器界面语言（i18n locale 键，如 `zh-CN`/`en`/`zh-TW`）；缺省 = 渲染侧一次性
@@ -69,9 +66,8 @@ export interface AppSettings {
   /** 诊断日志：每次启动都写 launcher/logs（普通启动也落盘，testLaunch 通道不受此开关影响恒写）；缺省 false。 */
   diagnosticLog?: boolean;
   /**
-   * 启动成功后自动打开独立控制台窗（v1「Game log」开关的全局化转置——v1 放实例对话框属其时代产物，
-   * Attic 判定为用户习惯而非实例属性）；缺省 true = 维持既有"每次启动弹窗"行为。
-   * testLaunch 不受此开关影响恒弹（显式诊断语义）。
+   * 启动成功后自动打开独立控制台窗（v1「Game log」开关的全局化：判定为用户习惯而非实例属性）；
+   * 缺省 true = 维持"每次启动弹窗"行为。testLaunch 不受此开关影响恒弹（显式诊断语义）。
    */
   consoleOnLaunch?: boolean;
   /**
@@ -81,25 +77,25 @@ export interface AppSettings {
   rootOverride?: string;
   /**
    * 首启欢迎向导完成标记（完成与跳过皆写此键——"已见过向导"语义收敛于此，
-   * 与 rootOverride 指针职责分离，防「跳过不写指针 → 反复弹」）。向导三重门之三：
-   * 无此键 且 无 rootOverride 且 默认根无既有数据 → 弹。缺省 false（缺键）。
+   * 与 rootOverride 指针职责分离，防「跳过不写指针 → 反复弹」）。
+   * 弹出口径：无此键 且 无 rootOverride 且 默认根无既有数据 → 弹。缺省 false（缺键）。
    */
   wizardDone?: boolean;
   /**
-   * 首启向导完成标记的形态戳（portable B 期，plan.md 2026-10-25 终拍④）：
-   * portable 只读回落与安装版共享默认根 `%APPDATA%\.attic`，无 flavor 戳则先完成者
-   * 压掉后者弹窗、数据在错误形态下静默共用。三重门之三 = 「无**本 flavor** 完成标记」；
-   * 存量 `wizardDone=true` 无戳 = 视为 installed。向导完成/跳过时随 `wizardDone` 一并写。
+   * 首启向导完成标记的形态戳：portable 只读回落与安装版共享默认根 `%APPDATA%\.attic`，
+   * 无 flavor 戳则先完成者压掉后者弹窗、数据在错误形态下静默共用。
+   * 完成判定 = 「无**本 flavor** 完成标记」；存量 `wizardDone=true` 无戳 = 视为 installed。
+   * 向导完成/跳过时随 `wizardDone` 一并写。
    */
   wizardFlavor?: 'installed' | 'portable';
   /**
-   * 便携面包屑（portable B 期②）：portable 激活时把生效根登记进**平台默认根** settings
+   * 便携面包屑：portable 激活时把生效根登记进**平台默认根** settings
    * （默认根永远可达，天然是登记簿）。启动发现生效根≠面包屑 ∧ 面包屑根有数据 → UI 找回提示
    * （ini `rootDir` 自定义后指针丢失的兜底出路）。portable 激活时 `getSettings` 回读恒取默认根位。
    */
   lastPortableRoot?: string;
   /**
-   * 只读回落标记（portable B 期③）：exeDir 实写探针不可写 → 生效根回落默认根 + 本键置真，
+   * 只读回落标记：exeDir 实写探针不可写 → 生效根回落默认根 + 本键置真，
    * UI 头区常驻徽标「数据未随盘」（一次性告知会被第二台只读机静默复用）。runtime 回落时自动写。
    */
   portableFallback?: boolean;
@@ -128,22 +124,22 @@ export interface AppSettings {
   accentColor?: string;
   /**
    * 主界面背景图绝对路径（仅配置时启用；缺省/空 = 主题纯色背景，无内置默认图）。
-   * 渲染侧经 `IMAGE_DATA_URL` 通道让宿主读字节转 data URL（双壳统一，弃 convertFileSrc 单壳方案）；
+   * 渲染侧经 `IMAGE_DATA_URL` 通道让宿主读字节转 data URL（双壳统一）；
    * 文件不可读时 UI 回落纯色（可见失败由选择动作当场承担，应用侧静默兜底）。
    */
   backgroundImage?: string;
   /**
    * 微软登录 CLIENT_ID 覆盖值（开发者设置面；空 = 用 runtime 内嵌缺省值）。
-   * CLIENT_ID 是 public client 公开标识符、非机密（plan.md §7 微软登录安全约束③）；
+   * CLIENT_ID 是 public client 公开标识符、非机密；
    * 此键供自注册 Azure 应用先行实机验证，官方值随发布内嵌后一般无需触碰。
    */
   microsoftClientId?: string;
 }
 
 /**
- * 强调色板目录（数据驱动，戒律 #1；色值事实源 = Modrinth 主题方案 variables.scss 六族，
- * 用户拍板 2026-10-31：仅色板取 Modrinth，Attic 暖木炭/羊皮纸底色与文字 token 不动，
- * 缺省维持火把琥珀 amber = 第一格）。id 落 settings.accentColor；nameKey 供 i18n 标签。
+ * 强调色板目录（数据驱动；色值取 Modrinth 主题方案 variables.scss 六族，
+ * Attic 暖木炭/羊皮纸底色与文字 token 独立，缺省火把琥珀 amber = 第一格）。
+ * id 落 settings.accentColor；nameKey 供 i18n 标签。
  * swatch = 色板预览圆点色（dark 主题基准色，UI 端按当前主题自行选档亦可，此值仅预览用）。
  */
 export interface AccentColorDef {
@@ -163,7 +159,7 @@ export const ACCENT_COLORS: AccentColorDef[] = [
 ];
 
 /**
- * 预设主题目录（数据驱动，戒律 #1；用户拍板 2026-10-31 路线 A = 推导式）：
+ * 预设主题目录（数据驱动，推导式）：
  * 预设只是 `theme + accentColor` 组合的快捷写入，**不新增落盘键**——当前预设由
  * 两控件现值反查本目录推导（全等命中 = 该预设；任何不匹配 = 「自定义」态，
  * 自定义态天然由既有独立控件承载并已落盘）。背景图不进预设面，不受影响。
@@ -201,18 +197,18 @@ export interface InstanceView {
   addons?: string[];
   /**
    * Intel 显卡修复（v1 `intelFix` 档案键，同名；v1 缺省 true）。Windows 上注入
-   * `-XX:HeapDumpPath=java.exe_minecraft.exe.heapdump`（v1 Launcher.java L576-578 原样），
-   * 其余平台宿主不注入。缺键 = true（v1 语义）。
+   * `-XX:HeapDumpPath=java.exe_minecraft.exe.heapdump`（v1 原样），其余平台宿主不注入。
+   * 缺键 = true（v1 语义）。
    */
   intelFix?: boolean;
   /**
-   * 强制更新（Attic 扩展键；v1 是全局 static `Launcher.forceUpdate`，不落实例档案——
-   * Attic 判定为实例属性放基本设置）。true = 启动时旁路 jar/库/资产的「已存在即复用」检查重下。
+   * 强制更新（Attic 扩展键；v1 是全局 static，本设计判定为实例属性落实例）。
+   * true = 启动时旁路 jar/库/资产的「已存在即复用」检查重下。
    */
   forceUpdate?: boolean;
   /**
    * 多人直连地址 `ip[:port]`（Attic 扩展键，原样存；v1 无对应物）。非空 = 启动页询问
-   * 「直连/单人」，直连走 `LaunchRequest.server` 一次性注入（§2.6），**本键只在弹窗里被读、
+   * 「直连/单人」，直连走 `LaunchRequest.server` 一次性注入，**本键只在弹窗里被读、
    * 不因启动而改写**；缺键/空 = 仅当选中版本命中 `MULTIPLAYER_JOIN_LAUNCH_METHODS`
    * （经典多人 launchMethod 数据表）时仍询问（弹窗现场填地址、一次性），否则直接单人启动。
    */
@@ -233,7 +229,7 @@ export function parseServerAddress(raw: string): { host: string; port?: number }
 }
 
 /**
- * 实例 addon 目录（数据驱动，戒律 #1）：id 入 v1 `addons` 档案键，
+ * 实例 addon 目录（数据驱动）：id 入 v1 `addons` 档案键，
  * prop/mode 映射 legacyfix 的 -Dlf.* 开关（事实源：legacyfix docs/Additional settings.md）。
  * mode=enable：勾选才注入 prop；mode=disable：取消才注入（功能默认开，如皮肤/代理）。
  * placeholder：v1 addons 有、legacyfix 无对应开关 → UI 占位禁用，不参与装配。
@@ -254,7 +250,7 @@ export interface AddonDef {
 }
 
 export const INSTANCE_ADDONS: AddonDef[] = [
-  // 基本设置 card（v1 实例对话框常用项，用户指定迁出 Addons 列表）
+  // 基本设置 card（v1 实例对话框常用项）
   { id: 'vsync', prop: 'vsync', mode: 'enable', uiSection: 'basic' },
   { id: 'proxy', prop: 'proxy.disable', mode: 'disable', uiSection: 'basic' },
   { id: 'skins', prop: 'skin.disable', mode: 'disable', uiSection: 'basic' },
@@ -264,16 +260,15 @@ export const INSTANCE_ADDONS: AddonDef[] = [
   { id: 'beta-forge', prop: 'beta-forge', mode: 'enable' },
   { id: 'bouncycastle', prop: 'bouncycastle', mode: 'enable' },
   { id: 'show-notice', prop: 'showNotice', mode: 'enable' },
-  // v1 Demo addon 转正：legacyfix 原生 -Dlf.demo 即等价开关（GameArgs.isDemo），无需 wrapper；
-  // v1 官方生效区间 12w16a–1.5.2，区间外该属性无感
+  // legacyfix 原生 -Dlf.demo 即等价开关（GameArgs.isDemo）；
+  // 官方生效区间 12w16a–1.5.2，区间外该属性无感
   { id: 'demo', prop: 'demo', mode: 'enable' },
-  // v1 addons 清单占位（legacyfix 无对应开关，接入后转正）
+  // v1 addons 清单占位（legacyfix 无对应开关）
   { id: 'fullscreen', prop: '', mode: 'enable', placeholder: true },
   { id: 'game-mode-switch', prop: '', mode: 'enable', placeholder: true },
   { id: 'quit-game', prop: '', mode: 'enable', placeholder: true },
   // 启动页「≡」菜单动作项（探测到类才可点击；点击 = LaunchRequest.visualizer 一次性注入，
-  // 档案 addons 仍可携带同 id = 常开语义，装配器去重不双注；legacyfix 26.10 Release
-  // 已含 VisualizerPatch/VisualizerLauncher（nightly 依赖废除，生效条件满足））
+  // 档案 addons 仍可携带同 id = 常开语义，装配器去重不双注）
   {
     id: 'visualizer',
     prop: 'visualizer',

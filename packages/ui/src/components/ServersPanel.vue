@@ -1,13 +1,13 @@
 <script setup lang="ts">
 /**
- * 服务器页 —— 社区服务器列表（启动+进服动作页，零新 IPC 通道，全部复用既有通道）。
- * 排版对齐 ModsPanel 的页面级状态配方（加载/错误+重试/空态），列表形态 = 顶部分类切换 + 卡片流。
- * 卡片点击 → AppDialog 确认弹窗（v1 SelectServerVersion 语义编排）：
+ * 服务器页 —— 社区服务器列表（启动+进服动作页，全部复用既有 IPC 通道）。
+ * 页面级状态 = 加载/错误+重试/空态，列表形态 = 顶部分类切换 + 卡片流。
+ * 卡片点击 → AppDialog 确认弹窗：
  *   INSTANCES_SET_VERSION 写回目标版本 → LAUNCH({versionId, instanceId, server}) → 关窗；
- *   启动失败错误在弹窗内可见呈现（对齐 LaunchPanel，不静默）。
+ *   启动失败错误在弹窗内可见呈现，不静默。
  * matchedVersionId 缺省（宿主匹配未命中）→ 卡片弱提示 + 弹窗内版本下拉（数据源 = useVersions 清单）。
- * compatibleVersionIds 非空（v1 协议区间语义）→ 目标版本区直接出下拉（数据源 = 兼容全集，
- * 预选 = matched ?? 集合末项，对齐 v1 SelectServerVersion），用户改选即换启动目标。
+ * compatibleVersionIds 非空（宿主协议派生的兼容全集）→ 目标版本区直接出下拉，
+ * 预选 = matched ?? 集合末项，用户改选即换启动目标。
  * Online Mode 服 × 当前离线账户 → 弹窗内警告行（账户切换由用户自理，不做跳转）。
  */
 import { computed, ref } from 'vue';
@@ -22,7 +22,7 @@ import { useSettings } from '../composables/useSettings';
 import { useGame } from '../composables/useGame';
 import AppDialog from './AppDialog.vue';
 import AppSelect, { type SelectOption } from './AppSelect.vue';
-// 无图标兜底图 = 上游 v1 占位图本体（gui/unknown_pack.png，取证 a1.2.6.jar），入库随 UI 打包。
+// 无图标兜底图 = 仓内占位图 unknown_pack.png，随 UI 打包。
 import unknownPackImg from '../assets/unknown-pack.png';
 
 const { t } = useI18n();
@@ -48,18 +48,17 @@ const iconFailed = ref<Record<string, boolean>>({});
 const dialogServer = ref<ServerListView | null>(null);
 /** 手动选版本（无兼容集合且 matchedVersionId 缺省时的全清单下拉值）。 */
 const manualVersion = ref('');
-/** 兼容集合下拉的当前选择（v1 区间语义，openDialog 时按预选规则初始化）。 */
+/** 兼容集合下拉的当前选择（openDialog 时按预选规则初始化）。 */
 const pickedVersion = ref('');
 const launchError = ref<string | null>(null);
 const confirming = ref(false);
 
-// 下拉只显 id（用户拍板 2026-11-01，与 VersionSelector 的「id 主位」互换口径同源——
-// 别名/displayName 不进本弹窗，选的就是启动目标 id）。
+// 下拉只显 id：别名/displayName 不进本弹窗，选的就是启动目标 id。
 const versionOptions = computed<SelectOption[]>(() =>
   versions.value.map((v) => ({ value: v.id, label: v.id })),
 );
 
-/** 兼容全集非空（宿主协议派生）= 弹窗出区间下拉。 */
+/** 兼容全集非空 = 弹窗出兼容版本下拉。 */
 const compatibleIds = computed(() => dialogServer.value?.compatibleVersionIds ?? []);
 const compatibleOptions = computed<SelectOption[]>(() =>
   compatibleIds.value.map((id) => ({ value: id, label: id })),
@@ -88,7 +87,7 @@ const customHintVisible = computed(
 function openDialog(s: ServerListView): void {
   dialogServer.value = s;
   manualVersion.value = '';
-  // v1 SelectServerVersion 预选语义：matched 在集合中则选它（宿主保证追加），否则集合末项。
+  // 预选规则：matched 在集合中则选它（宿主保证追加），否则集合末项。
   const ids = s.compatibleVersionIds ?? [];
   pickedVersion.value =
     ids.length > 0 ? (s.matchedVersionId && ids.includes(s.matchedVersionId) ? s.matchedVersionId : (ids[ids.length - 1] ?? '')) : '';
@@ -102,11 +101,11 @@ function closeDialog(): void {
 }
 
 /**
- * 确认编排（v1 SelectServerVersion 语义，一气呵成）：
+ * 确认编排：
  * ① mod 轨命中且本地未入库（宿主投 matchedModInfoUrl = 远端仓库 .info 直链）→ 先 installMod
- *   自动入库（v1 启动即 loadMods + getMod 直装语义；失败可见呈现并中止，不静默）；
- * ② 目标版本写回激活实例（对齐 useSelection.select 的既有调用点，await 保序）；
- * ③ LAUNCH 一次性 server 直连（不写实例档案；accountId/javaPath/maxMemoryMb 对齐 LaunchPanel.doLaunch）；
+ *   自动入库（失败可见呈现并中止，不静默）；
+ * ② 目标版本写回激活实例（await 保序）；
+ * ③ LAUNCH 一次性 server 直连（不写实例档案）；
  * ④ 成功关窗，失败错误留弹窗可见（useGame.launch 已记 lastError）。
  */
 async function confirmJoin(): Promise<void> {
@@ -115,7 +114,7 @@ async function confirmJoin(): Promise<void> {
   if (!s || !v || confirming.value || busy.value) return;
   confirming.value = true;
   launchError.value = null;
-  // 自动入库判据 = 目录成员判断（非版本比较，戒律 #1 安全面）：
+  // 自动入库判据 = 目录成员判断（非版本比较）：
   // 只在停在宿主 matched 位 + 仓库直链在场 + 本地清单无此 id 时触发；用户改选其他版本不装。
   if (
     s.matchedVersionIsCustom &&
@@ -123,7 +122,7 @@ async function confirmJoin(): Promise<void> {
     v === s.matchedVersionId &&
     !versions.value.some((x) => x.id === v)
   ) {
-    // 现场构造纯对象（结构化克隆不认 Vue reactive Proxy，useMods 同款教训）
+    // 现场构造纯对象（结构化克隆不认 Vue reactive Proxy）
     const request: ModInstallRequest = { fullName: v, infoFileUrl: s.matchedModInfoUrl, autoupdate: true };
     const res = await bridge.installMod(request);
     if (!res.ok) {
@@ -239,7 +238,7 @@ async function confirmJoin(): Promise<void> {
 
         <div class="dlg-ver">
           <p class="dlg-label">{{ t('servers.dialog.targetVersion') }}</p>
-          <!-- v1 区间语义：协议兼容全集非空 → 直接出下拉（预选 matched ?? 末项） -->
+          <!-- 协议兼容全集非空 → 直接出下拉（预选 matched ?? 末项） -->
           <template v-if="compatibleIds.length > 0">
             <AppSelect
               v-model="pickedVersion"
@@ -290,7 +289,7 @@ async function confirmJoin(): Promise<void> {
 </template>
 
 <style scoped>
-/* 页面骨架对齐 ModsPanel .detail 内容列（限宽浮中），状态区样式类照抄母版配方 */
+/* 页面骨架：内容列限宽浮中，状态区用页面级统一样式 */
 .servers-page {
   display: flex;
   flex-direction: column;
@@ -311,7 +310,7 @@ async function confirmJoin(): Promise<void> {
   font-weight: 700;
   color: var(--text-primary);
 }
-/* 刷新钮 = ModsPanel .import-btn 同款 */
+/* 刷新钮（accent 描边实心反色） */
 .import-btn {
   display: flex;
   align-items: center;
@@ -341,7 +340,7 @@ async function confirmJoin(): Promise<void> {
   opacity: 0.5;
   cursor: default;
 }
-/* —— 顶部分类切换（pill 行，token 同 badge 语言） —— */
+/* —— 顶部分类切换（pill 行） —— */
 .cat-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -377,7 +376,7 @@ async function confirmJoin(): Promise<void> {
   overflow-y: auto;
   padding: var(--space-2) var(--space-3);
 }
-/* —— 卡片流（限宽浮中 = ModsPanel .repo 同配方） —— */
+/* —— 卡片流（限宽浮中） —— */
 .server-list {
   max-width: 620px;
   margin-inline: auto;
@@ -480,7 +479,7 @@ async function confirmJoin(): Promise<void> {
   font-size: var(--fs-xs);
   color: var(--text-muted);
 }
-/* —— 页面级状态（加载/错误/空）：照抄 ModsPanel 配方 —— */
+/* —— 页面级状态（加载/错误/空） —— */
 .empty {
   height: 100%;
   display: flex;
@@ -521,7 +520,7 @@ async function confirmJoin(): Promise<void> {
   background: var(--accent);
   color: var(--accent-ink);
 }
-/* —— 确认弹窗内容（MsLoginDialog 三段式同配方） —— */
+/* —— 确认弹窗内容（头/体/脚三段） —— */
 .dlg-head {
   display: flex;
   flex-direction: column;

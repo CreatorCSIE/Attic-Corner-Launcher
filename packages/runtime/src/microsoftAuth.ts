@@ -1,11 +1,11 @@
 /**
- * 微软登录（正版认证链）runtime 层（plan.md §7「微软登录」实装安全约束全量落地）。
+ * 微软登录（正版认证链）runtime 层。
  * 线格式事实源 = reference/betacraft-launcher v1 源码逐字段对齐：
  *   MicrosoftAuth.java / DeviceCodeRequest.java / CheckTokenRequest.java /
  *   XBLAuthRequest.java / XSTSAuthRequest.java / MinecraftAuthRequest.java /
  *   MinecraftProfileRequest.java / JoinServerRequest.java / Wrapper.java L233-260。
- * 硬纪律：
- *   ① 端点白名单闸——五域之外零发送（msFetch 单点，戒律级）；
+ * 硬约束：
+ *   ① 端点白名单闸——五域之外零发送（msFetch 单点）；
  *   ② 脱敏闸——MsAuthError.message 恒为分类码，响应体/URL 查询串永不进消息；
  *   ③ token 落盘 = Windows DPAPI（用户作用域）加密（dpapi:v1:<b64>），内存态解密。
  */
@@ -20,15 +20,14 @@ import type { FetchImpl } from './betacraft';
 
 /**
  * 缺省 CLIENT_ID（**临时 = Betacraft 社区白名单 id**，v1 MicrosoftAuth.java L28 同源——Mojang 对
- * 第三方启动器实行 app 白名单制，未过审 id 在 login_with_xbox 被 403 "Invalid app registration"，
- * 2026-10-31 实测实锤；借用面风险 = Mojang 可随时撤白（LiquidBounce 先例），仅作过审前过渡）。
- * 自有 id 15bc4a50（Azure 应用注册，个人账户租户 + 公共客户端流 + devicecode 实测 200）已提交
- * aka.ms/mce-reviewappid 白名单审批，**批下来即日换回**。注：更早值 c24c74e6 因单一租户+公共流未开被弃。
- * 生效值 = settings.microsoftClientId || DEFAULT_MS_CLIENT_ID（覆盖键供换绑/排障）。
+ * 第三方启动器实行 app 白名单制，未过审 id 在 login_with_xbox 被 403 "Invalid app registration"；
+ * 借用面风险 = Mojang 可随时撤白（LiquidBounce 先例），仅作过审前过渡）。自有 id 15bc4a50
+ * （Azure 应用注册，个人账户租户 + 公共客户端流）已提交 aka.ms/mce-reviewappid 白名单审批，
+ * **过审即换**。生效值 = settings.microsoftClientId || DEFAULT_MS_CLIENT_ID（覆盖键供换绑/排障）。
  */
 export const DEFAULT_MS_CLIENT_ID = '8075fa74-4091-4356-a0b8-a7c118ef121c';
 
-/** 端点白名单（plan.md §7 安全约束②所列五域；msFetch 硬闸，域外直接 internal）。 */
+/** 端点白名单（五域；msFetch 硬闸，域外直接 internal）。 */
 export const MS_HOST_WHITELIST: ReadonlySet<string> = new Set([
   'login.microsoftonline.com',
   'user.auth.xboxlive.com',
@@ -47,7 +46,7 @@ const MS_URL = {
   join: 'https://sessionserver.mojang.com/session/minecraft/join',
 } as const;
 
-/** XSTS XErr 分类码（v1 MicrosoftAuth.java L67-72 实锤：2148916233=无 Xbox 档案 / 2148916238=未成年家长控制）。 */
+/** XSTS XErr 分类码（v1 MicrosoftAuth.java L67-72：2148916233=无 Xbox 档案 / 2148916238=未成年家长控制）。 */
 const XERR_NO_XBOX_PROFILE = 2148916233;
 const XERR_MINOR_PARENTAL = 2148916238;
 
@@ -326,7 +325,7 @@ export async function xblAuthenticate(deps: MsAuthDeps, msAccessToken: string): 
 
 /**
  * XSTS（v1 XSTSAuthRequest.java + XSTSProperties.java 载荷逐字对齐：Properties={SandboxId,UserTokens:[xblToken]}、
- * RelyingParty=rp://api.minecraftservices.com/——注意与任务书「DependsOn/AuthMethod」描述不一致，以 v1 源码为准）。
+ * RelyingParty=rp://api.minecraftservices.com/）。
  * XErr 分类：2148916233→no_xbox_profile、2148916238→minor_parental。
  */
 export async function xstsAuthenticate(deps: MsAuthDeps, xblToken: string): Promise<MsXblResult> {
@@ -388,7 +387,7 @@ export async function mcProfile(deps: MsAuthDeps, mcAccessToken: string): Promis
 }
 
 /**
- * 皮肤 URL 双形状解析（2026-10-31 实测 api.minecraftservices.com/minecraft/profile 真响应定稿）：
+ * 皮肤 URL 双形状解析：
  * ① 新形状 = 顶层 `skins[]` 数组（`{state:'ACTIVE', url:'http://textures...', variant}`），
  *    取 ACTIVE 项；② 旧形状 = `properties[]` 的 textures 条目（base64(JSON) → skins.SKIN.url，
  *    sessionserver 遗留形状，防上游回切）。任何一环断 = 缺席（皮肤是展示面，不拦登录）。
@@ -468,7 +467,7 @@ async function defaultSleep(ms: number, signal?: AbortSignal): Promise<void> {
 
 export interface JoinServerInput {
   /** v1 sessionid 形状：微软账户 = getAuthToken() 直返的 MCS access_token（Wrapper.java L103 javadoc 的
-   * token:accessToken:profileid 为老 YGGDRASIL 遗留格式，v1 微软账户实发裸 token——取证为准）。 */
+   * token:accessToken:profileid 为老 YGGDRASIL 遗留格式，v1 微软账户实发裸 token）。 */
   sessionid: string;
   /** selectedProfile = v1 uuid（credentials.local_uuid = MCS profile id）。 */
   profileId: string;
@@ -479,9 +478,9 @@ export interface JoinServerInput {
 /**
  * 预注册 join：POST sessionserver /session/minecraft/join，载荷字段名照 v1 JoinServerRequest
  * （accessToken/selectedProfile/serverId，无 Authorization 头）。
- * serverId 派生 = dns.lookup(服务器主机名)→IPv4 字符串→sha1 hex（任务书/plan.md 口径）。
- * ⚠ 与 v1 源码存在一处取证分歧：v1 对公网服务器哈希的是**本机外网 IP**（getExternalIP→checkip），
- * localhost→"127.0.0.1"；本实现按任务书哈希服务器解析 IP（checkip 域不在五域白名单纪律内）。
+ * serverId 派生 = dns.lookup(服务器主机名)→IPv4 字符串→sha1 hex。
+ * ⚠ 与 v1 有一处实现分歧：v1 对公网服务器哈希的是**本机外网 IP**（getExternalIP→checkip），
+ * localhost→"127.0.0.1"；本实现哈希服务器解析 IP（checkip 域不在五域白名单纪律内）。
  * 失败抛 MsAuthError（调用侧不拦启动，只推警告行）。
  */
 export async function joinServer(deps: MsAuthDeps, input: JoinServerInput): Promise<void> {

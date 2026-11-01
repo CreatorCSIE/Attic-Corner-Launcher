@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
- * 设置页 · Java 栏 —— BlockHelm 形态完整复制（用户定稿）：
+ * 设置页 · Java 栏：
  * 自动/手动双态 + 探测候选列表（每行版本/架构/路径，手动模式可点选）+ 刷新 + 原生对话框导入。
- * 模式无独立契约键：settings.javaPath 有值 = 手动、清空 = 自动（装配链 L780 消费顺序天然一致）。
- * Attic 增量保留：auto 探测无果时 Zulu 自动供给（启动期兜底，不占 UI）。
+ * 模式无独立契约键：settings.javaPath 有值 = 手动、清空 = 自动（与装配链消费顺序一致）。
+ * 增量：auto 探测无果时 Zulu 自动供给（启动期兜底，不占 UI）。
  */
 import { computed, onMounted } from 'vue';
 import { useI18n } from '../i18n';
@@ -50,7 +50,7 @@ async function setMode(manual: boolean): Promise<void> {
 }
 
 async function pickCandidate(executable: string): Promise<void> {
-  if (!isManual.value) return; // 自动模式列表只读（BlockHelm 同款）
+  if (!isManual.value) return; // 自动模式列表只读
   await patch({ javaPath: executable });
 }
 
@@ -88,7 +88,7 @@ onMounted(() => {
       <button class="mini" :disabled="!hasBridge" @click="importJava()">{{ t('settings.java.import') }}</button>
     </div>
 
-    <!-- 状态消息行（BlockHelm：探测中/已选/未找到） -->
+    <!-- 状态消息行（探测中/已选/未找到） -->
     <p v-if="error" class="err">{{ error }}</p>
     <p v-else-if="loading" class="muted">{{ t('common.loading') }}</p>
     <p v-else-if="report && !report.selection.install && !isManual" class="warn">
@@ -128,7 +128,7 @@ onMounted(() => {
     </div>
     <p v-if="report && !isManual" class="hint">{{ t('settings.java.autoLockHint') }}</p>
 
-    <!-- 失败候选/诊断：折叠保留（Attic 探测面板增量，BlockHelm 无） -->
+    <!-- 失败候选/诊断：折叠保留（探测面板增量） -->
     <details v-if="report && (report.failures.length || report.diagnostics.length)" class="more">
       <summary>{{ t('settings.java.probeDetails') }}</summary>
       <ul v-if="report.failures.length" class="rows">
@@ -207,7 +207,7 @@ onMounted(() => {
   font-family: var(--font-mono);
   font-size: var(--fs-xs);
 }
-/* 候选列表 = 下沉井（既有 java-report 配方） */
+/* 候选列表：下沉井样式 */
 .list-well {
   display: flex;
   flex-direction: column;

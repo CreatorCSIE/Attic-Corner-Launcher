@@ -1,8 +1,8 @@
 /**
- * Mods 仓库（一期 = Betacraft 单源）——列表解析、安装登记、启动期刷新与基座合成。
+ * Mods 仓库（Betacraft 单源）——列表解析、安装登记、启动期刷新与基座合成。
  * 上游事实源：v1 ModsRepository.java（getmods.jsp JSON：mod_category/mods[5 字段]）、
  * Launcher.java L409-429（autoupdate 消费）、L793-876（mod jar → versions/mods/ → rezip 合成）。
- * v1 缺陷的结构性修复（用户拍板）：
+ * v1 缺陷的结构性修复：
  * - loadMods 追加不清空/进程内永不刷新 → 本模块无进程内列表缓存，每次调用现拉；
  * - mods=null 分类 NPE（ModsRepository L141）→ 解析剔除；
  * - 离线时已安装 mod 被误路由官方默认 URL（L410-414）→ launcher/mods.json 持久登记；
@@ -159,7 +159,7 @@ export async function downloadInfoAtomic(client: Downloader, root: string, id: s
 }
 
 /**
- * 启动期 mod .info 刷新（v1 Launcher.java L417-426 语义，修「离线静默失败」）：
+ * 启动期 mod .info 刷新（v1 Launcher.java L417-426 语义；离线不得静默失败）：
  * autoupdate 或本地缺失才拉；网络失败但本地存在 = 留旧文件离线启动（v1 FAILED_WITH_BACKUP 放行）；
  * 本地也缺失 = 异常上抛（点 Play 可见失败，不假可用）。
  */
@@ -184,7 +184,7 @@ export function isModVersionJson(json: VersionJson): string | undefined {
 /**
  * 合成 mod jar：基座条目在前、mod 条目同名覆盖（v1 Util.rezip 解压序），
  * 剥离签名文件（META-INF 直接子级 *.SF/*.DSA/*.RSA/*.EC，保留 MANIFEST.MF 与嵌套资源——
- * v1 连 MANIFEST.MF 一起丢是过宽，plan.md 口径「剥 META-INF/* 签名」）。
+ * v1 连 MANIFEST.MF 一起丢是过宽，正确口径 = 只剥 META-INF/* 签名）。
  * 整包内存重建（远古 jar 十 MB 级；zip.ts 既有纪律）。输出原子：tmp+rename。
  */
 export function composeModJars(baseJar: string, modJar: string, destJar: string): void {
@@ -203,7 +203,7 @@ export function composeModJars(baseJar: string, modJar: string, destJar: string)
   }
 }
 
-/** mod 启动前合成缺料的显式诊断（v1「假可用」修复：绝不带残缺进 spawn）。 */
+/** mod 启动前合成缺料的显式诊断（v1「假可用」不可重演：绝不带残缺进 spawn）。 */
 export function modMissingMessage(json: VersionJson, baseId: string, reason: string): string {
   return `Mod ${json.id}（基座 ${baseId}）缺基座合成：${reason}`;
 }

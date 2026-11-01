@@ -1,10 +1,10 @@
 /**
  * BC 基础库集（depends）—— v1 checkDepends/downloadDepends 移植（Launcher.java L862-951）。
  *
- * 为什么是 v1 通道而非只修 Mojang 回填（用户拍板，2026-10-22 实机事故）：
+ * 为什么是 v1 通道而非只修 Mojang 回填：
  * BC 的 libs-<os>.zip 里是 **patched** 的 lwjgl.jar / lwjgl_util.jar / jinput.jar
  * （鼠标抓取、AMD 云等修复编进 jar 本体），Mojang 重发布只有 2.9.0 原版。
- * 事故形状：库池缺 org.lwjgl.LWJGLException 类时，legacyfix Agent.premain 的
+ * 炸法：库池缺 org.lwjgl.LWJGLException 类时，legacyfix Agent.premain 的
  * CtTransformer 重定义循环只 catch ClassNotFoundException（Agent.java L80），
  * NoClassDefFoundError 属 LinkageError 直接穿透 → `processing of -javaagent failed` 秒崩。
  *
@@ -128,13 +128,13 @@ export async function ensureDepends(
   }
 
   // v1 L922-930 同位：zip 暂存 launcher/（同名覆盖）；v1 Util.unzip(delete=true)
-  // 解包后即删源 zip（Util.java L259-263 定罪）——照做，解包成功后清理。
+  // 解包后即删源 zip（Util.java L259-263）——照做，解包成功后清理。
   const libsZip = path.join(launcherDir(io.root), 'libs.zip');
   const nativesZip = path.join(launcherDir(io.root), 'natives.zip');
   await io.download(endpoints.libsZip(io.os), libsZip, 'libs.zip');
   await io.download(endpoints.nativesZip(io.os), nativesZip, 'natives.zip');
 
-  // v1 L943-949：清空 bin（含 natives 子目录）再解包；版本号写在解包成功之后（强化 #1）。
+  // v1 L943-949：清空 bin（含 natives 子目录）再解包；版本号写在解包成功之后。
   removeContents(binDir(io.root));
   fs.mkdirSync(nativesDir(io.root), { recursive: true });
   extractZipTo(nativesZip, nativesDir(io.root));
@@ -143,7 +143,7 @@ export async function ensureDepends(
   io.saveVersionKeys({ 'libs-version': remote.libs, 'natives-version': remote.natives });
 }
 
-/** v1 unzip(delete=true) 语义：解包后删暂存 zip；幂等路径顺带清扫历史遗留（缺陷修复 2026-10-31）。 */
+/** v1 unzip(delete=true) 语义：解包后删暂存 zip；幂等路径顺带清扫残留 zip。 */
 function dropStaleZips(root: string): void {
   for (const name of ['libs.zip', 'natives.zip']) {
     fs.rmSync(path.join(launcherDir(root), name), { force: true });
@@ -157,11 +157,11 @@ function removeContents(dir: string): void {
   }
 }
 
-// ---------- LWJGL2 原生库架构闸门（用户拍板 2026-10-23） ----------
+// ---------- LWJGL2 原生库架构闸门 ----------
 
 /**
  * LWJGL 2.x 官方从未发布 arm64/armhf 原生库（2015 停维，桌面 arm64 当时不存在）；
- * BC depends 实测（2026-10-23 取证）：natives-windows/linux = x86+x64 双份，
+ * BC depends 现状：natives-windows/linux = x86+x64 双份，
  * natives-osx = 单文件 liblwjgl.dylib（x86_64，ODDLABS 老签名）——三平台零 arm 覆盖。
  * 平台结论：
  * - Windows arm64：系统自带 x64 模拟（x64 JDK8 + lwjgl64.dll 可跑）→ 不拦。

@@ -1,9 +1,9 @@
 /**
  * 更新打扰门（纯函数，零 Node 依赖）。
- * 落点说明（2026-10-25「更新 UI」设计自决记录）：设计稿建议放 updateCheck.ts，但 updateCheck.ts
- * 的 `import type { FetchImpl } from './betacraft'` 会把 betacraft 的 node: 依赖面带进类型图，
- * UI 经 vite alias 直消费源码时 vue-tsc（无 @types/node）必炸——故独立本模块，与 updateCheck
- * 数据面同目录同纪律，runtime 测试面经 dist/index.js 覆盖。
+ * 本模块独立于 updateCheck.ts：updateCheck.ts 的 `import type { FetchImpl } from './betacraft'`
+ * 会把 betacraft 的 node: 依赖面带进类型图，UI 经 vite alias 直消费源码时
+ * vue-tsc（无 @types/node）必炸；与 updateCheck 数据面同目录同纪律，
+ * runtime 测试面经 dist/index.js 覆盖。
  * 语义：
  * - policy='off' → 恒 false（start 侧本就不发自动检查，此为双保险）；
  * - status='update' ∧ version ≠ 忽略账 → true（弹更新弹窗 + 红点）；

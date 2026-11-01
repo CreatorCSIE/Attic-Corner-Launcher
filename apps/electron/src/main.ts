@@ -35,15 +35,15 @@ import {
 /** 宿主安装目录（卸载器 {app} 射程 = 数据根禁入区）：产线 = exe 同目录，也是 portable 判定的 exeDir。 */
 const INSTALL_DIR = path.dirname(process.execPath);
 
-/** portable B 期 marker 位（electron/legacy 两壳 zip 出厂同键；判定与指针读写单点在 runtime）。 */
+/** portable marker 位（electron/legacy 两壳 zip 出厂同键；判定与指针读写单点在 runtime）。 */
 const PORTABLE_MARKER = 'resources/portable.ini';
 
 /** Releases 页（temp 守卫指路位；与关于页 REPO_URL 同源）。 */
 const RELEASES_URL = 'https://github.com/CreatorCSIE/Attic-Minecraft-Launcher/releases';
 
 /**
- * temp 守卫（plan.md 终拍⑤）：小白在压缩包里直接双击必踩——只抽 exe 到 temp → marker 没跟出来
- * 判成安装态写 %APPDATA%；整目录抽到 temp → 数据随 temp 蒸发。
+ * temp 守卫：防压缩包内直接双击——只抽 exe 到 temp → marker 没跟出来判成安装态写 %APPDATA%；
+ * 整目录抽到 temp → 数据随 temp 蒸发。
  * 特征 = exeDir 命中 %TEMP%/%TMP% 前缀或 Rar$/7z$/WinRar$ 段 ∧ exe 旁无既有 `.attic` → boot 拒建主窗。
  */
 const tempTrap = looksLikeTempExtraction(INSTALL_DIR) && !fs.existsSync(path.join(INSTALL_DIR, PORTABLE_DIR_NAME));
@@ -51,8 +51,8 @@ const tempTrap = looksLikeTempExtraction(INSTALL_DIR) && !fs.existsSync(path.joi
 /**
  * 数据根覆盖引导：设置页「更换数据根」写的是平台默认根 launcher.settings 的 rootOverride
  * （root 属构造级配置，运行期不换根）——启动时从默认根 peek 一次，指过去即完成迁移式切换。
- * 优先级口径 = rootDirOverride > portable > 默认（storage.ts 现状）：portable 形态的随身指针不住这里
- * （住 marker ini 的 rootDir，B 期两形态各写各的指针面），本 peek 只服务安装形态。
+ * 优先级口径 = rootDirOverride > portable > 默认（storage.ts）：portable 形态的随身指针不住这里
+ * （住 marker ini 的 rootDir，两形态各写各的指针面），本 peek 只服务安装形态。
  * 兜底护栏（与 runtime.setSettings 道闸同款）：手改 settings 把根指进安装目录 = 卸载清存档
  * 的不可逆事故 → 忽略该指针回落默认根（setSettings 入口拦新写入，本处拦存量手改）。
  */
@@ -70,7 +70,7 @@ function bootstrapRootDir(): string | undefined {
   }
 }
 
-/** TS 启动器核心门面（Phase 2）：主进程唯一实例。exeDir 显式传（portable 双指纹判定面，硬纪律）。 */
+/** TS 启动器核心门面：主进程唯一实例。exeDir 显式传（portable 双指纹判定面，硬纪律）。 */
 const runtime = new AtticRuntime({
   rootDir: bootstrapRootDir(),
   version: app.getVersion(),
@@ -80,10 +80,10 @@ const runtime = new AtticRuntime({
 });
 
 
-// —— 启动器层崩溃取证（P0/P1，用户拍板设计）——
+// —— 启动器层崩溃处理——
 // 真崩溃 = win32 原生 dialog（渲染栈不可信场景唯一可靠出口）：先展示错误栈，再给三按钮
 // 【复制诊断信息 / 打开日志文件夹 / 去 GitHub 报告】；bundle 全量落 crash-<ISO>.txt。
-// 非致命/事后 = Vue CrashPanel（P2 通道）+ 下次启动横幅（脏退出标记经 SYS_INFO 投出）。
+// 非致命/事后 = Vue CrashPanel（CRASH_* 通道）+ 下次启动横幅（脏退出标记经 SYS_INFO 投出）。
 
 /** 重入闸：级联异常只弹一次框（第二次直接退，防 dialog 风暴钉死进程）。 */
 let crashReported = false;
@@ -91,7 +91,7 @@ let crashReported = false;
 function reportLauncherCrash(
   category: string,
   error: unknown,
-  opts: { /** true = 崩溃后必退（P0）；false = 现场报告后继续活（P1 渲染窗事故）。 */ exit: boolean; /** gone 恢复路径：弹框后重载该窗。 */ reloadWin?: BrowserWindow },
+  opts: { /** true = 崩溃后必退；false = 现场报告后继续活（渲染窗事故）。 */ exit: boolean; /** gone 恢复路径：弹框后重载该窗。 */ reloadWin?: BrowserWindow },
 ): void {
   if (crashReported) {
     if (opts.exit) app.exit(1);
@@ -116,7 +116,7 @@ function reportLauncherCrash(
       type: 'error',
       title: 'Attic 启动器崩溃',
       message: opts.exit ? '启动器遇到意外错误，即将退出' : '启动器窗口遇到意外错误',
-      // 栈先行（用户拍板）：detail 首段 = 崩溃栈截断，全量在 crash-*.txt。
+      // 栈先行：detail 首段 = 崩溃栈截断，全量在 crash-*.txt。
       detail: `${stack.slice(0, CRASH_DIALOG_STACK_MAX)}\n\n完整诊断包已写入 launcher/logs/crash-*.txt`,
       buttons: ['复制诊断信息', '打开日志文件夹', '去 GitHub 报告'],
       defaultId: 0,
@@ -128,7 +128,7 @@ function reportLauncherCrash(
   }
   if (choice === 1) void shell.openPath(logsDir);
   else if (choice === 2 && issuesUrl) {
-    // 报告纪律（用户拍板）：先把 bundle 写剪贴板，再开预填 issue 链接——正文直接粘贴。
+    // 报告流程：先把 bundle 写剪贴板，再开预填 issue 链接——正文直接粘贴。
     clipboard.writeText(text);
     void shell.openExternal(issuesUrl);
   } else clipboard.writeText(text);
@@ -143,14 +143,14 @@ function reportLauncherCrash(
   }
 }
 
-/** P0：主进程未捕获异常/拒绝 = 取证 + 原生框 + 退（handle() 封装器不覆盖异步裸抛，本钩子是最后防线）。 */
+/** 主进程未捕获异常/拒绝 = 取证 + 原生框 + 退（handle() 封装器不覆盖异步裸抛，本钩子是最后防线）。 */
 process.on('uncaughtException', (error) => reportLauncherCrash('uncaught-exception', error, { exit: true }));
 process.on('unhandledRejection', (reason) => reportLauncherCrash('unhandled-rejection', reason, { exit: true }));
 
 /** launcher.log 跨启动滚动源：主进程 stdout/stderr 全量镜像（Electron 壳专属——sidecar stdout 是协议面，绝不挂）。 */
 attachConsoleCapture((stream, text) => runtime.appendLauncherLog(stream, text));
 
-/** P1：渲染进程事故（gone = 弹框取证后重载恢复；unresponsive = 只报不退）。每个窗都挂（主窗 + 控制台窗）。 */
+/** 渲染进程事故（gone = 弹框取证后重载恢复；unresponsive = 只报不退）。每个窗都挂（主窗 + 控制台窗）。 */
 function attachWindowCrashGuards(win: BrowserWindow): void {
   win.webContents.on('render-process-gone', (_event, details) => {
     reportLauncherCrash(
@@ -167,7 +167,7 @@ function attachWindowCrashGuards(win: BrowserWindow): void {
 /** 无边距主窗引用（WINDOW_CONTROL 通道操作目标）。 */
 let mainWindow: BrowserWindow | null = null;
 
-/** 每次启动一个独立控制台窗（用户指定）：集合仅用于生命周期跟踪，不做复用。 */
+/** 每次启动一个独立控制台窗：集合仅用于生命周期跟踪，不做复用。 */
 const consoleWindows = new Set<BrowserWindow>();
 
 /** 开发模式渲染地址：--dev-url= 或 ELECTRON_RENDERER_URL；缺省 = ui 构建产物。 */
@@ -206,8 +206,8 @@ function broadcast<E extends keyof AtticEventPayloads>(event: E, payload: AtticE
 
 /**
  * 控制台 backlog（GAME_BACKLOG 通道的数据源）：按 pid 缓存本会话已发射的输出与退出事件。
- * 根因修复——独立控制台窗是启动后才新建/挂载的，spawn 瞬间的 LegacyFix premain 首批输出
- * 在窗内 useConsole 订阅前就广播完了，实时事件面永远收不到（用户实测"丢前段日志"）。
+ * 独立控制台窗是启动后才新建/挂载的，spawn 瞬间的 LegacyFix premain 首批输出
+ * 在窗内订阅前就广播完了，实时事件面收不到。
  * 新窗订阅完成后按 pid 补拉，seq 去重；每会话缓冲封顶 1MB（截断置 truncated），最多保留 4 个会话。
  */
 interface SessionBacklog {
@@ -252,8 +252,8 @@ function wireEvents(): void {
     backlogFor(payload.pid).exit = payload;
     broadcast(IPC_EVENTS.GAME_EXIT, payload);
   });
-  // MS_LOGIN 漏钉曾致 electron 双壳设备码弹窗收不到终局、状态永不更新（2026-10-31 测试者报障；
-  // tauri 壳事件表早已接对，故开发验收未暴露）——新增宿主事件必须同时进本列表与 lib.rs EVENT_CHANNELS
+  // 双壳同步要求：新增宿主事件必须同时进本列表与 lib.rs EVENT_CHANNELS，
+  // 否则对应壳的弹窗/面板收不到终局（MS_LOGIN 曾踩）
   for (const event of [IPC_EVENTS.DOWNLOAD_PROGRESS, IPC_EVENTS.CUSTOM_INFO_CHANGED, IPC_EVENTS.MS_LOGIN] as const) {
     runtime.on(event, (payload: AtticEventPayloads[typeof event]) => {
       broadcast(event, payload);
@@ -283,14 +283,14 @@ function createWindow(): void {
   win.on('closed', () => {
     mainWindow = null;
     // 主窗 = 应用本体：控制台窗是附属会话窗，主窗退出连带全关——
-    // 否则控制台独活撑住 window-all-closed，进程滞留且无 UI 可 kill 在跑的游戏
-    // （用户实测：主窗随 DevTools 退出后控制台不退）。兜底壳复用同源同生效。
+    // 否则控制台独活撑住 window-all-closed，进程滞留且无 UI 可 kill 在跑的游戏。
+    // 兜底壳复用同源同生效。
     for (const c of [...consoleWindows]) c.close();
   });
   attachWindowCrashGuards(win);
 
-  // 诊断期（基建调试）：直接 show，不等 ready-to-show——页面 JS 异常/加载失败时
-  // ready-to-show 可能永不触发，导致"日志正常但窗口不出现"。视觉验收后此段可还原。
+  // 直接 show，不等 ready-to-show——页面 JS 异常/加载失败时
+  // ready-to-show 可能永不触发，导致"日志正常但窗口不出现"。
   win.show();
   win.webContents.on('did-fail-load', (_e, code, desc) => {
     console.error(`[attic-main] did-fail-load ${code}: ${desc}`);
@@ -298,7 +298,7 @@ function createWindow(): void {
   win.webContents.on('console-message', (_e, _level, msg, _line, src) => {
     console.log(`[renderer] ${msg} (${src})`);
   });
-  // DevTools 仅开发态（产线真机实测教训：无条件开 = 安装版弹出调试窗）。
+  // DevTools 仅开发态（无条件开 = 安装版弹出调试窗）。
   // 兜底壳（electron-legacy）复用本源码，同修同生效。
   if (!app.isPackaged) {
     win.webContents.openDevTools({ mode: 'detach' });
@@ -308,13 +308,13 @@ function createWindow(): void {
   if (devUrl) {
     void win.loadURL(devUrl);
   } else {
-    // Phase 0：直接加载 packages/ui 的构建产物；真正的打包分发留待 Phase 5。
+    // 加载 packages/ui 的构建产物。
     void win.loadFile(uiDistIndex());
   }
 }
 
 /**
- * 独立控制台窗（v1 语义 + 用户指定"每次启动独立控制台"）：加载同一 UI 带 ?window=console&pid=<会话pid>。
+ * 独立控制台窗（v1 语义，每次启动独立）：加载同一 UI 带 ?window=console&pid=<会话pid>。
  * 每次调用都新建窗口（旧控制台不复用）；窗内 ConsolePanel 按 pid 过滤本会话输出，旧窗保留各自历史日志。
  */
 function createConsoleWindow(): void {
@@ -370,7 +370,7 @@ app.whenReady().then(() => {
     app.quit();
     return;
   }
-  // 九请求通道（ipc.ts 契约一一对应）。
+  // 契约通道注册（ipc.ts 一一对应）。
   handle(IPC_CHANNELS.PING, () => runtime.ping());
   handle(IPC_CHANNELS.VERSIONS_LIST, () => runtime.listVersions());
   handle(IPC_CHANNELS.VERSIONS_JSON, (versionId: string) => runtime.getVersionJson(versionId));
@@ -484,7 +484,7 @@ app.whenReady().then(() => {
     }
     await shell.openExternal(parsed.toString());
   });
-  // —— 崩溃取证 P2 通道（渲染层 → 宿主）——
+  // —— 崩溃取证通道（渲染层 → 宿主）——
   // 渲染层错误静默落 launcher.log（不弹框、不打扰；框归 CrashPanel 渲染层自理）。
   handle<[RendererErrorReport], void>(IPC_CHANNELS.CRASH_REPORT, (report) => {
     runtime.logRendererError(report);
@@ -512,7 +512,7 @@ app.whenReady().then(() => {
   handle<[], void>(IPC_CHANNELS.WINDOW_CONSOLE, () => {
     createConsoleWindow();
   });
-  // 控制台 backlog 补拉（丢首批日志的竞态修复）：新窗订阅后按 pid 拉取已发射输出与退出事件。
+  // 控制台 backlog 补拉：新窗订阅后按 pid 拉取已发射输出与退出事件。
   handle<[number], GameBacklog>(IPC_CHANNELS.GAME_BACKLOG, (pid) => {
     const b = backlogs.get(pid);
     if (!b) return { lines: [], exit: null, truncated: false };

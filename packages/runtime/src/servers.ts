@@ -1,13 +1,13 @@
 /**
- * 社区服务器列表（一期 = Betacraft 单源）——legacy_server_list HTML 宽松解析 + 版本目录派生匹配。
- * 上游事实源（2026-11-01 实测取证）：`POST http://api.betacraft.uk/v2/legacy_server_list` 回
- * HTML（UTF-8 带 BOM，~65KB / 60 服务器）：五个 `<div class="category"><h2>Classic|Indev|Alpha|
+ * 社区服务器列表（Betacraft 单源）——legacy_server_list HTML 宽松解析 + 版本目录派生匹配。
+ * 上游事实源：`POST http://api.betacraft.uk/v2/legacy_server_list` 回
+ * HTML（UTF-8 带 BOM）：五个 `<div class="category"><h2>Classic|Indev|Alpha|
  * Beta|Release</h2><table>` 分组；每服务器两个 `<tr class="server">`——第一行 icon/join:// 链接/
  * 可选 Online Mode/可选 players/address span，第二行 description span。
  * join:// 四段 `ip:port/mppass/protocol/preferredVersion`（mppass=`use` 即无密码；preferredVersion
  * 值形脏：干净 id / 带构建后缀 / 第三方客户端名三形态，样本钉在 tests/fixtures/）。
- * 纪律对齐：不引 HTML 解析库（正则宽松提取，坏行剔除不整页弃）；matchedVersionId 派生在宿主
- * （戒律 #1：UI 零版本判断）；无进程内缓存（每次全量重拉，MODS_LIST 同款结构性修复语义）。
+ * 纪律：不引 HTML 解析库（正则宽松提取，坏行剔除不整页弃）；matchedVersionId 派生在宿主
+ * （UI 零版本判断）；无进程内缓存（每次全量重拉）。
  */
 
 import type { ServerCategory, ServerListView } from '@attic/core-spec';
@@ -60,7 +60,7 @@ export function normalizePreferredVersion(raw: string): string {
  * 对单个版本轨 id 集三级匹配：① 精确（大小写不敏感）；② 前缀双向（`c0.30-c-1900` 命中目录
  * `c0.30-c`；反向如 `b1.7` 命中 `b1.7.3`），多个命中取最长公共段；③ 未命中 = undefined
  * （UI 走手动选版本，matchedVersionId 键省略）。
- * 两轨调用序（官方先行、mod/自定义兜底）在 parseServerList，见其注释。
+ * 各轨调用序（自定义原样精确先行 → 官方 → 自定义兜底）在 parseServerList，见其注释。
  */
 export function matchVersionId(preferred: string, versionIds: readonly string[]): string | undefined {
   return matchNormalized(normalizePreferredVersion(preferred), versionIds);
@@ -91,7 +91,7 @@ function matchPreferredExact(raw: string, versionIds: readonly string[]): string
 }
 
 /**
- * 前缀命中的分隔符边界闸（2026-11-01 实案）：`Nomad Anarchy` preferred=`1.12.2`
+ * 前缀命中的分隔符边界闸：`Nomad Anarchy` preferred=`1.12.2`
  * 被官方 `1.1`（Minecraft 1.1）裸 startsWith 抢走——越界版本号不该互认。
  * 规则 = 前缀结束后下一字符**不得是数字**（数字 = 版本号还在延续，`1.1|2.2` 与
  * `1.1` 是两个版本）；`.`/字母/分隔符放行——`b1.7→b1.7.3`、`1.7.10x→1.7.10`、
@@ -159,9 +159,9 @@ function extractIconUrl(rowHtml: string): string | undefined {
  * legacy_server_list HTML → ServerListView[]（宽松正则，不引解析库）。
  * 防御式：join:// 拆解失败或地址端口非法的条目剔除；描述行孤儿忽略；
  * 顶层无任何分类 h2 = 上游形状崩坏，显式抛错（UI 空态+重试，不静默出半截列表）。
- * 版本匹配三段（2026-11-01 定稿）：① v1 getMod 直命中先行——preferred 原串与
+ * 版本匹配三段：① v1 getMod 直命中先行——preferred 原串与
  * 仓库/本地 full_name equalsIgnoreCase 精确 = 服务器点名要该 mod 客户端，压过官方轨
- * （Stone11/UberBukkit 实案：`Uberbukkit Client a1.2.6` 直命中仓库同名条目）；
+ * （如 `Uberbukkit Client a1.2.6` 直命中仓库同名条目）；
  * ② 官方轨（BC 清单原版）——原版服不被 mod/自定义 id 的更长前缀劫持；
  * ③ mod/自定义轨尾 token/前缀 + 下划线形兜底（第三方客户端服 preferred 指 mod 名）。
  * ①③ 命中打 `matchedVersionIsCustom`（UI 弹窗知情提示）。mod 轨三级 = 原样精确先行
@@ -230,7 +230,7 @@ export function parseServerList(
         const playersText = /<span class="server__players"[^>]*>([\s\S]*?)<\/span>/i.exec(rowHtml)?.[1] ?? '';
         const playersMatch = /\(\s*(\d+)\s*\/\s*(\d+)\s*\)/.exec(stripTags(playersText));
         const iconUrl = extractIconUrl(rowHtml);
-        // v1 getMod 直命中先行（2026-11-01 用户拍板定稿）：preferred 原串与仓库/本地
+        // v1 getMod 直命中先行：preferred 原串与仓库/本地
         // full_name equalsIgnoreCase 精确 = 服务器点名要该 mod 客户端的最强信号，
         // 排在官方轨前（`Uberbukkit Client a1.2.6` 直命中仓库同名条目，不被归一后的
         // 原版 id 抢走）。不中再官方轨先行（防 mod 长前缀劫持原版服），

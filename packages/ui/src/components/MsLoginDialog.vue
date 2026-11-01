@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * 微软设备码登录弹窗 —— AppDialog 壳语言（标题/正文/底栏钮行，LaunchProgressDialog 同款）。
- * 打开即 msStartLogin()：成功 → 大字设备码（一键复制，剪贴板先例 = AccountsPanel.copyUuid）
+ * 微软设备码登录弹窗 —— AppDialog 壳（标题/正文/底栏钮行）。
+ * 打开即 msStartLogin()：成功 → 大字设备码（一键复制）
  * +「打开浏览器」（useExternalLink 出门，verificationUriComplete 优先）+ 纯文本链接（防无默认
  * 浏览器时 openExternal 静默失败，可复制粘贴到任意浏览器）+ 等待授权呼吸态；
  * 终局走 MS_LOGIN 事件（组件级 on/off：watch open 订阅/退订，bridge.on 回退订函数）。
@@ -114,7 +114,7 @@ async function start(): Promise<void> {
   }
 }
 
-// 打开 = 复位 + 订阅 + 发起；关闭 = 退订 + 停表（组件级 on/off 纪律）
+// 打开 = 复位 + 订阅 + 发起；关闭 = 退订 + 停表（组件级 on/off 规则）
 watch(
   () => props.open,
   (v) => {
@@ -185,7 +185,7 @@ async function copyCode(): Promise<void> {
       <div class="code-field">
         <code class="code-val mono">{{ device?.userCode }}</code>
         <button class="icon-btn" type="button" :title="t('account.ms.copyCode')" @click="copyCode">
-          <!-- lucide: copy / check（已复制反馈，账户页 UUID 复制同款） -->
+          <!-- lucide: copy / check（已复制反馈） -->
           <svg v-if="!copied" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
             <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
@@ -213,7 +213,7 @@ async function copyCode(): Promise<void> {
       </p>
     </div>
 
-    <!-- 终局失败 / start 失败：分类码文案表（动态键先例 = launch.stage.${item}） -->
+    <!-- 终局失败 / start 失败：分类码文案表（动态 i18n 键） -->
     <p v-else class="err">
       {{ failCode ? t(`account.ms.error.${failCode}`) : t('account.ms.startFailed', { message: startError ?? '' }) }}
     </p>
@@ -241,7 +241,7 @@ async function copyCode(): Promise<void> {
   font-weight: 700;
   color: var(--text-primary);
 }
-/* 等待/发起态：呼吸点 + 文案（启动弹窗 stage-pulse 同款律） */
+/* 等待/发起态：呼吸点 + 文案 */
 .waiting {
   display: flex;
   flex-direction: column;
@@ -279,7 +279,7 @@ async function copyCode(): Promise<void> {
   text-transform: uppercase;
   color: var(--text-muted);
 }
-/* 设备码大字：只读字段配方（uuid-field 同款），字号放大 + 等宽 */
+/* 设备码大字：只读字段样式，字号放大 + 等宽 */
 .code-field {
   display: flex;
   align-items: center;

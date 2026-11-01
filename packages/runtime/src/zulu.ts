@@ -1,5 +1,5 @@
 /**
- * 远古 Java 供给通道（风险 #7）：Azul Zulu 元数据 API 查 JDK 6/7/8 归档包，
+ * 远古 Java 供给通道：Azul Zulu 元数据 API 查 JDK 6/7/8 归档包，
  * 下载 zip + sha256 校验 + 解压（win 用 powershell Expand-Archive，posix 用 unzip）。
  * 失败返回原因——手动导入兜底永远存在（探测失败面板给全候选与原因）。
  */
@@ -75,8 +75,8 @@ export async function queryZuluPackages(
   });
   const res = await fetchImpl(`${endpoints.zuluMetadata}?${params.toString()}`);
   if (!res.ok) throw new Error(`Zulu 元数据 API HTTP ${res.status}`);
-  // 真实 API 字段是 download_url（2026-10-25 WSL 实机取证：只认 url 会全数筛掉、
-  // 自动供给静默失效）；url 保留为回退。
+  // 真实 API 字段是 download_url（只认 url 会全数筛掉、自动供给静默失效）；
+  // url 保留为回退。
   const data = (await res.json()) as { name?: string; url?: string; download_url?: string; sha256?: string }[];
   const out: ZuluPackage[] = [];
   for (const entry of data) {
@@ -111,7 +111,7 @@ async function extractZip(zipPath: string, destDir: string, platform: string): P
 /**
  * 在解压根向下至多两层找 bin/java；也用于供给缓存命中检查（已装则免重下）。
  * 两层是必须的：Zulu zip 顶层目录与包同名，解压后真实形态为 destRoot/<name>/<name>/bin/java
- * （2026-10-25 WSL 实机取证：只查一层 = 缓存永不命中、每次启动重下 111MB）。
+ * （只查一层 = 缓存永不命中、每次启动重下 111MB）。
  */
 export function findJavaExecutable(dir: string, platform: string): string | null {
   const binary = platform === 'win32' ? 'java.exe' : 'java';
@@ -153,7 +153,7 @@ export async function installZuluPackage(
     client: BetacraftClient;
     platform?: string;
     onProgress?: (event: DownloadProgressEvent) => void;
-    /** 取消信号（feat①）：中止 111MB 级 zip 下载。 */
+    /** 取消信号：中止 111MB 级 zip 下载。 */
     signal?: AbortSignal;
   },
 ): Promise<ZuluInstallOutcome> {

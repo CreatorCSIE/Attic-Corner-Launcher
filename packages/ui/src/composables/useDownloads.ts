@@ -1,5 +1,5 @@
 /**
- * useDownloads —— 模块级下载聚合订阅层（BlockHelm 配方，HomeLaunchPanelView 核对版）。
+ * useDownloads —— 模块级下载聚合订阅层。
  * 主页启动面板消费：阶段文案 + 单调进度条（Math.Max 永不回退）+ 速率 + 失败显式态。
  * 不依赖控制台窗口存在；每次启动前 reset；启动结束后 UI 侧不再展示（迟到进度自然丢弃）。
  * 数据契约复用 DownloadProgressEvent（core-spec），不扩字段。
@@ -12,7 +12,7 @@ import { useBridge } from './useBridge';
 const { bridge } = useBridge();
 
 const items = ref<Record<string, DownloadProgressEvent>>({});
-/** 聚合百分比：单调合并，只升不降（BlockHelm ReportLaunchProgress 配方）。 */
+/** 聚合百分比：单调合并，只升不降。 */
 const percent = ref(0);
 /** 瞬时速率 B/s（500ms 采样窗，UI 侧计算——runtime 事件不带速率）。 */
 const rateBps = ref(0);

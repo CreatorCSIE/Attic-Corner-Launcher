@@ -1,7 +1,7 @@
 /**
  * useUpdateCheck —— 检查更新共享状态（UPDATE_CHECK 通道唯一消费点，模块级单例）。
  * 策略语义（settings.updatePolicy，缺省 startup）：startup = 启动时自动检查一次；off = 从不自动检查。
- * 24h 轮询已删（2026-10-25「更新 UI」设计定稿）——策略语义即「启动时一次」，跨会话靠下次启动。
+ * 无 24h 轮询：策略语义即「启动时一次」，跨会话靠下次启动。
  * 自动结果打扰门 = shouldPromptUpdate（runtime updatePolicy.ts 纯函数，测试覆盖）：
  * update ∧ 版本≠忽略账 → 弹更新弹窗 + 红点；命中忽略账 → 全静默（不弹不红点）。
  * 手动检查（关于页按钮入口）：无视策略与忽略账，恒显结果弹窗。
@@ -35,7 +35,7 @@ async function check(): Promise<UpdateCheckResult | null> {
   busy.value = true;
   try {
     const res = await bridge.checkUpdate();
-    // 桥面异常封装（如 no-bridge）也归一化为 error 分支——弹窗可见呈现纪律。
+    // 桥面异常封装（如 no-bridge）也归一化为 error 分支——弹窗可见呈现。
     result.value = res.ok ? res.value : { status: 'error', message: res.error };
     return result.value;
   } finally {

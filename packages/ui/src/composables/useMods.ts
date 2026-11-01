@@ -1,7 +1,7 @@
 /**
  * useMods —— Mods 仓库页共享状态（左 = Betacraft 单源卡；右 = 分类折页 + 安装）。
  * 模块级单例（对齐 useCustomVersions 范式）。列表每次进页现拉 + 手动刷新钮，UI 侧不做缓存——
- * runtime 本就无进程内列表缓存（v1 ModsRepository「追加不清空/永不刷新」缺陷的修复面）。
+ * runtime 本就无进程内列表缓存。
  * 安装语义 = 只落 .info：jar 与基座合成延迟到启动期（点 Play 才补全，页面文案提示）。
  */
 
@@ -17,7 +17,7 @@ const error = ref<string | null>(null);
 const installError = ref<string | null>(null);
 const installingId = ref<string | null>(null);
 const query = ref('');
-/** 分类折页展开态（v1 JTree 两级折叠同款：多分类可同时展开；缺省全折叠）。 */
+/** 分类折页展开态：多分类可同时展开；缺省全折叠。 */
 const openMap = ref<Record<string, boolean>>({});
 
 let started = false;
@@ -65,7 +65,7 @@ async function install(mod: ModEntryView): Promise<void> {
   if (mod.installed || installingId.value !== null) return;
   installingId.value = mod.fullName;
   installError.value = null;
-  // 现场构造纯对象（值全为原始类型）：结构化克隆不认 Vue reactive Proxy（custom 页同款教训）
+  // 现场构造纯对象（值全为原始类型）：结构化克隆不认 Vue reactive Proxy
   const request: ModInstallRequest = {
     fullName: mod.fullName,
     infoFileUrl: mod.infoFileUrl,
@@ -86,7 +86,7 @@ async function install(mod: ModEntryView): Promise<void> {
 }
 
 function openWebsite(url: string): void {
-  // 失败（无默认浏览器等）经 useExternalLink 全局弹窗显式报错（用户指定，不再静默）
+  // 失败（无默认浏览器等）经 useExternalLink 全局弹窗显式报错（不静默）
   openExternal(url);
 }
 

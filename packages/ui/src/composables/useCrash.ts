@@ -1,5 +1,5 @@
 /**
- * useCrash —— 渲染层错误采集共享状态（P2，模块级单例）。
+ * useCrash —— 渲染层错误采集共享状态（模块级单例）。
  * 三源归一：window 'error' / 'unhandledrejection' / Vue app.config.errorHandler
  * → 经 CRASH_REPORT 静默落宿主 launcher.log（永不弹框），同时喂 liveError
  * 给 CrashPanel 渲染现场卡片（栈先行 + 三按钮，与 win32 原生框同构）。

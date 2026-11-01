@@ -1,7 +1,7 @@
 /**
  * legacyfix jar DeAwtPatch 常量池补丁 —— applet 容器高 DPI 窗口偏右下的最小化修复。
  *
- * 机理（本机 jar javap 字节码实锤，LWJGL 2.9.0/2.9.3 同构）：
+ * 机理（javap 字节码，LWJGL 2.9.0/2.9.3 同构）：
  * - DeAwtPatch.transformDisplay 用 javassist 把 Display.setParent 方法体整段替换为
  *   字符串常量（javac 编译期折叠为单个 CONSTANT_Utf8 条目）；注入体只设尺寸不设位置；
  * - Display.getWindowX/Y：静态字段 x==−1 才走居中公式 Math.max(0,(initial_mode −
@@ -15,9 +15,9 @@
  * （frame 局部变量已由 AppletLauncher setLocationRelativeTo(null) 定妥；未显示 Frame 的
  * getX/getY 仍返回显式设置值，getLocationOnScreen 会抛 InvalidComponentException 故不用）。
  * 坐标经 setLocation 写入 x/y → createWindow 原样采用，混源居中公式永不触达。
- * 注：DisplayMode 公开构造器仅 (w,h)（javadoc 实锤），坐标无构造器通道，setLocation 是唯一落点。
+ * 注：DisplayMode 公开构造器仅 (w,h)（javadoc），坐标无构造器通道，setLocation 是唯一落点。
  *
- * 安全门（教训：绝不静默降级）：
+ * 安全门（绝不静默降级）：
  * - SHA256 钉版：DeAwtPatch.class 明文字节必须在已验证表内，表外版本一律不碰
  *   （换 legacyfix 版本需实测锚点语义后在 PINNED_DEAWT_CLASS_SHA256 补一行）；
  * - 锚点全文唯一（恰 1 次出现且落在恰 1 个 Utf8 条目）才替换；
@@ -45,11 +45,11 @@ const PATCHED = Buffer.from(
   'latin1'
 );
 
-/** 已实机验证过锚点语义的 DeAwtPatch.class 明文 SHA256（hex 小写）。 */
+/** 锚点语义已验证的 DeAwtPatch.class 明文 SHA256（hex 小写）。 */
 const PINNED_DEAWT_CLASS_SHA256 = new Set([
-  'bcf09fe03447d04fdd5c047e5b1954ec2021eb2957c8f12012f7a79496331b0e', // 2026-10 实测 legacyfix.jar（本机）
-  // 26.10 Release（2026-10-22 实测构件）：锚点恰 1 次、无补丁串（upstream 未合 setLocation，
-  // 窗口补丁仍必要）；哈希与 2026-10-18 nightly 实测同值（0394721 起 DeAwtPatch.java 的漂移形态）。
+  'bcf09fe03447d04fdd5c047e5b1954ec2021eb2957c8f12012f7a79496331b0e', // legacyfix.jar 2026-10 构件
+  // 26.10 Release 构件：锚点恰 1 次、无补丁串（upstream 未合 setLocation，窗口补丁仍必要）；
+  // 哈希与 2026-10-18 nightly 同值（0394721 起 DeAwtPatch.java 形态稳定）。
   'd1003d49a286c48696992427f63ac9d4efa105700c4fbf3b3d0d0156ece3b7ef',
 ]);
 

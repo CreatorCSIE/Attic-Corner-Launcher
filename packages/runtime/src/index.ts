@@ -1,7 +1,7 @@
 /**
- * @attic/runtime — TS 侧启动器核心（Phase 2 落地）。
+ * @attic/runtime — TS 侧启动器核心。
  * 分层：endpoints/properties/storage/info（基础）→ betacraft/java/zulu（数据）→ launch/process（执行）→ runtime（门面）。
- * 契约类型一律来自 @attic/core-spec（戒律 #2）。
+ * 契约类型一律来自 @attic/core-spec。
  */
 
 export { DEFAULT_ENDPOINTS, resolveEndpoints, endpointsFromOverrides, type Endpoints } from './endpoints';

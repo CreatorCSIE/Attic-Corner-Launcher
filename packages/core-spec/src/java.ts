@@ -1,6 +1,6 @@
 /**
- * Java 探测契约（移植自 MCANextGen java-discovery 的模型，去掉 Node 依赖以便 Rust 镜像）。
- * 四级候选 + 真实 `-XshowSettings:properties -version` 验证；64 位 Java 8 优先（风险 #7）。
+ * Java 探测契约（无 Node 依赖，可 Rust 镜像）。
+ * 四级候选 + 真实 `-XshowSettings:properties -version` 验证；64 位 Java 8 优先。
  */
 
 /** 候选来源：手动导入 / JAVA_HOME / 注册表或 jvm 目录 / PATH。 */
@@ -47,7 +47,7 @@ export interface JavaSelection {
   reason: string;
 }
 
-/** 探测失败面板的全量报告：全部候选与原因（MCANextGen 面板范式，风险 #7）。 */
+/** 探测失败面板的全量报告：全部候选与原因。 */
 export interface JavaDetectionReport {
   requiredMajor: number;
   platform: string;

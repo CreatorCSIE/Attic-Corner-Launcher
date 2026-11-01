@@ -1715,9 +1715,25 @@ export class AtticRuntime {
     return loadAccounts(this.root);
   }
 
+  /**
+   * 手动 javaPath 双形态语义（2026-11-01 用户拍板，向导「指定 Java 目录」入口）：
+   * 可执行文件路径原样；JDK 目录 → 向下至多两层找 bin/java（Zulu 供给同款 findJavaExecutable）。
+   * 返回 null = 目录里没找到（调用方决定报错/保留原值进探测失败面）。
+   */
+  private resolveManualJava(raw: string): string | null {
+    let isDir = false;
+    try {
+      isDir = fs.statSync(raw).isDirectory();
+    } catch {
+      return raw; // 不存在/不可 stat = 原样交给探测报错（旧语义不变）
+    }
+    if (!isDir) return raw;
+    return findJavaExecutable(raw, this.platform);
+  }
+
   private manualJavaPaths(settings: Record<string, string>): string[] {
     const paths: string[] = [];
-    if (settings['javaPath']) paths.push(settings['javaPath']);
+    if (settings['javaPath']) paths.push(this.resolveManualJava(settings['javaPath']) ?? settings['javaPath']);
     // Zulu 自动供给落位的 JDK 也进手动候选。
     try {
       for (const entry of fs.readdirSync(zuluJavaDir(this.root))) {
@@ -1743,7 +1759,13 @@ export class AtticRuntime {
     // 免二次 PowerShell spawn。
     const account = preAccount ?? (await this.resolveLaunchAccount(request));
 
-    const javaPath = request.javaPath ?? settings['javaPath'] ?? (await this.ensureJavaPath(settings, signal));
+    // 手动 javaPath 双形态（exe / JDK 目录，见 resolveManualJava）：目录里没 java = 显式报错，
+    // 不静默回落自动探测（用户明确指定过位置，探测另选更错）。
+    const manualJava = settings['javaPath'] ? this.resolveManualJava(settings['javaPath']) : undefined;
+    if (settings['javaPath'] && !manualJava) {
+      throw new Error(`指定的 Java 目录下未找到可执行文件（bin/java）：${settings['javaPath']}`);
+    }
+    const javaPath = request.javaPath ?? manualJava ?? (await this.ensureJavaPath(settings, signal));
     await this.gateLwjgl2Arch(javaPath);
     // 内存三级优先：请求覆盖 > memoryMode=auto 宿主估算（总内存 40% 夹 [512,2048]）> 定值 > 1024 兜底
     const memory = Number(settings['maxMemoryMb']);

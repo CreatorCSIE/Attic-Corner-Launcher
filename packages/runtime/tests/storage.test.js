@@ -655,3 +655,27 @@ test('getSystemInfo：defaultRoot 恒为平台默认根（不随 rootOverride/po
   fs.writeFileSync(settingsFile(info.defaultRoot), 'x=1');
   assert.equal(rt.getSystemInfo().defaultRootPopulated, true, '既有数据 = 老用户，保守不弹');
 });
+
+test('手动 javaPath 双形态（向导「指定 Java 目录」2026-11-01）：JDK 目录解析 bin/java；目录没 java 显式报错不静默回落；exe 形态原样', async (t) => {
+  const root = tempRoot(t);
+  ensureLayout(root);
+  fs.writeFileSync(path.join(jsonsDir(root), 'b1.7.3.info'), 'launch-method=indev\n');
+  const rt = new AtticRuntime({ rootDir: root, fetchImpl: () => Promise.reject(new Error('offline')) });
+  rt.addAccount('Tester');
+  const binary = process.platform === 'win32' ? 'java.exe' : 'java';
+  // 目录形态：向下找 bin/java（至多两层，findJavaExecutable 同款）
+  const jdk = path.join(root, 'jdk-picked');
+  fs.mkdirSync(path.join(jdk, 'bin'), { recursive: true });
+  const exe = path.join(jdk, 'bin', binary);
+  fs.writeFileSync(exe, '', 'utf8');
+  rt.setSettings({ javaPath: jdk });
+  assert.equal((await rt.dryRunLaunch({ versionId: 'b1.7.3' })).javaPath, exe);
+  // exe 形态原样（旧语义不动）
+  rt.setSettings({ javaPath: exe });
+  assert.equal((await rt.dryRunLaunch({ versionId: 'b1.7.3' })).javaPath, exe);
+  // 目录里没 java = 启动面显式报错（用户指定过位置，不得探测另选更错的）
+  const bare = path.join(root, 'jdk-empty');
+  fs.mkdirSync(bare, { recursive: true });
+  rt.setSettings({ javaPath: bare });
+  await assert.rejects(rt.dryRunLaunch({ versionId: 'b1.7.3' }), /bin\/java/);
+});

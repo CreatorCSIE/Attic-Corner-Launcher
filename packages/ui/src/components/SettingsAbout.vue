@@ -185,7 +185,7 @@ function openUrl(url: string): void {
       <h4 class="group-title">{{ t('settings.about.legalSection') }}</h4>
       <div class="row">
         <div class="row-info">
-          <span class="row-name">{{ t('settings.about.copyright') }}</span>
+          <span class="row-name">{{ t('settings.about.copyrightTitle') }}</span>
           <p class="row-desc">{{ t('settings.about.copyrightDesc') }}</p>
         </div>
         <button class="mini" @click="openUrl(REPO_URL)">{{ t('settings.about.view') }}</button>

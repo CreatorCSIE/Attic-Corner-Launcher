@@ -168,7 +168,7 @@ async function copyCode(): Promise<void> {
 </script>
 
 <template>
-  <AppDialog :open="props.open" @close="onShellClose">
+  <AppDialog :open="props.open" :dismissible="false" @close="onShellClose">
     <header class="head">
       <h2 class="title">{{ t('account.ms.dialogTitle') }}</h2>
     </header>

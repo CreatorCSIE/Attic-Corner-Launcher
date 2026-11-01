@@ -48,11 +48,13 @@ const { hasBridge } = useBridge();
 
 // —— 侧栏折叠：≡ 切换 图标+文字 ↔ 窄图标 rail，偏好持久化 ——
 const SIDEBAR_KEY = 'attic:sidebar-collapsed:v1';
-const sidebarCollapsed = ref(false);
+// 首启缺省 = 折叠（用户拍板 2026-11-01）：无存档键走折叠态；已存 '0'/'1' 的既有偏好原样尊重。
+const sidebarCollapsed = ref(true);
 try {
-  sidebarCollapsed.value = localStorage.getItem(SIDEBAR_KEY) === '1';
+  const raw = localStorage.getItem(SIDEBAR_KEY);
+  if (raw !== null) sidebarCollapsed.value = raw === '1';
 } catch {
-  /* 隐私模式：默认展开 */
+  /* 隐私模式：同首启缺省 = 折叠 */
 }
 function toggleSidebar(): void {
   sidebarCollapsed.value = !sidebarCollapsed.value;

@@ -197,6 +197,55 @@ test('parseServerList mod 轨：原样精确先行命中带空格仓库 full_nam
   assert.ok(!('matchedModInfoUrl' in na));
 });
 
+test('parseServerList 三段：v1 getMod 直命中先于官方轨（Stone11/UberBukkit 实案 2026-11-01 定稿）', () => {
+  // 真实取证：服 preferred 原串 = `Uberbukkit Client a1.2.6`，仓库存在同名 full_name 条目；
+  // 官方轨（清单含 a1.2.6）归一命中在前会吞掉 mod 客户端——精确级前置后直命中仓库条目（infoUrl 同投）。
+  const officials = [...OFFICIALS, { id: 'a1.2.6', protocol: 'alpha_6' }];
+  const list = parseServerList(FIXTURE, officials, [
+    { id: 'Uberbukkit Client a1.2.6', infoUrl: 'http://files.betacraft.uk/UberBukkit/v2/client/a1.2.6/uberbukkit-a1.2.6.info' },
+  ]);
+  const s11 = byName(list, 'Stone11');
+  assert.equal(s11.matchedVersionId, 'Uberbukkit Client a1.2.6', '原样精确 = 压过官方轨');
+  assert.equal(s11.matchedVersionIsCustom, true);
+  assert.equal(s11.matchedModInfoUrl, 'http://files.betacraft.uk/UberBukkit/v2/client/a1.2.6/uberbukkit-a1.2.6.info');
+  assert.deepEqual(s11.compatibleVersionIds, ['a1.2.6', 'Uberbukkit Client a1.2.6'], '协议全集 + matched 缺席追加');
+  // 非精确同形的自定义（前缀级）不压官方轨 = 原版服防劫持维持
+  const hijack = parseServerList(FIXTURE, officials, [{ id: 'a1.2.6_RandomMod-x' }]);
+  const s11b = byName(hijack, 'Stone11');
+  assert.equal(s11b.matchedVersionId, 'a1.2.6', '前缀级不压官方轨');
+  assert.ok(!('matchedVersionIsCustom' in s11b));
+  // 精确级大小写不敏感（v1 equalsIgnoreCase）
+  const ci = parseServerList(FIXTURE, officials, [{ id: 'UBERBUKKIT client A1.2.6' }]);
+  assert.equal(byName(ci, 'Stone11').matchedVersionId, 'UBERBUKKIT client A1.2.6');
+  // 版本片段自互含不误命中：Not Awesome 2（preferred=`c0.30-c-1900`）对
+  // `c0.30-c-1900b` 无精确同形 = 官方轨维持（既有防劫持例的精确面加固）
+  const naList = parseServerList(FIXTURE, officials, [{ id: 'c0.30-c-1900b' }]);
+  const na = byName(naList, 'Not Awesome 2');
+  assert.equal(na.matchedVersionId, 'c0.30-c', '非精确同形 = 官方轨维持');
+  assert.ok(!('matchedVersionIsCustom' in na));
+});
+
+test('parseServerList 前缀边界闸：`1.12.2` 不被官方 `1.1` 抢走；合法分隔符前缀形态保住（Nomad Anarchy 实案 2026-11-01）', () => {
+  const row = (href, name) =>
+    `<tr class="server"><td><div class="server__info">` +
+    `<a href="${href}"><span class="server__name">${name}</span></a></div></td></tr>`;
+  const html = `<h2>Alpha</h2><table class="servers">` +
+    row('join://nomad.example:25565/use/alpha_6/1.12.2', 'Nomad Anarchy') +
+    row('join://hyper.example:25565/use/beta_20/b1.4', 'The Hyperion') +
+    `</table>`;
+  const officials = [
+    { id: '1.1', protocol: 'alpha_6' }, // Minecraft 1.1——`1.12.2`.startsWith(`1.1`) 裸前缀误配源
+    { id: 'b1.4-1507', protocol: 'beta_20' },
+    { id: 'b1.4-1634', protocol: 'beta_20' },
+  ];
+  const list = parseServerList(html, officials, []);
+  const nomad = list.find((s) => s.name === 'Nomad Anarchy');
+  assert.equal(nomad.matchedVersionId, undefined, '下一字符是数字 = 非边界，不匹配 = UI 手动选');
+  assert.deepEqual(nomad.compatibleVersionIds, ['1.1'], '兼容集不受影响（协议同值仍在）');
+  const hyper = list.find((s) => s.name === 'The Hyperion');
+  assert.equal(hyper.matchedVersionId, 'b1.4-1507', '下一字符是 `-` = 合法边界，前缀级保住');
+});
+
 // ---------- 协议全集（v1 区间语义：WebsitePanel 协议同值候选集 + mod 追加） ----------
 
 test('parseServerList 协议全集：同值官方全集按清单序；matched 已在集内不重复', () => {

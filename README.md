@@ -66,7 +66,7 @@ Betacraft 版本 API              legacyfix javaagent
 | Phase 0–2 | 脚手架 / IPC 契约 / TS 运行时 | ✅ 完成 |
 | Phase 3 | UI v0 + 设置页重写 + Mods/自定义版本 | ✅ 完成 |
 | Phase 4 | Tauri 壳 + sidecar + Electron 22 兜底壳 | ✅ 完成：真窗端到端全通（窗控/拖拽/图标/视觉收口、契约双绿），桌面手动验收通过——真窗点 Play MC 可正常启动（2026-10-24） |
-| Phase 5 | Inno Setup 安装包分发 + release CI + updater | ✅ 主通道在产：v0.0.1~v0.0.9 连续发布，全平台矩阵（Tauri/Electron/兜底 + mac arm64 + Linux deb/AppImage）+ portable + updater 签名在产；剩项 = 文档面（Linux 已知问题清单、macOS「右键打开」教程） |
+| Phase 5 | Inno Setup 安装包分发 + release CI + updater | ✅ 主通道在产：v0.0.1~v0.0.9 连续发布，全平台矩阵（Tauri/Electron/兜底 + mac arm64 + Linux deb/AppImage）+ portable + updater 签名在产；文档面已收口（Linux 已知问题清单 = FAQ Q7.5、macOS「右键打开」教程 = Q5.6） |
 | Phase 6 | addons、MC 工具接入、Java 深搜（deepScan）、Discord RPC 等 | 📋 愿望池（不承诺时间）；addons 的 javaagent 分叉路线（fork vs 自写）评估中；工具接入两通路已定案（attach 类走 `-javaagent` 预挂载、种子类外置进程联动实例世界 seed）；Java 深搜方案已归档（配方与契约成本细则见 plan.md） |
 
 ---
@@ -205,6 +205,10 @@ https://nightly.link/CreatorCSIE/Attic-Minecraft-Launcher/workflows/release/main
 
 分平台——**macOS Apple Silicon**：可以，提供 arm64 安装包（壳原生）；但游戏侧必须用 **x86_64 架构的 Java 8**（经 Rosetta 2 运行），Java 自动探测的架构偏好已优先命中 x64 JDK，若机器上只有 arm64 Java，启动器会在启动前给出明确指路（安装 x64 JDK / `softwareupdate --install-rosetta`）而不是让游戏裸崩。**Windows arm64**：提供 arm64 安装包，游戏进程经系统自带的 x64 模拟运行（装 x64 Java 8 即可）。**Linux arm64/arm**：不分发也不支持——LWJGL 2 官方从未发布 arm64/armhf 原生库，且无系统级 x64 模拟，启动器会明确拒绝并说明原因（Linux 走 x86_64 包）。社区 arm64 LWJGL2 重编译属 Phase 6 愿望池。
 
+### Q5.6：macOS 构件首次打开被「无法验证开发者」拦截？
+
+macOS arm64 DMG 当前为**未签名发布**（Apple 开发者证书是后置决策），首启会被 Gatekeeper 拦住——这是预期流程而非构件损坏。**右键（或 Control + 单击）App →「打开」→ 对话框里再点「打开」**，一次之后即可正常双击启动；备选路径 = 系统设置 → 隐私与安全性 → 对应「仍要打开」按钮。
+
 ### Q6：存档和配置放在哪？能把整个启动器带走吗？
 
 Windows 为 `%APPDATA%/.attic`，macOS / Linux 为 `~/.attic`（版本、资产、实例各占子目录）。在程序根目录放 portable 标记即优先使用本地目录；Betacraft Launcher v1 老用户可在设置页把数据根指回原 `.betacraft` 目录，存档与已下载版本直接复用。
@@ -215,7 +219,12 @@ Windows 为 `%APPDATA%/.attic`，macOS / Linux 为 `~/.attic`（版本、资产�
 
 ### Q7.5：Linux 支持怎么样？WSL 里能跑吗？
 
-Linux x86_64（deb / AppImage）是正式分发平台，远古链路（c0.24-dev7、b1.7.3）已在 WSL Debian 实机全链路验证通过（2026-10-25）。两个**已知环境边界**：① **WSLg / Xwayland 跑不了 LWJGL 2 老版本**——Xwayland 不支持旧式 `XRRGetScreenInfo` 显示模式枚举，游戏侧会在显示初始化处崩溃；请用原生 X 会话，WSL 下可经 Xvfb 虚拟显示运行（WSLg 兼容性问题非启动器缺陷）。② **无声卡内核的环境（如 WSL）音频需 ALSA→PulseAudio 桥**：安装 `libasound2-plugins` 并在 `/etc/asound.conf` 写入 `pcm.!default { type pulse }`（`ctl.!default` 同理），否则 JavaSound 报 "No line matching"。原生 Linux 桌面（PulseAudio / PipeWire）通常两者都不存在；arm64 Linux 见 Q5.5。
+Linux x86_64（deb / AppImage）是正式分发平台（Tier-2），远古链路（c0.24-dev7、b1.7.3）已在 WSL Debian 实机全链路验证通过（2026-10-25）。arm64 Linux 见 Q5.5。**已知问题清单**（均为环境边界，非启动器缺陷）：
+
+- **WSLg / Xwayland 跑不了 LWJGL 2 老版本**：Xwayland 不支持旧式 `XRRGetScreenInfo` 显示模式枚举，游戏侧会在显示初始化处崩溃。请用原生 X 会话；WSL 下可经 Xvfb 虚拟显示运行。
+- **无声卡内核的环境（如 WSL）音频需 ALSA→PulseAudio 桥**：安装 `libasound2-plugins` 并在 `/etc/asound.conf` 写入 `pcm.!default { type pulse }`（`ctl.!default` 同理），否则 JavaSound 报 "No line matching"。原生 Linux 桌面（PulseAudio / PipeWire）通常两者都不存在。
+- **启动器窗口空白 / 黑屏（WebKitGTK DMABUF 渲染）**：NVIDIA 与部分 Mesa 驱动下 WebKitGTK 的 DMABUF 零拷贝渲染路径失稳。逃生舱 = 环境变量启动：`WEBKIT_DISABLE_DMABUF_RENDERER=1 Attic`（仍异常再补 `WEBKIT_DISABLE_COMPOSITING_MODE=1`）。
+- **Wayland 会话下窗口拖拽 / 分数缩放异常**：wry/GTK 的 Wayland 路径受上游限制。逃生舱 = `GDK_BACKEND=x11` 回落 XWayland（只影响壳层渲染，游戏窗口本就走 X/Wayland 原生）。
 
 ### Q8：设置了窗口尺寸为什么没生效？
 

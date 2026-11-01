@@ -38,16 +38,17 @@ Betacraft 版本 API              legacyfix javaagent
 - **Mods 仓库（一期 = Betacraft 单源）**：分类列表、按版本安装登记、启动期刷新与基座合成；对比 v1 做了结构性修复（原子写、sha1 必验、离线不误路由、陈旧合成重算）。
 - **v1 语义实例系统**：`gameDir` 按实例（而非版本）派生，切版本存档不变；实例级 JVM 参数 / 窗口尺寸（默认 854×480）覆盖全局；首启自动创建 `default instance`。
 - **启动管线可观测**：参数组序契约化拼装，干跑通道返回完整 LaunchConfig；独立控制台窗逐行日志 + 崩溃自动分类（out-of-memory / gl-init / lwjgl-native / unsatisfied-link / java-missing）；Applet 版本附 Windows 窗口看门狗，关窗即回收空转进程。
-- **账户与数据**：离线账户（确定性 UUID，MC 离线格式）；设置与实例以 Java `.properties` 落盘；自定义版本 jar 导入与版本 JSON 编辑；数据根三平台解析 + portable 模式 + 可迁移老 `.betacraft`。
+- **社区服务器列表（Betacraft Server List）**：服务器列表页（v1 WebsitePanel 语义），按协议区间筛选兼容版本；进服前置双轨 mod 匹配（官方轨 + Mods 仓库轨，含远端 `getmods.jsp` 仓库全名三级匹配），确认进服时命中项自动入库。
+- **账户与数据**：离线账户（确定性 UUID，MC 离线格式）+ Microsoft 账户登录（设备码流程，v0.0.9 起；支持 online-mode 正版服进服，令牌 DPAPI 加密落盘）；设置与实例以 Java `.properties` 落盘；自定义版本 jar 导入与版本 JSON 编辑；数据根三平台解析 + portable 模式 + 可迁移老 `.betacraft`。
 
 ### 架构（三壳共享核心：Tauri 主发布 + Electron 可选形态 + Win7 兜底）
 
-- **单一 IPC 契约**：`packages/core-spec` 是渲染 ↔ 宿主 **35 请求通道 + 4 事件通道**的唯一真相，契约测试与 CI 闸门拦截漂移。
+- **单一 IPC 契约**：`packages/core-spec` 是渲染 ↔ 宿主 **45 请求通道 + 5 事件通道**的唯一真相，契约测试与 CI 闸门拦截漂移。
 - **三壳共享一个核心**：`apps/tauri`（主发布线、优先推荐：Rust 窗层 + Node sidecar 跑同一份 TS runtime，stdio NDJSON RPC）、`apps/electron`（日常开发壳 + 可选 Windows 发行形态，同进程直连，双壳并进）、`apps/electron-legacy`（Win7/8/8.1 兜底：Electron 22 复用 electron 主进程源码 + `net` 模块 fetch 桥）。启动核心只有一份 TS 实现，Rust 只做壳层与窗口；三形态数据根同轨，壳之间切换/共存零数据分叉。
 - **跨语言契约闸门**：通道清单由 TS 导出 fixture，Rust 侧 `cargo test` 断言镜像常量与 host∪sidecar 分区不变量；宿主侧共享代码另受 **Node 16 API 锁**扫描（禁 `structuredClone` 等），保证兜底线可运行。
-- **对壳透明的 UI**：同一份 Vue 3 前端探测 `window.attic` / `window.__TAURI__` 自动接线，浏览器直开降级 demo mock 桥；Modrinth App 组件形态迁移 + 全量语义化 CSS token；zh-CN / en 双语（缺键回落 en）。
+- **对壳透明的 UI**：同一份 Vue 3 前端探测 `window.attic` / `window.__TAURI__` 自动接线，浏览器直开降级 demo mock 桥；Modrinth App 组件形态迁移 + 全量语义化 CSS token；zh-CN / zh-TW / en 三语（缺键回落 en，首启按系统语言自动选择）。
 
-### 分发（Phase 5 脚手架）
+### 分发（Phase 5，已投产）
 
 - **Windows Inno Setup 安装包**：三种发行形态共用一份 `installer/attic.iss`（flavor = main/electron/legacy 参数化，Inno 6.7.3 版本钉，简体中文 isl 已 vendor）；`[Code]` 层双闸 guard（主壳/Electron 壳 Win10+ / 兜底壳 Win7 SP1+、x64 载荷 IsWin64 防错装）；纯用户级安装（`PrivilegesRequired=lowest`，装 `%LOCALAPPDATA%\Programs`）；AppId 分轨可同机共存。2026-10-24 拍板 NSIS → Inno（NSIS 默认观感老旧 + builder 模板宏层崩溃史，崩溃戒律归档于 attic.iss 头注）。
 - **自动更新**：Tauri updater minisign 签名密钥已生成、release CI 全平台矩阵就绪（Windows Inno x64/arm64 + Electron 壳 x64、macOS DMG arm64、Linux deb+AppImage x86_64、兜底 legacy x64/ia32）；updater 产物 = ISCC 输出 + CI `tauri signer sign` 手动签名，升级体验为可见 Inno 向导；兜底线按设计不随自动更新。Linux 首发 Debian 系（arch/redhat 按需），linux arm64 不分发（LWJGL2 无 arm64 原生库，见 FAQ）。
@@ -65,8 +66,8 @@ Betacraft 版本 API              legacyfix javaagent
 | Phase 0–2 | 脚手架 / IPC 契约 / TS 运行时 | ✅ 完成 |
 | Phase 3 | UI v0 + 设置页重写 + Mods/自定义版本 | ✅ 完成 |
 | Phase 4 | Tauri 壳 + sidecar + Electron 22 兜底壳 | ✅ 完成：真窗端到端全通（窗控/拖拽/图标/视觉收口、契约双绿），桌面手动验收通过——真窗点 Play MC 可正常启动（2026-10-24） |
-| Phase 5 | Inno Setup 安装包分发 + release CI + updater | 🔨 全平台矩阵与签名密钥就绪，attic.iss 双 flavor 装退全绿 + 双壳并进第三 flavor（electron）编译绿；Secrets 登记、更新端点替换、CI 首跑真载荷收口待发布仓库定稿 |
-| Phase 6 | Microsoft 账户登录、addons、MC 工具接入、Java 深搜（deepScan）、Discord RPC 等 | 📋 愿望池（不承诺时间）；addons 的 javaagent 分叉路线（fork vs 自写）评估中；工具接入两通路已定案（attach 类走 `-javaagent` 预挂载、种子类外置进程联动实例世界 seed）；Java 深搜方案已归档（配方与契约成本细则见 plan.md） |
+| Phase 5 | Inno Setup 安装包分发 + release CI + updater | ✅ 主通道在产：v0.0.1~v0.0.9 连续发布，全平台矩阵（Tauri/Electron/兜底 + mac arm64 + Linux deb/AppImage）+ portable + updater 签名在产；剩项 = 文档面（Linux 已知问题清单、macOS「右键打开」教程） |
+| Phase 6 | addons、MC 工具接入、Java 深搜（deepScan）、Discord RPC 等 | 📋 愿望池（不承诺时间）；addons 的 javaagent 分叉路线（fork vs 自写）评估中；工具接入两通路已定案（attach 类走 `-javaagent` 预挂载、种子类外置进程联动实例世界 seed）；Java 深搜方案已归档（配方与契约成本细则见 plan.md） |
 
 ---
 
@@ -173,8 +174,8 @@ https://nightly.link/CreatorCSIE/Attic-Minecraft-Launcher/workflows/release/main
 
 ## 🌐 Localization / 国际化与多语言支持
 
-界面内置 zh-CN / en 双语词典（缺键回落 en），欢迎社区补充更多语言的本地化。
-*The UI ships with zh-CN / en locales (fallback to en); community translations are welcome.*
+界面内置 zh-CN / zh-TW / en 三语词典（缺键回落 en，首启按系统语言自动选择），欢迎社区补充更多语言的本地化。
+*The UI ships with zh-CN / zh-TW / en locales (fallback to en); community translations are welcome.*
 
 ---
 
@@ -186,7 +187,7 @@ https://nightly.link/CreatorCSIE/Attic-Minecraft-Launcher/workflows/release/main
 
 ### Q2：需要注册账号吗？没有 Microsoft 账户能玩吗？
 
-能。离线账户即可启动游戏（按用户名确定性生成 MC 格式 UUID）；皮肤与 legacy 正版验证走 Betacraft 公共代理端点。Microsoft 账户登录在 Phase 6 计划中，当前未实现。
+能。离线账户即可启动游戏（按用户名确定性生成 MC 格式 UUID）；皮肤与 legacy 正版验证走 Betacraft 公共代理端点。Microsoft 账户登录已实现（v0.0.9 起，设备码流程、无需内嵌浏览器），可进入要求 online-mode 正版验证的社区服务器。
 
 ### Q3：游戏 jar 在仓库里吗？
 

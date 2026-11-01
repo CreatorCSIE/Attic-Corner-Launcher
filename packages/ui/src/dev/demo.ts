@@ -3,7 +3,7 @@
  * 无 Electron/Tauri 宿主时在浏览器里让全部 UI 进入"可用态"（缺桥横幅消失、
  * Play 解禁、版本/实例/Java/控制台面板有内容），供视觉迭代。
  * 生产构建 import.meta.env.DEV 恒 false → isDemo() 恒 false，demo 分支不执行、假数据可被摇树。
- * 形状全部对齐 @attic/core-spec 契约（戒律 #2），不自造字段。
+ * 形状全部对齐 @attic/core-spec 契约，不自造字段。
  */
 
 import type {
@@ -120,8 +120,8 @@ export const demoSysInfo: SystemInfo = {
   platform: 'win32',
   dataRoot: 'C:\\Users\\Player\\AppData\\Roaming\\.attic',
   defaultRoot: 'C:\\Users\\Player\\AppData\\Roaming\\.attic',
-  // 首启演练口径：默认根"无既有数据" → 三重门全过 → 欢迎向导在 demo 可弹（跳过/完成后
-  // setSettings 假成功，本会话不再弹；刷新页面重置 = demo 无持久化语义，非缺陷）
+  // 首启三重门：默认根"无既有数据" → 三门全过 → 向导在 demo 可弹（跳过/完成后 setSettings
+  // 假成功，本会话不再弹；刷新页面重置 = demo 无持久化语义）
   defaultRootPopulated: false,
   logsDir: 'C:\\Users\\Player\\AppData\\Roaming\\.attic\\launcher\\logs',
   totalMemMb: 16384,
@@ -130,9 +130,9 @@ export const demoSysInfo: SystemInfo = {
 };
 
 /**
- * 假检查更新回包（demo 演练 update 态：三钮弹窗/红点/忽略账/发布页出门链路可排）；
- * notes 为真实结构 markdown（标题+列表+链接+围栏代码块），演练 md 子集渲染面。
- * 触发口径见 isDemoUpdate()；换 upToDate/unconfigured/error 态直接改本字面量。
+ * 假检查更新回包（update 态：三钮弹窗/红点/忽略账/发布页出门链路可排）；
+ * notes 为真实结构 markdown（标题+列表+链接+围栏代码块），覆盖 md 子集渲染面。
+ * 触发开关见 isDemoUpdate()；换 upToDate/unconfigured/error 态直接改本字面量。
  */
 export const demoUpdateCheck: UpdateCheckResult = {
   status: 'update',
@@ -175,9 +175,8 @@ export function isDemoPortable(): boolean {
 }
 
 /**
- * 假便携快照（演练场景 = 2026-10-25 用户实机 bug 形态）：默认根有安装/dev 历史
- * （defaultRootPopulated=true）∧ 便携根空（rootPopulated=false）→ 门之三按 rootPopulated
- * 判 → 向导应弹且缺省选中「exe 旁本地目录」。对照旧 bug：复用 defaultRootPopulated 则永不弹。
+ * 假便携快照：默认根有数据（defaultRootPopulated=true）∧ 便携根空（rootPopulated=false）
+ * → 门之三按 rootPopulated 判 → 向导应弹且缺省选中「exe 旁本地目录」。
  */
 export const demoSysInfoPortable: SystemInfo = {
   ...demoSysInfo,
@@ -244,10 +243,9 @@ export const demoModCategories: ModCategoryView[] = [
   },
 ];
 
-/** 假社区服务器列表（形状对齐 ServerListView；覆盖 matchedVersionId 命中/前缀/未命中/
- * mod 兜底轨（matchedVersionIsCustom 弹窗提示演练位）、协议兼容全集区间下拉演练位
- * （compatibleVersionIds 非空）、Online Mode 有无、players 有无、
- * iconUrl 有无——上游脏值形态照取证样本钉住）。 */
+/** 假社区服务器列表（形状对齐 ServerListView）：覆盖 matchedVersionId 命中/前缀/未命中、
+ * mod 兜底轨（matchedVersionIsCustom 弹窗提示）、协议兼容全集区间下拉
+ * （compatibleVersionIds 非空）、Online Mode / players / iconUrl 有无各分支。 */
 export const demoServers: ServerListView[] = [
   {
     id: '162.245.188.76:25556',
@@ -308,11 +306,3 @@ export const demoServers: ServerListView[] = [
   },
 ];
 
-/** 假控制台输出行（useConsole 的 demo 分支灌入，模拟远古版本启动日志）。 */
-export const demoConsoleLines: ReadonlyArray<{ stream: 'stdout' | 'stderr'; text: string }> = [
-  { stream: 'stdout', text: '[INFO] Setting user: DemoPlayer' },
-  { stream: 'stdout', text: '[INFO] (Session ID is demo)' },
-  { stream: 'stdout', text: '[INFO] Start up client' },
-  { stream: 'stderr', text: '[WARNING] Failed to setup keyboard: demo environment' },
-  { stream: 'stdout', text: '[INFO] Generated: 128 - 256 - 128' },
-];

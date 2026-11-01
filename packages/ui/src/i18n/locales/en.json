@@ -1,7 +1,6 @@
 {
   "app": {
-    "title": "Attic Minecraft Launcher",
-    "tagline": "Dusty, but still alive."
+    "title": "Attic Minecraft Launcher"
   },
   "nav": {
     "menu": "Menu",
@@ -72,7 +71,6 @@
     "namePlaceholder": "Minecraft username (3–16 chars)",
     "uuid": "UUID",
     "copy": "Copy",
-    "copied": "Copied",
     "rename": "Rename",
     "dialog": {
       "subtitle": "Choose the account type to add.",
@@ -222,7 +220,6 @@
     "error": "Error",
     "retry": "Retry",
     "search": "Search",
-    "ok": "OK",
     "confirm": "Confirm",
     "cancel": "Cancel"
   },
@@ -266,16 +263,13 @@
     "name": "Name",
     "namePlaceholder": "e.g. Beta 1.7.3 modded",
     "create": "Create instance",
-    "created": "Instance saved",
     "gameDir": "Instance directory",
     "gameDirPlaceholder": "empty = <root>/<instance name>",
     "launchArgs": "JVM arguments",
     "launchArgsPlaceholder": "e.g. -Xmx1G",
     "width": "Window width",
     "height": "Window height",
-    "editing": "Editing: {name}",
     "saveChanges": "Save changes",
-    "cancelEdit": "Cancel edit",
     "hint": "Pick an instance on the left, or create a new one.",
     "active": "Active",
     "activate": "Set as launch instance",
@@ -371,11 +365,7 @@
     "play": "Play",
     "kill": "Stop",
     "cancel": "Cancel",
-    "version": "Version",
-    "memory": "Memory",
-    "java": "Java",
     "failed": "Launch failed",
-    "noVersion": "Select a version to launch.",
     "hintNeedAccount": "A valid account is required",
     "hintNeedVersion": "Select a version first",
     "hintNeedBoth": "Add a valid account and select a version first",
@@ -392,7 +382,6 @@
       "cancel": "Cancel"
     },
     "visualizerOff": "The selected version jar does not contain the visualizer class (or is not downloaded yet)",
-    "downloadFailed": "Download failed",
     "dialog": {
       "title": "Launching Game",
       "cancel": "Cancel",
@@ -415,7 +404,6 @@
   "console": {
     "title": "Console",
     "empty": "Game output appears here.",
-    "crash": "Crash summary",
     "stopped": "Stopped",
     "autoscroll": "Auto-scroll",
     "clear": "Clear"
@@ -441,7 +429,6 @@
   },
   "settings": {
     "title": "Settings",
-    "soon": "Coming soon",
     "nav": {
       "general": "General",
       "language": "Language",
@@ -562,7 +549,6 @@
         "published": "Published {date}",
         "unconfigured": "The release repository (owner/repo) is not configured — update check is unavailable.",
         "failed": "Update check failed: {message}",
-        "openReleases": "Open releases page",
         "close": "Close",
         "ignore": "Ignore this version",
         "update": "Update",

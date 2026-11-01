@@ -1,7 +1,6 @@
 {
   "app": {
-    "title": "Attic Minecraft Launcher",
-    "tagline": "落灰，但都还活着。"
+    "title": "Attic Minecraft Launcher"
   },
   "nav": {
     "menu": "菜单",
@@ -72,7 +71,6 @@
     "namePlaceholder": "Minecraft 用户名（3-16 位）",
     "uuid": "UUID",
     "copy": "复制",
-    "copied": "已复制",
     "rename": "重命名",
     "dialog": {
       "subtitle": "选择要添加的账户类型。",
@@ -222,7 +220,6 @@
     "error": "错误",
     "retry": "重试",
     "search": "搜索",
-    "ok": "好",
     "confirm": "确认",
     "cancel": "取消"
   },
@@ -255,16 +252,13 @@
     "name": "名称",
     "namePlaceholder": "例如：Beta 1.7.3 模组版",
     "create": "创建实例",
-    "created": "实例已保存",
     "gameDir": "实例目录",
     "gameDirPlaceholder": "留空 = 数据根/<实例名>",
     "launchArgs": "JVM 参数",
     "launchArgsPlaceholder": "例如：-Xmx1G",
     "width": "窗口宽",
     "height": "窗口高",
-    "editing": "正在编辑：{name}",
     "saveChanges": "保存修改",
-    "cancelEdit": "取消编辑",
     "hint": "从左侧选择实例，或新建一个。",
     "active": "激活中",
     "activate": "设为启动实例",
@@ -360,11 +354,7 @@
     "play": "启动",
     "kill": "停止",
     "cancel": "取消",
-    "version": "版本",
-    "memory": "内存",
-    "java": "Java",
     "failed": "启动失败",
-    "noVersion": "请先选择要启动的版本。",
     "hintNeedAccount": "需要先添加有效账户",
     "hintNeedVersion": "需要先选择版本",
     "hintNeedBoth": "需要先添加有效账户并选择版本",
@@ -381,7 +371,6 @@
       "cancel": "取消"
     },
     "visualizerOff": "选中版本的本地 jar 不含无限地图预览类（或未下载），暂不可用",
-    "downloadFailed": "下载失败",
     "dialog": {
       "title": "启动游戏",
       "cancel": "取消",
@@ -404,7 +393,6 @@
   "console": {
     "title": "控制台",
     "empty": "游戏输出会显示在这里。",
-    "crash": "崩溃摘要",
     "stopped": "已停止",
     "autoscroll": "自动滚动",
     "clear": "清空"
@@ -430,7 +418,6 @@
   },
   "settings": {
     "title": "设置",
-    "soon": "即将推出",
     "nav": {
       "general": "通用",
       "language": "语言",
@@ -551,7 +538,6 @@
         "published": "发布于 {date}",
         "unconfigured": "尚未配置发布仓库（owner/repo），无法检查更新。",
         "failed": "检查更新失败：{message}",
-        "openReleases": "打开发布页",
         "close": "关闭",
         "ignore": "忽略此版本",
         "update": "更新",

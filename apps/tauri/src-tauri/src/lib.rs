@@ -642,11 +642,31 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app_handle, event| {
-            if let tauri::RunEvent::Exit = event {
-                // temp 守卫路径 sidecar 未 manage：try_state 缺席即跳过（state! 会 panic）
-                if let Some(state) = app_handle.try_state::<Arc<Sidecar>>() {
-                    tauri::async_runtime::block_on(state.shutdown());
+            match event {
+                tauri::RunEvent::Exit { .. } => {
+                    // temp 守卫路径 sidecar 未 manage：try_state 缺席即跳过（state! 会 panic）
+                    if let Some(state) = app_handle.try_state::<Arc<Sidecar>>() {
+                        tauri::async_runtime::block_on(state.shutdown());
+                    }
                 }
+                // 主窗销毁 = 应用本体退出：控制台窗（console-* 前缀）是附属会话窗，
+                // 连带全关——否则控制台独活撑住「全窗关闭即退」判定，进程滞留无 UI
+                // （与 Electron 壳 closed 钩子同语义，Electron 面主窗销毁还会 kill 在跑的
+                // 游戏走 before-quit；sidecar 数据面常驻无害，Exit 钩子兜 shutdown）。
+                tauri::RunEvent::WindowEvent {
+                    label,
+                    event: tauri::WindowEvent::Destroyed,
+                    ..
+                } => {
+                    if label == "main" {
+                        for (name, w) in app_handle.webview_windows() {
+                            if name.starts_with("console-") {
+                                let _ = w.close();
+                            }
+                        }
+                    }
+                }
+                _ => {}
             }
         });
 }

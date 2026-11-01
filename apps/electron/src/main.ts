@@ -282,6 +282,10 @@ function createWindow(): void {
   mainWindow = win;
   win.on('closed', () => {
     mainWindow = null;
+    // 主窗 = 应用本体：控制台窗是附属会话窗，主窗退出连带全关——
+    // 否则控制台独活撑住 window-all-closed，进程滞留且无 UI 可 kill 在跑的游戏
+    // （用户实测：主窗随 DevTools 退出后控制台不退）。兜底壳复用同源同生效。
+    for (const c of [...consoleWindows]) c.close();
   });
   attachWindowCrashGuards(win);
 

@@ -86,6 +86,7 @@ export function buildTauriBridge(t: TauriGlobal): RendererBridge {
     removeCustomVersion: (id) => forward<void>(C.CUSTOM_REMOVE, [id]),
     listMods: () => forward(C.MODS_LIST),
     installMod: (request: ModInstallRequest) => forward<void>(C.MODS_INSTALL, [request]),
+    listServers: () => forward(C.SERVERS_LIST),
     getSystemInfo: () => forward(C.SYS_INFO),
     checkUpdate: () => forward<UpdateCheckResult>(C.UPDATE_CHECK),
     openSpecialDir: (target) => host<void>('open_special_dir', { target }),

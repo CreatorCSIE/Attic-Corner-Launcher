@@ -12,6 +12,7 @@ import type {
   JavaDetectionReport,
   JavaInstall,
   ModCategoryView,
+  ServerListView,
   SystemInfo,
   UpdateCheckResult,
   VersionRef,
@@ -240,6 +241,70 @@ export const demoModCategories: ModCategoryView[] = [
         installed: false,
       },
     ],
+  },
+];
+
+/** 假社区服务器列表（形状对齐 ServerListView；覆盖 matchedVersionId 命中/前缀/未命中/
+ * mod 兜底轨（matchedVersionIsCustom 弹窗提示演练位）、协议兼容全集区间下拉演练位
+ * （compatibleVersionIds 非空）、Online Mode 有无、players 有无、
+ * iconUrl 有无——上游脏值形态照取证样本钉住）。 */
+export const demoServers: ServerListView[] = [
+  {
+    id: '162.245.188.76:25556',
+    name: 'Not Awesome 2',
+    description: 'A classic server & modern fun',
+    address: '162.245.188.76',
+    port: 25556,
+    preferredVersion: 'c0.30-c-1900',
+    protocol: 'classic_7',
+    onlineMode: true,
+    players: { online: 9, max: 128 },
+    iconUrl: 'http://api.betacraft.uk/v2/server_icon?socket=162.245.188.76%3A25556',
+    category: 'classic',
+    matchedVersionId: 'c0.30-c',
+    // v1 区间语义演练位：classic_7 同协议官方全集 → 弹窗出下拉（预选 matched）
+    compatibleVersionIds: ['c0.30-c', 'c0.30_01'],
+  },
+  {
+    id: 'beta.modernbeta.org:25577',
+    name: 'ModernBeta',
+    description: 'Beta survival, preserved.',
+    address: 'beta.modernbeta.org',
+    port: 25577,
+    preferredVersion: 'b1.7.3',
+    protocol: 'beta_14',
+    onlineMode: false,
+    players: { online: 3, max: 50 },
+    category: 'beta',
+    matchedVersionId: 'b1.7.3',
+  },
+  {
+    id: 'stone11.org:25621',
+    name: 'Stone11',
+    description: 'Alpha era third-party client',
+    address: 'stone11.org',
+    port: 25621,
+    preferredVersion: 'Uberbukkit Client a1.2.6',
+    protocol: 'alpha_6',
+    onlineMode: false,
+    category: 'alpha',
+  },
+  {
+    id: 'turtlesmp.world:25566',
+    name: 'TurtleSMP',
+    description: 'Indev Mondays & every week',
+    address: 'turtlesmp.world',
+    port: 25566,
+    preferredVersion: 'in-20100223MP v0.1.7',
+    protocol: '5',
+    onlineMode: false,
+    category: 'indev',
+    // 第三方客户端服 = mod 兜底轨命中的正解形态（原样精确命中仓库带空格 full_name；
+    // 弹窗显式提示将以 mod 客户端进服；matchedModInfoUrl = 确认进服自动入库演练位——
+    // demoVersions 无此 id，走 installMod 分支）
+    matchedVersionId: 'in-20100223MP v0.1.7',
+    matchedVersionIsCustom: true,
+    matchedModInfoUrl: 'https://sithgames.com/dl/in-20100223MP_v0.1.7.info',
   },
 ];
 

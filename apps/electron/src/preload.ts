@@ -49,6 +49,7 @@ const bridge: RendererBridge = {
   removeCustomVersion: (id) => invoke(IPC_CHANNELS.CUSTOM_REMOVE, id),
   listMods: () => invoke(IPC_CHANNELS.MODS_LIST),
   installMod: (request) => invoke(IPC_CHANNELS.MODS_INSTALL, request),
+  listServers: () => invoke(IPC_CHANNELS.SERVERS_LIST),
   getSystemInfo: () => invoke(IPC_CHANNELS.SYS_INFO),
   checkUpdate: () => invoke(IPC_CHANNELS.UPDATE_CHECK),
   openSpecialDir: (target) => invoke(IPC_CHANNELS.SHELL_OPEN_DIR, target),

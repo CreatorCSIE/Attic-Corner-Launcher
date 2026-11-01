@@ -24,6 +24,8 @@ export interface Endpoints {
   mojangManifest: string;
   /** Betacraft mod 仓库列表（JSON `ModCategory[]`，v1 ModsRepository.java L41 同源端点）。 */
   modsList: string;
+  /** Betacraft 社区服务器列表页（HTML，POST 取回；v1 WebsitePanel.getServers L120 同源端点）。 */
+  serverList: string;
   /** BC 基础库集版本号（两行 `libs-version:N` / `natives-version:M`，v1 Launcher.java L887）。 */
   dependsVersion: string;
   /** BC patched LWJGL/JInput 库集 zip → bin/（v1 downloadDepends L911-919；补丁红利见 depends.ts 头注）。 */
@@ -45,6 +47,7 @@ export const DEFAULT_ENDPOINTS: Endpoints = {
   zuluMetadata: 'https://api.azul.com/metadata/v1/zulu/packages/',
   mojangManifest: 'https://piston-meta.mojang.com/mc/game/version_manifest_v2.json',
   modsList: 'http://api.betacraft.uk/getmods.jsp',
+  serverList: 'http://api.betacraft.uk/v2/legacy_server_list',
   dependsVersion: `${FILES_BASE}/depends-version.txt`,
   libsZip: (os: DependsOs) => `${FILES_BASE}/libs-${os}.zip`,
   nativesZip: (os: DependsOs) => `${FILES_BASE}/natives-${os}.zip`,
@@ -70,6 +73,7 @@ export function endpointsFromOverrides(overrides: EndpointOverrides = {}): Endpo
     zuluMetadata: overrides.zuluMetadata ?? DEFAULT_ENDPOINTS.zuluMetadata,
     mojangManifest: overrides.mojangManifest ?? DEFAULT_ENDPOINTS.mojangManifest,
     modsList: overrides.modsList ?? DEFAULT_ENDPOINTS.modsList,
+    serverList: overrides.serverList ?? DEFAULT_ENDPOINTS.serverList,
     dependsVersion: `${base}/depends-version.txt`,
     libsZip: (os: DependsOs) => `${base}/libs-${os}.zip`,
     nativesZip: (os: DependsOs) => `${base}/natives-${os}.zip`,

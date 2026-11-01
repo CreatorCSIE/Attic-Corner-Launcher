@@ -27,11 +27,12 @@ import type {
   LaunchCancelResult,
   MsDeviceCode,
   RendererBridge,
+  ServerListView,
   SystemInfo,
   UpdateCheckResult,
   VersionJson,
 } from '@attic/core-spec';
-import { demoInstances, demoJavaInstall, demoJavaReport, demoModCategories, demoSettings, demoSysInfo, demoSysInfoPortable, demoUpdateCheck, demoVersions, isDemo, isDemoPortable, isDemoUpdate } from '../dev/demo';
+import { demoInstances, demoJavaInstall, demoJavaReport, demoModCategories, demoServers, demoSettings, demoSysInfo, demoSysInfoPortable, demoUpdateCheck, demoVersions, isDemo, isDemoPortable, isDemoUpdate } from '../dev/demo';
 import { buildTauriBridge } from '../bridge/tauri';
 
 const NO_BRIDGE = 'no-bridge';
@@ -105,6 +106,8 @@ const mockBridge: RendererBridge = {
   // Mods 仓库属网络 + fs 宿主语义：mock 列表回空（空态分支可排），安装可见失败。
   listMods: async () => ok<ModCategoryView[]>([]),
   installMod: async () => err<void>(NO_BRIDGE),
+  // 服务器列表属网络宿主语义：mock 回空（空态+重试分支可排）。
+  listServers: async () => ok<ServerListView[]>([]),
   // —— 设置页宿主能力面：fs/对话框/内存/检查更新属宿主语义，浏览器无真值（err 可见失败）——
   getSystemInfo: async () => err<SystemInfo>(NO_BRIDGE),
   checkUpdate: async () => err<UpdateCheckResult>(NO_BRIDGE),
@@ -190,6 +193,8 @@ function demoBridge(): RendererBridge {
     // Mods 页演示：假仓库「现拉现发」= 每次深拷贝返回（与真宿主语义一致——直接回原数组引用时，
     // installMod 的原地改写落在 raw 对象上、绕过 Vue reactive 代理，installed 徽标不刷新）。
     listMods: async () => ok<ModCategoryView[]>(structuredClone(demoModCategories)),
+    // 服务器页演示：假列表「现拉现发」深拷贝（面板就地改写不污染 raw 源）。
+    listServers: async () => ok<ServerListView[]>(structuredClone(demoServers)),
     installMod: async (request: ModInstallRequest) => {
       for (const cat of demoModCategories) {
         for (const mod of cat.mods) {

@@ -35,6 +35,8 @@ export interface EndpointOverrides {
   mojangManifest?: string;
   /** Betacraft mod 仓库列表（getmods.jsp JSON）；缺省 = `http://api.betacraft.uk/getmods.jsp`。 */
   modsList?: string;
+  /** Betacraft 社区服务器列表页（HTML，POST）；缺省 = `http://api.betacraft.uk/v2/legacy_server_list`。 */
+  serverList?: string;
 }
 
 /** 全局应用设置（`launcher.settings` 的渲染侧视图；缺省字段 = 沿用宿主默认）。 */

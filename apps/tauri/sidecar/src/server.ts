@@ -225,6 +225,8 @@ async function dispatch(method: string, params: Params): Promise<unknown> {
       return runtime.listMods();
     case C.MODS_INSTALL:
       return runtime.installMod(s(0));
+    case C.SERVERS_LIST:
+      return runtime.listServers();
     case C.SYS_INFO:
       return runtime.getSystemInfo();
     case C.UPDATE_CHECK:

@@ -37,6 +37,7 @@ import {
   type MsLoginErrorCode,
   type MsLoginEvent,
   type ModInstallRequest,
+  type ServerListView,
   type UpdateCheckResult,
   type VersionJson,
   type VersionManifest,
@@ -73,6 +74,7 @@ import {
   upsertModRegistry,
   type ModRegistryEntry,
 } from './mods';
+import { parseServerList } from './servers';
 import {
   DEFAULT_MS_CLIENT_ID,
   MsAbortError,
@@ -1314,6 +1316,46 @@ export class AtticRuntime {
       autoupdate: request.autoupdate === true,
       installedAt: Date.now(),
     });
+  }
+
+  /**
+   * 社区服务器列表 = 每次调用现拉 HTML 宽松解析（无进程内缓存，listMods 同款）；
+   * 失败以异常上抛、壳层 IpcResult 封装为错误字符串（UI 空态+重试）。
+   * matchedVersionId 派生在此（戒律 #1：UI 零版本判断）：版本目录取 listVersions
+   * 缓存优先面；清单不可得（无缓存且断网）= 全未命中降级，列表照常返回（UI 走手动选版本）。
+   */
+  async listServers(): Promise<ServerListView[]> {
+    const html = await this.client.fetchServerListHtml();
+    let refs: VersionRef[] = [];
+    try {
+      refs = await this.listVersions();
+    } catch {
+      /* 版本目录不可得：匹配级降级为全未命中，不拦列表 */
+    }
+    // 匹配两轨（防劫持 + 第三方客户端正解，见 parseServerList 注释）：
+    // 官方轨 = BC 清单原版（repository 命中且未判 custom），带清单 protocol 供协议全集；
+    // mod/自定义轨 = 本地自定义条目 ∪ 远端仓库 full_name（v1 StartThread 启动即 loadMods、
+    // WebsitePanel.getMod 对仓库直匹配的语义对齐——未安装的 mod 也能匹配上，
+    // infoUrl 随条目携带 = UI 确认进服时自动入库的直链）。仓库拉取失败 = 只落本地轨，不拦列表。
+    const officialVersions = refs
+      .filter((ref) => ref.repository === 'betacraft' && !ref.custom)
+      .map((ref) => ({ id: ref.id, protocol: ref.protocol }));
+    const localCustom = refs
+      .filter((ref) => ref.repository !== 'betacraft' || ref.custom)
+      .map((ref) => ({ id: ref.id }));
+    let repoMods: { id: string; infoUrl?: string }[] = [];
+    try {
+      const categories = await this.client.fetchModCategories();
+      repoMods = categories.flatMap((cat) =>
+        cat.mods.map((mod) => ({ id: mod.fullName, infoUrl: mod.infoFileUrl })),
+      );
+    } catch {
+      /* 仓库不可得：mod 轨回落本地条目，匹配级降级不拦列表 */
+    }
+    // 本地先行去重（已装条目不带 infoUrl = 不触发 UI 自动入库；仓库同名条目让位）。
+    const seen = new Set(localCustom.map((v) => v.id.toLowerCase()));
+    const customVersions = [...localCustom, ...repoMods.filter((v) => !seen.has(v.id.toLowerCase()))];
+    return parseServerList(html, officialVersions, customVersions);
   }
 
   getSettings(): AppSettings {

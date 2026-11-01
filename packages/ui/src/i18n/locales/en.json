@@ -10,6 +10,7 @@
     "accounts": "Accounts",
     "custom": "Custom Versions",
     "mods": "Mods",
+    "servers": "Servers",
     "settings": "Settings",
     "collapse": "Collapse sidebar",
     "expand": "Expand sidebar"
@@ -170,6 +171,36 @@
     "installing": "Downloading…",
     "installed": "Installed",
     "website": "Project website"
+  },
+  "servers": {
+    "title": "Servers",
+    "refresh": "Refresh list",
+    "loadError": "Failed to load the server list",
+    "retry": "Retry",
+    "noMatch": "No servers in this category",
+    "empty": "Server list is empty",
+    "onlineMode": "Online Mode",
+    "preferredVersionHint": "Server preferred version: {version}",
+    "needVersion": "Pick a version manually",
+    "category": {
+      "all": "All",
+      "classic": "Classic",
+      "indev": "Indev",
+      "alpha": "Alpha",
+      "beta": "Beta",
+      "release": "Release"
+    },
+    "dialog": {
+      "targetVersion": "Target version",
+      "manualHint": "No local version matched automatically; pick the version to launch.",
+      "customMatchHint": "The matched version is a mod/custom client — it will be used to join this server.",
+      "pickVersion": "Pick a version",
+      "onlineModeWarn": "The current account is an offline account and does not meet this server's Online Mode requirement — you may not be able to join.",
+      "launchFailed": "Launch failed",
+      "confirm": "Launch & join",
+      "launching": "Launching…",
+      "cancel": "Cancel"
+    }
   },
   "external": {
     "openError": "Could not open external link",

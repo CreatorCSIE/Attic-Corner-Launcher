@@ -90,6 +90,9 @@ export const IPC_CHANNELS = {
   MODS_LIST: 'attic:mods:list',
   /** 安装 mod = GET info_file_url 原子落 versions/jsons/<full_name>.info + 登记 launcher/mods.json（jar 与基座合成延迟到启动）。 */
   MODS_INSTALL: 'attic:mods:install',
+  /** 社区服务器列表（一期 = Betacraft legacy_server_list 单源；宿主拉取 HTML 宽松解析 join:// 链接
+   * + 版本目录派生 matchedVersionId；每次全量拉取，失败=错误，UI 空态+重试——MODS_LIST 同款模式）。 */
+  SERVERS_LIST: 'attic:servers:list',
   /** 系统/宿主快照（设置页一次性取：启动器版本/平台/数据根/日志目录/总内存/可用内存）。 */
   SYS_INFO: 'attic:sys:info',
   /** 检查更新（GitHub Releases latest；未配置/失败也以数据返回，UI 弹窗可见呈现）。 */
@@ -112,6 +115,51 @@ export const IPC_CHANNELS = {
 
 /** 可打开的特殊目录目标（SHELL_OPEN_DIR 白名单；路径解析在宿主，渲染侧只给意图）。 */
 export type SpecialDir = 'data-root' | 'logs-dir';
+
+/** 服务器列表分类（上游页面 `<h2>` 五段；宿主小写归一）。 */
+export type ServerCategory = 'classic' | 'indev' | 'alpha' | 'beta' | 'release';
+
+/**
+ * 社区服务器列表条目（SERVERS_LIST 响应；join:// 四段 `ip:port/mppass/protocol/preferredVersion` 解析产物）。
+ * preferredVersion 值形脏（取证 2026-11-01）：干净 id / 带构建后缀 / 第三方客户端名三形态——
+ * 版本匹配派生（matchedVersionId）在宿主（戒律 #1：UI 零版本判断），未命中 = 缺省该键。
+ */
+export interface ServerListView {
+  /** 稳定键 = `address:port`。 */
+  id: string;
+  /** 服务器名（上游名内嵌的 `[版本] ` 前缀已剥除）。 */
+  name: string;
+  description: string;
+  address: string;
+  port: number;
+  /** join:// 第三段：`use`=无密码（省略本键）；否则为密码哈希（契约留位，拼装注入面待有密码服实需再做）。 */
+  mppass?: string;
+  /** join:// 第四段原样值（展示 + 匹配失败时的手动选版本提示）。 */
+  preferredVersion: string;
+  /** 上游协议段（classic_7/beta_14/数字/unknown；纯展示，不参与匹配）。 */
+  protocol: string;
+  /** 上游 `[Online Mode]` 标记 = 正版验证服（微软账户 join 编排生效）。 */
+  onlineMode: boolean;
+  players?: { online: number; max: number };
+  /** BC 图标代理直链（http，UI `<img>` 用；缺席 = 占位）。 */
+  iconUrl?: string;
+  category: ServerCategory;
+  /** 宿主对版本目录的匹配结果（官方轨先行 × 归一精确/大小写/前缀三级；mod/自定义轨兜底——原版服不被 mod 前缀劫持，第三方客户端服仍能命中 mod）；未命中 = 缺省（UI 走手动选版本）。 */
+  matchedVersionId?: string;
+  /** matchedVersionId 落在 mod/自定义轨（非官方清单版本）= true——UI 弹窗提示「将以模组/自定义客户端进服」；官方轨命中或无匹配 = 省略本键。 */
+  matchedVersionIsCustom?: boolean;
+  /**
+   * mod/自定义轨命中条目携带的 `.info` 直链（远端仓库 full_name 才有；本地已装条目 = 省略本键）。
+   * UI 确认进服时据此自动入库（installMod），对齐 v1 启动即 loadMods + getMod 直装语义。
+   */
+  matchedModInfoUrl?: string;
+  /**
+   * 协议兼容版本全集（v1 区间语义）：官方清单中与 join:// protocol 同值的全部版本 id，
+   * 按清单序；matchedVersionId 不在其中（mod 兜底形）时追加末尾。UI 以此集合出下拉供改选；
+   * 空集（协议无同值官方版本）= 省略本键，UI 回落单值/手动形态。
+   */
+  compatibleVersionIds?: string[];
+}
 
 /**
  * 启动取消结果（LAUNCH_CANCEL）：cancelled=false = 没有在途启动可取消（或游戏已 spawn，
@@ -462,6 +510,9 @@ export interface RendererBridge {
   listMods(): Promise<IpcResult<ModCategoryView[]>>;
   /** 安装 mod（只落 .info + 登记；full_name 非法或与官方清单同名 = 宿主显式拒绝）。 */
   installMod(request: ModInstallRequest): Promise<IpcResult<void>>;
+  /** 社区服务器列表（Betacraft 单源；宿主每次全量重拉 HTML 宽松解析 + 版本目录派生
+   * matchedVersionId，无进程内缓存——listMods 同款模式，失败=错误、UI 空态+重试）。 */
+  listServers(): Promise<IpcResult<ServerListView[]>>;
   /** 宿主环境快照（版本/数据根/日志目录/内存——设置页多栏共用）。 */
   getSystemInfo(): Promise<IpcResult<SystemInfo>>;
   /** 检查更新（GitHub Releases latest；未配置/失败也在 value 分支内，不占 error 封装）。 */

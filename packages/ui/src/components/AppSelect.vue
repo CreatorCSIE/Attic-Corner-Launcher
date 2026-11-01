@@ -35,6 +35,13 @@ const dir = ref<'down' | 'up'>('down');
 const hlIdx = ref(0);
 const rootEl = ref<HTMLElement | null>(null);
 const btnEl = ref<HTMLElement | null>(null);
+const flyoutEl = ref<HTMLElement | null>(null);
+/**
+ * 弹层 Teleport 到 body + fixed 定位（2026-11-01 修「弹窗内下拉被截断」）：
+ * 原 absolute 挂在 AppDialog 滚动容器里，超出窗体即裁。视口坐标直落，配 scroll
+ * （capture，弹窗内滚动也重定位）/resize 监听保持贴合。
+ */
+const flyStyle = ref<Record<string, string>>({});
 const listId = `app-select-list-${Math.random().toString(36).slice(2, 8)}`;
 
 const selected = computed(() => props.options.find((o) => o.value === props.modelValue));
@@ -45,13 +52,17 @@ function estimateFlyoutHeight(): number {
   return Math.min(260, props.options.length * 38 + 10);
 }
 
-function measureDir(): void {
+function place(): void {
   const btn = btnEl.value;
   if (!btn) return;
   const rect = btn.getBoundingClientRect();
   const below = window.innerHeight - rect.bottom;
   const above = rect.top;
   dir.value = below < estimateFlyoutHeight() + 8 && above > below ? 'up' : 'down';
+  flyStyle.value =
+    dir.value === 'down'
+      ? { left: `${rect.left}px`, top: `${rect.bottom + 6}px`, minWidth: `${rect.width}px` }
+      : { left: `${rect.left}px`, bottom: `${window.innerHeight - rect.top + 6}px`, minWidth: `${rect.width}px` };
 }
 
 function toggleOpen(): void {
@@ -61,18 +72,26 @@ function toggleOpen(): void {
     return;
   }
   hlIdx.value = Math.max(0, props.options.findIndex((o) => o.value === props.modelValue));
-  measureDir();
+  place();
   open.value = true;
   document.addEventListener('pointerdown', onDocPointer, true);
+  window.addEventListener('resize', place);
+  // capture：弹窗/页面任意祖先滚动都触发重定位（flyout 已脱离文档流，不跟滚即脱节）
+  window.addEventListener('scroll', place, true);
 }
 
 function closeList(): void {
   open.value = false;
   document.removeEventListener('pointerdown', onDocPointer, true);
+  window.removeEventListener('resize', place);
+  window.removeEventListener('scroll', place, true);
 }
 
 function onDocPointer(ev: PointerEvent): void {
-  if (rootEl.value && !rootEl.value.contains(ev.target as Node)) closeList();
+  const target = ev.target as Node;
+  // flyout Teleport 后不在 rootEl 子树内：点击弹层条目须豁免外点关闭（否则 pick 前即卸载）
+  if (rootEl.value?.contains(target) || flyoutEl.value?.contains(target)) return;
+  closeList();
 }
 
 function moveHl(step: number): void {
@@ -136,7 +155,7 @@ function moveHlTo(i: number): void {
   hlIdx.value = Math.max(0, Math.min(props.options.length - 1, i));
 }
 
-onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocPointer, true));
+onBeforeUnmount(() => closeList());
 </script>
 
 <template>
@@ -162,30 +181,34 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocPointer, 
         <path d="m6 9 6 6 6-9" />
       </svg>
     </button>
-    <Transition name="pop">
-      <div
-        v-if="open"
-        :id="listId"
-        class="flyout"
-        :data-dir="dir"
-        role="listbox"
-        :aria-activedescendant="`${listId}-${hlIdx}`"
-      >
+    <Teleport to="body">
+      <Transition name="pop">
         <div
-          v-for="(o, i) in options"
-          :id="`${listId}-${i}`"
-          :key="o.value"
-          class="item"
-          :class="{ 'item--sel': o.value === modelValue, 'item--hl': i === hlIdx, 'item--dis': o.disabled }"
-          role="option"
-          :aria-selected="o.value === modelValue"
-          @click="pick(o)"
-          @mouseenter="hlIdx = i"
+          v-if="open"
+          :id="listId"
+          ref="flyoutEl"
+          class="flyout"
+          :data-dir="dir"
+          :style="flyStyle"
+          role="listbox"
+          :aria-activedescendant="`${listId}-${hlIdx}`"
         >
-          {{ o.label }}
+          <div
+            v-for="(o, i) in options"
+            :id="`${listId}-${i}`"
+            :key="o.value"
+            class="item"
+            :class="{ 'item--sel': o.value === modelValue, 'item--hl': i === hlIdx, 'item--dis': o.disabled }"
+            role="option"
+            :aria-selected="o.value === modelValue"
+            @click="pick(o)"
+            @mouseenter="hlIdx = i"
+          >
+            {{ o.label }}
+          </div>
         </div>
-      </div>
-    </Transition>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -244,10 +267,9 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocPointer, 
 }
 
 .flyout {
-  position: absolute;
-  left: 0;
-  z-index: 30;
-  min-width: 100%;
+  /* Teleport 到 body：fixed + 视口坐标（place()），压过 AppDialog 遮罩（z=100） */
+  position: fixed;
+  z-index: 1000;
   max-width: 420px;
   max-height: 260px; /* = BlockHelm MaxDropDownHeight */
   overflow-y: auto;
@@ -258,11 +280,9 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocPointer, 
   box-shadow: var(--shadow-3);
 }
 .flyout[data-dir='down'] {
-  top: calc(100% + 6px); /* PopupGap */
   transform-origin: top center;
 }
 .flyout[data-dir='up'] {
-  bottom: calc(100% + 6px);
   transform-origin: bottom center;
 }
 

@@ -10,6 +10,7 @@
     "accounts": "帳戶",
     "custom": "自訂版本",
     "mods": "模組",
+    "servers": "伺服器",
     "settings": "設定",
     "collapse": "摺疊側欄",
     "expand": "展開側欄"
@@ -170,6 +171,36 @@
     "installing": "下載中…",
     "installed": "已安裝",
     "website": "專案首頁"
+  },
+  "servers": {
+    "title": "伺服器",
+    "refresh": "重新整理清單",
+    "loadError": "伺服器清單載入失敗",
+    "retry": "重試",
+    "noMatch": "該分類下沒有伺服器",
+    "empty": "伺服器清單為空",
+    "onlineMode": "正版驗證",
+    "preferredVersionHint": "伺服器偏好版本：{version}",
+    "needVersion": "需手動選擇版本",
+    "category": {
+      "all": "全部",
+      "classic": "Classic",
+      "indev": "Indev",
+      "alpha": "Alpha",
+      "beta": "Beta",
+      "release": "Release"
+    },
+    "dialog": {
+      "targetVersion": "目標版本",
+      "manualHint": "無法自動對應到本機版本，請手動選擇要啟動的版本。",
+      "customMatchHint": "對應到的版本為模組/自訂客戶端，將以其進入本伺服器。",
+      "pickVersion": "選擇版本",
+      "onlineModeWarn": "目前帳戶為離線帳戶，不符合該伺服器的正版驗證要求，可能無法進入。",
+      "launchFailed": "啟動失敗",
+      "confirm": "啟動並進入",
+      "launching": "啟動中…",
+      "cancel": "取消"
+    }
   },
   "external": {
     "openError": "無法開啟外部連結",

@@ -50,8 +50,10 @@ test('parseVersionList：真实行形状（反引号分隔，4/5 字段混排）
     releaseDate: 1243796740000,
     era: 'classic',
     installed: false,
+    protocol: '15a-05311904',
   });
   assert.equal(refs[1].displayName, undefined);
+  assert.equal(refs[1].protocol, undefined, '4 字段行无第 5 列 = protocol 缺席');
 });
 
 test('parseVersionList：数据缺陷矫正（双 0 日期归位 + 4k 单开年代组）', () => {

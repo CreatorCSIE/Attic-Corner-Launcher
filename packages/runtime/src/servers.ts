@@ -1,0 +1,274 @@
+/**
+ * 社区服务器列表（一期 = Betacraft 单源）——legacy_server_list HTML 宽松解析 + 版本目录派生匹配。
+ * 上游事实源（2026-11-01 实测取证）：`POST http://api.betacraft.uk/v2/legacy_server_list` 回
+ * HTML（UTF-8 带 BOM，~65KB / 60 服务器）：五个 `<div class="category"><h2>Classic|Indev|Alpha|
+ * Beta|Release</h2><table>` 分组；每服务器两个 `<tr class="server">`——第一行 icon/join:// 链接/
+ * 可选 Online Mode/可选 players/address span，第二行 description span。
+ * join:// 四段 `ip:port/mppass/protocol/preferredVersion`（mppass=`use` 即无密码；preferredVersion
+ * 值形脏：干净 id / 带构建后缀 / 第三方客户端名三形态，样本钉在 tests/fixtures/）。
+ * 纪律对齐：不引 HTML 解析库（正则宽松提取，坏行剔除不整页弃）；matchedVersionId 派生在宿主
+ * （戒律 #1：UI 零版本判断）；无进程内缓存（每次全量重拉，MODS_LIST 同款结构性修复语义）。
+ */
+
+import type { ServerCategory, ServerListView } from '@attic/core-spec';
+
+const SERVER_CATEGORIES: readonly ServerCategory[] = ['classic', 'indev', 'alpha', 'beta', 'release'];
+
+// ---------- HTML 实体解码（名字/描述含 &amp; 等；单趟替换避免二次解码） ----------
+
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+};
+
+function decodeEntities(text: string): string {
+  return text.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (whole, body: string) => {
+    if (body.startsWith('#')) {
+      const code = body.startsWith('#x') || body.startsWith('#X')
+        ? Number.parseInt(body.slice(2), 16)
+        : Number.parseInt(body.slice(1), 10);
+      return Number.isFinite(code) && code >= 0 && code <= 0x10ffff ? String.fromCodePoint(code) : whole;
+    }
+    const named = NAMED_ENTITIES[body.toLowerCase()];
+    return named ?? whole;
+  });
+}
+
+/** 剥 HTML 标签（宽松解析专用：属性里的 > 不管——上游模板不产生该形态）。 */
+function stripTags(html: string): string {
+  return html.replace(/<[^>]*>/g, '');
+}
+
+// ---------- preferredVersion 归一 + 三级匹配（①精确 ②前缀双向取最长 ③未命中=缺省） ----------
+
+/**
+ * 归一化 preferredVersion：trim；含空格取最后一个 token（`Uberbukkit Client a1.2.6`→`a1.2.6`、
+ * `in-20100223MP v0.1.7`→`v0.1.7`）；lowercase。
+ */
+export function normalizePreferredVersion(raw: string): string {
+  const trimmed = raw.trim();
+  if (trimmed === '') return '';
+  const tokens = trimmed.split(/\s+/);
+  return (tokens[tokens.length - 1] ?? trimmed).toLowerCase();
+}
+
+/**
+ * 对单个版本轨 id 集三级匹配：① 精确（大小写不敏感）；② 前缀双向（`c0.30-c-1900` 命中目录
+ * `c0.30-c`；反向如 `b1.7` 命中 `b1.7.3`），多个命中取最长公共段；③ 未命中 = undefined
+ * （UI 走手动选版本，matchedVersionId 键省略）。
+ * 两轨调用序（官方先行、mod/自定义兜底）在 parseServerList，见其注释。
+ */
+export function matchVersionId(preferred: string, versionIds: readonly string[]): string | undefined {
+  return matchNormalized(normalizePreferredVersion(preferred), versionIds);
+}
+
+/**
+ * preferred 全名去空格形态：`in-20100223MP v0.1.7` → `in-20100223mp_v0.1.7`——
+ * BC mod 的 full_name 正是「基座名_版本」下划线拼接，第三方客户端服 preferred 与之只差分隔符。
+ * mod/自定义轨兜底匹配专用（官方轨用不上：原版 id 无下划线拼接形态）。
+ */
+function underscorePreferred(raw: string): string {
+  return raw.trim().toLowerCase().replace(/\s+/g, '_');
+}
+
+/**
+ * preferred 原样精确（trim + lowercase 全等，无前后缀级）——v1 WebsitePanel.getMod 对
+ * ModsRepository full_name 的 `equalsIgnoreCase(preferred)` 语义：`in-20100223MP v0.1.7`
+ * 直带空格命中仓库同名条目。mod/自定义轨先行级（官方轨用不上：原版服 preferred 恒干净 id，
+ * 已由 matchVersionId 精确级覆盖；原样形含空格也绝不会撞原版 id）。
+ */
+function matchPreferredExact(raw: string, versionIds: readonly string[]): string | undefined {
+  const norm = raw.trim().toLowerCase();
+  if (norm === '') return undefined;
+  for (const id of versionIds) {
+    if (id.toLowerCase() === norm) return id;
+  }
+  return undefined;
+}
+
+/** 对已归一串执行三级匹配（精确→前缀双向取最长→undefined），matchVersionId 的裸形核。 */
+function matchNormalized(norm: string, versionIds: readonly string[]): string | undefined {
+  if (norm === '') return undefined;
+  for (const id of versionIds) {
+    if (id.toLowerCase() === norm) return id;
+  }
+  let best: string | undefined;
+  let bestLen = 0;
+  for (const id of versionIds) {
+    const lower = id.toLowerCase();
+    if (lower.startsWith(norm) || norm.startsWith(lower)) {
+      const hitLen = Math.min(lower.length, norm.length);
+      if (hitLen > bestLen) {
+        bestLen = hitLen;
+        best = id;
+      }
+    }
+  }
+  return best;
+}
+
+// ---------- 列表页解析 ----------
+
+/** join:// 四段拆解（第四段允许空格；前三段不含 `/`）。 */
+function splitJoinHref(href: string): { address: string; mppass: string; protocol: string; preferredVersion: string } | null {
+  const m = /^join:\/\/([^/]+)\/([^/]*)\/([^/]*)\/([\s\S]*)$/.exec(href.trim());
+  if (!m) return null;
+  const address = m[1] ?? '';
+  const preferredVersion = m[4];
+  if (address === '' || preferredVersion === undefined) return null;
+  return { address, mppass: m[2] ?? '', protocol: m[3] ?? '', preferredVersion };
+}
+
+/** `ip:port` 拆解（无端口/非法端口 = null，条目剔除——id 稳定键依赖 port）。 */
+function splitAddressPort(text: string): { address: string; port: number } | null {
+  const idx = text.lastIndexOf(':');
+  const address = idx >= 0 ? text.slice(0, idx) : text;
+  const port = idx >= 0 ? Number(text.slice(idx + 1)) : NaN;
+  if (address === '' || !Number.isInteger(port) || port <= 0 || port > 65535) return null;
+  return { address, port };
+}
+
+function extractIconUrl(rowHtml: string): string | undefined {
+  const img = /<img[^>]*server__icon[^>]*>/i.exec(rowHtml)?.[0];
+  if (!img) return undefined;
+  const src = /src="([^"]*)"/i.exec(img)?.[1]?.trim();
+  // 静态 unknown_pack.png = 上游占位（UI 自绘占位更省流量），不投 iconUrl；
+  // `server_icon?socket=` 代理直链才给 UI 当 `<img>` 源。
+  if (!src || src.includes('unknown_pack')) return undefined;
+  return src;
+}
+
+/**
+ * legacy_server_list HTML → ServerListView[]（宽松正则，不引解析库）。
+ * 防御式：join:// 拆解失败或地址端口非法的条目剔除；描述行孤儿忽略；
+ * 顶层无任何分类 h2 = 上游形状崩坏，显式抛错（UI 空态+重试，不静默出半截列表）。
+ * 版本匹配两轨：官方轨（BC 清单原版）先行——原版服不被 mod/自定义 id 的更长前缀劫持；
+ * 官方轨全不中才落 mod/自定义轨（第三方客户端服 preferredVersion 恒指 mod 名，命中即正解），
+ * 兜底轨命中打 `matchedVersionIsCustom`（UI 弹窗知情提示）。mod 轨三级 = 原样精确先行
+ * （v1 getMod 对仓库 full_name equalsIgnoreCase 语义，带空格全名直命中）→ 尾 token/前缀三级
+ * → 下划线全名形兜底；customVersions 条目可携带 infoUrl（远端仓库 .info 直链），
+ * 命中条目有值即投 `matchedModInfoUrl`（UI 确认进服时据此自动入库，v1 启动即 loadMods 对齐）。
+ * 协议兼容全集（v1 区间语义，WebsitePanel 同款）：官方清单中 protocol 与 join:// 第三段
+ * 字符串相等的全部版本（清单序）；matchedVersionId 不在其中（mod 兜底形）追加末尾；
+ * 协议段空/`unknown` 或全集为空 = 省略 compatibleVersionIds 键（UI 回落单值/手动形态）。
+ */
+export function parseServerList(
+  html: string,
+  officialVersions: readonly { id: string; protocol?: string }[],
+  customVersions: readonly { id: string; infoUrl?: string }[] = [],
+): ServerListView[] {
+  const officialIds = officialVersions.map((v) => v.id);
+  const customIds = customVersions.map((v) => v.id);
+  const body = html.replace(/^\uFEFF/, '');
+  // 分类分段：按 h2 出现序切段（上游模板恒五段 Classic→Release；未知段名条目剔除）。
+  const headers: { category: ServerCategory | null; start: number }[] = [];
+  for (const m of body.matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/gi)) {
+    const name = decodeEntities(stripTags(m[1] ?? '')).trim().toLowerCase();
+    headers.push({
+      category: (SERVER_CATEGORIES as readonly string[]).includes(name) ? (name as ServerCategory) : null,
+      start: m.index,
+    });
+  }
+  if (headers.length === 0) throw new Error('服务器列表格式异常：无任何分类段（h2）');
+
+  const out: ServerListView[] = [];
+  for (let h = 0; h < headers.length; h++) {
+    const header = headers[h];
+    const category = header?.category;
+    if (!header || !category) continue;
+    const next = headers[h + 1];
+    const segment = body.slice(header.start, next ? next.start : body.length);
+    let pending: ServerListView | null = null; // 描述在下一行，先挂起等拼
+    for (const row of segment.matchAll(/<tr[^>]*class="[^"]*\bserver\b[^"]*"[^>]*>([\s\S]*?)<\/tr>/gi)) {
+      const rowHtml = row[1] ?? '';
+      const href = /href="(join:\/\/[^"]*)"/i.exec(rowHtml)?.[1];
+      if (href) {
+        // 服务器主行：join:// 四段 + 名字/在线标记/players/地址/icon。
+        const join = splitJoinHref(href);
+        if (!join) {
+          pending = null;
+          continue;
+        }
+        // 地址权威 = join:// 第一段（直连拼装用它）；server__address span 仅在其非法时兜底。
+        const addressText = decodeEntities(
+          stripTags(/<span class="server__address"[^>]*>([\s\S]*?)<\/span>/i.exec(rowHtml)?.[1] ?? ''),
+        ).trim();
+        const addr = splitAddressPort(join.address) ?? splitAddressPort(addressText);
+        if (!addr) {
+          pending = null;
+          continue;
+        }
+        // 名字 = 锚内文本剥 server__version span（`[c0.30-c] ` 前缀不进 name）。
+        const anchorInner = /href="join:\/\/[^"]*"[^>]*>([\s\S]*?)<\/a>/i.exec(rowHtml)?.[1] ?? '';
+        const name = decodeEntities(
+          stripTags(anchorInner.replace(/<span class="server__version"[^>]*>[\s\S]*?<\/span>/i, '')),
+        ).trim();
+        if (name === '') {
+          pending = null;
+          continue;
+        }
+        const playersText = /<span class="server__players"[^>]*>([\s\S]*?)<\/span>/i.exec(rowHtml)?.[1] ?? '';
+        const playersMatch = /\(\s*(\d+)\s*\/\s*(\d+)\s*\)/.exec(stripTags(playersText));
+        const iconUrl = extractIconUrl(rowHtml);
+        let matched = matchVersionId(join.preferredVersion, officialIds);
+        let matchedIsCustom = false;
+        let matchedModInfoUrl: string | undefined;
+        if (matched === undefined) {
+          // mod 轨三级：原样精确（v1 getMod equalsIgnoreCase，带空格全名直命中仓库 full_name）先行，
+          // 尾 token/前缀三级（`Uberbukkit Client a1.2.6`→`a1.2.6`）居中，
+          // 全名下划线形（`in-20100223MP v0.1.7`→`in-20100223mp_v0.1.7` = mod full_name）兜底。
+          matched =
+            matchPreferredExact(join.preferredVersion, customIds) ??
+            matchVersionId(join.preferredVersion, customIds) ??
+            matchNormalized(underscorePreferred(join.preferredVersion), customIds);
+          matchedIsCustom = matched !== undefined;
+          if (matched !== undefined) {
+            matchedModInfoUrl = customVersions.find((v) => v.id === matched)?.infoUrl;
+          }
+        }
+        // 协议兼容全集（v1 区间语义）：官方 protocol 字符串相等（清单序）；
+        // matched 不在集合（mod 兜底形/协议缺席形）追加末尾——与 v1「preferred 不在
+        // matches 则把 mod 追加进集合」同构。
+        const compatible: string[] = [];
+        if (join.protocol !== '' && join.protocol !== 'unknown') {
+          for (const v of officialVersions) {
+            if (v.protocol === join.protocol) compatible.push(v.id);
+          }
+        }
+        if (matched !== undefined && !compatible.includes(matched)) compatible.push(matched);
+        const entry: ServerListView = {
+          id: `${addr.address}:${addr.port}`,
+          name,
+          description: '',
+          address: addr.address,
+          port: addr.port,
+          ...(join.mppass !== '' && join.mppass !== 'use' ? { mppass: join.mppass } : {}),
+          preferredVersion: join.preferredVersion.trim(),
+          protocol: join.protocol,
+          onlineMode: /class="server__mode--online"/i.test(rowHtml),
+          ...(playersMatch ? { players: { online: Number(playersMatch[1]), max: Number(playersMatch[2]) } } : {}),
+          ...(iconUrl ? { iconUrl } : {}),
+          category,
+          ...(matched ? { matchedVersionId: matched } : {}),
+          ...(matchedIsCustom ? { matchedVersionIsCustom: true } : {}),
+          ...(matchedModInfoUrl ? { matchedModInfoUrl } : {}),
+          ...(compatible.length > 0 ? { compatibleVersionIds: compatible } : {}),
+        };
+        out.push(entry);
+        pending = entry;
+      } else if (pending) {
+        // 描述行：只认「刚建条目」的下一行；孤儿描述行（无主行在前）忽略。
+        const desc = /<span class="server__description"[^>]*>([\s\S]*?)<\/span>/i.exec(rowHtml)?.[1];
+        if (desc !== undefined) {
+          pending.description = decodeEntities(stripTags(desc)).trim();
+          pending = null;
+        }
+      }
+    }
+  }
+  return out;
+}

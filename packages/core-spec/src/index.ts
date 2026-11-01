@@ -28,6 +28,8 @@ export type {
   MsLoginEvent,
   PickTarget,
   RendererBridge,
+  ServerCategory,
+  ServerListView,
   SpecialDir,
   SystemInfo,
   UpdateCheckResult,

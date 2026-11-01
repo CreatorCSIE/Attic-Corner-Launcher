@@ -97,6 +97,7 @@ export function parseVersionList(text: string): VersionRef[] {
       releaseDate: release,
       era,
       installed: false,
+      protocol: fields[4] ? fields[4] : undefined,
     });
   }
   // `-renew` = BC 重传替身行，日期栏两代写法不一（c0.0.13a_03-renew 保原时刻；c0.30-c-1900-renew
@@ -355,6 +356,16 @@ export class BetacraftClient {
   async fetchModCategories(): Promise<ModCategoryRaw[]> {
     const res = await this.get(this.endpoints.modsList);
     return parseModCategories(await res.text());
+  }
+
+  /**
+   * 社区服务器列表页原文（HTML，UTF-8 带 BOM；POST 空体——2026-11-01 实测端点形态）。
+   * 解析防御见 servers.ts parseServerList；每次全量重拉（无进程内缓存，fetchModCategories 同款）。
+   */
+  async fetchServerListHtml(): Promise<string> {
+    const res = await this.fetchImpl(this.endpoints.serverList, { method: 'POST' });
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${this.endpoints.serverList}`);
+    return res.text();
   }
 
   /**

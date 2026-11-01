@@ -432,6 +432,8 @@ app.whenReady().then(() => {
   // jar 与基座合成延迟到启动期（点 Play 才补全）。
   handle(IPC_CHANNELS.MODS_LIST, () => runtime.listMods());
   handle(IPC_CHANNELS.MODS_INSTALL, (request: ModInstallRequest) => runtime.installMod(request));
+  // 社区服务器页（Betacraft 单源）：列表现拉现发（runtime 无进程内缓存），matchedVersionId 宿主派生。
+  handle(IPC_CHANNELS.SERVERS_LIST, () => runtime.listServers());
   // —— 设置页宿主能力面（SYS_INFO/检查更新/目录/日志/对话框/外链）——
   handle(IPC_CHANNELS.SYS_INFO, () => runtime.getSystemInfo());
   // 检查更新：runtime 全分支数据化返回（unconfigured/error 也在 value 内），UI 弹窗呈现。

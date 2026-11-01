@@ -18,6 +18,7 @@ import InstanceList from './components/InstanceList.vue';
 import AccountsPanel from './components/AccountsPanel.vue';
 import CustomVersionsPanel from './components/CustomVersionsPanel.vue';
 import ModsPanel from './components/ModsPanel.vue';
+import ServersPanel from './components/ServersPanel.vue';
 import SettingsPanel from './components/SettingsPanel.vue';
 import CrashPanel from './components/CrashPanel.vue';
 import ExternalLinkErrorDialog from './components/ExternalLinkErrorDialog.vue';
@@ -32,12 +33,12 @@ const isConsoleWindow =
   typeof window !== 'undefined' &&
   new URLSearchParams(window.location.search).get('window') === 'console';
 
-type View = 'launch' | 'instances' | 'accounts' | 'custom' | 'mods' | 'settings';
+type View = 'launch' | 'instances' | 'accounts' | 'custom' | 'mods' | 'servers' | 'settings';
 const view = ref<View>('launch');
 
 // —— 页面切换方向（BlockHelm GetTransitionStartOffset 实测配方，用户指定）：
 //    按导航序前进 → 新页自下方 +22px 浮现；后退 → 自上方 -22px。 ——
-const VIEW_ORDER: readonly View[] = ['launch', 'instances', 'accounts', 'custom', 'mods', 'settings'];
+const VIEW_ORDER: readonly View[] = ['launch', 'instances', 'accounts', 'custom', 'mods', 'servers', 'settings'];
 const pageDy = ref('22px');
 watch(view, (next, prev) => {
   pageDy.value = VIEW_ORDER.indexOf(next) >= VIEW_ORDER.indexOf(prev) ? '22px' : '-22px';
@@ -269,6 +270,32 @@ onMounted(() => {
 
         <button
           class="nav-item"
+          :class="{ 'nav-item--active': view === 'servers' }"
+          :aria-current="view === 'servers' ? 'page' : undefined"
+          :title="t('nav.servers')"
+          @click="view = 'servers'"
+        >
+          <!-- lucide: server -->
+          <svg
+            class="nav-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <rect width="20" height="8" x="2" y="2" rx="2" ry="2" />
+            <rect width="20" height="8" x="2" y="14" rx="2" ry="2" />
+            <line x1="6" x2="6" y1="6" y2="6" />
+            <line x1="6" x2="6" y1="18" y2="18" />
+          </svg>
+          <span class="nav-label">{{ t('nav.servers') }}</span>
+        </button>
+
+        <button
+          class="nav-item"
           :class="{ 'nav-item--active': view === 'settings' }"
           :aria-current="view === 'settings' ? 'page' : undefined"
           :title="t('nav.settings')"
@@ -332,6 +359,7 @@ onMounted(() => {
             <AccountsPanel v-else-if="view === 'accounts'" />
             <CustomVersionsPanel v-else-if="view === 'custom'" />
             <ModsPanel v-else-if="view === 'mods'" />
+            <ServersPanel v-else-if="view === 'servers'" />
             <SettingsPanel v-else />
           </div>
         </Transition>

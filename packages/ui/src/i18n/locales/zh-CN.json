@@ -10,6 +10,7 @@
     "accounts": "账户",
     "custom": "自定义版本",
     "mods": "模组",
+    "servers": "服务器",
     "settings": "设置",
     "collapse": "折叠侧栏",
     "expand": "展开侧栏"
@@ -170,6 +171,36 @@
     "installing": "下载中…",
     "installed": "已安装",
     "website": "项目主页"
+  },
+  "servers": {
+    "title": "服务器",
+    "refresh": "刷新列表",
+    "loadError": "服务器列表加载失败",
+    "retry": "重试",
+    "noMatch": "该分类下没有服务器",
+    "empty": "服务器列表为空",
+    "onlineMode": "正版验证",
+    "preferredVersionHint": "服务器偏好版本：{version}",
+    "needVersion": "需手动选版本",
+    "category": {
+      "all": "全部",
+      "classic": "Classic",
+      "indev": "Indev",
+      "alpha": "Alpha",
+      "beta": "Beta",
+      "release": "Release"
+    },
+    "dialog": {
+      "targetVersion": "目标版本",
+      "manualHint": "未能自动匹配到本地版本，请手动选择要启动的版本。",
+      "customMatchHint": "匹配到的版本为模组/自定义客户端，将以它进入本服务器。",
+      "pickVersion": "选择版本",
+      "onlineModeWarn": "当前账户为离线账户，不满足该服务器的正版验证要求，可能无法进入。",
+      "launchFailed": "启动失败",
+      "confirm": "启动并进入",
+      "launching": "启动中…",
+      "cancel": "取消"
+    }
   },
   "external": {
     "openError": "无法打开外部链接",

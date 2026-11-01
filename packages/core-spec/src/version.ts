@@ -32,6 +32,8 @@ export interface VersionRef {
   installed: boolean;
   /** 自定义版本（v1 语义：裸 jar = 有 jar 无 .info，或 .info 声明 custom=true）；缺省 = 干净原版。 */
   custom?: boolean;
+  /** version_list.txt 第 5 列协议值（`classic_7`/`beta_14`/`release_60` 等；v1 联机协议同源字段）。缺席 = 清单该行无第 5 列。 */
+  protocol?: string;
 }
 
 /** 规则节点（Mojang 现代格式，远古 JSON 不出现但解析器须容忍）。 */

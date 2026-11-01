@@ -175,6 +175,11 @@ export {
   type ModRegistry,
 } from './mods';
 export {
+  parseServerList,
+  normalizePreferredVersion,
+  matchVersionId,
+} from './servers';
+export {
   DEFAULT_MS_CLIENT_ID,
   MS_HOST_WHITELIST,
   isMsEndpointAllowed,

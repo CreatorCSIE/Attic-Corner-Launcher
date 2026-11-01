@@ -3,7 +3,22 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { classifyCrash } = require('../dist/index.js');
+const { classifyCrash, watchdogWindowClass } = require('../dist/index.js');
+
+// —— 窗口看门狗触发面（2026-11-01 用户报障：直连进服关窗后进程残留 → 非 Applet 直连也纳入）——
+const APPLET = 'uk.betacraft.legacyfix.applet.AppletLauncher';
+const cfgOf = (mainClass, gameArgs) => ({ mainClass, gameArgs });
+
+test('watchdogWindowClass：Applet 容器恒挂 SunAwtFrame（带不带直连都一样）', () => {
+  assert.equal(watchdogWindowClass(cfgOf(APPLET, [])), 'SunAwtFrame');
+  assert.equal(watchdogWindowClass(cfgOf(APPLET, ['--server', 'mc.example.com', '--port', '25565'])), 'SunAwtFrame');
+});
+
+test('watchdogWindowClass：非 Applet 直连（gameArgs 含 --server）挂 LWJGL；常规单人/无直连不挂', () => {
+  assert.equal(watchdogWindowClass(cfgOf('net.minecraft.client.Minecraft', ['--server', '1.2.3.4', '--port', '25565'])), 'LWJGL');
+  assert.equal(watchdogWindowClass(cfgOf('net.minecraft.client.Minecraft', [])), null);
+  assert.equal(watchdogWindowClass(cfgOf('net.minecraft.client.Minecraft', ['--port', '25565'])), null);
+});
 
 test('正常退出 → null', () => {
   assert.equal(classifyCrash('anything', 0), null);

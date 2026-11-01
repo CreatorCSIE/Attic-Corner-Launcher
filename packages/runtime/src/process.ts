@@ -59,12 +59,16 @@ export interface GameProcessEvents {
 }
 
 /**
- * 窗口看门狗（仅 Applet 容器 + Windows）：classic/pre-classic 的游戏循环不检查
- * isCloseRequested（v1 靠 JVM wrapper 的 windowClosing→exit 兜底，legacyfix AppletFrame 无此监听），
- * 关窗后进程空转不退。deawt 模式下窗口属 LWJGL，关闭后进程 MainWindowHandle 归零——
- * 轮询到归零即 SIGTERM，让"关窗=退出"与常规版本行为一致。
+ * 窗口看门狗（Windows）：两类覆盖——
+ * ① Applet 容器（classic/pre-classic）：游戏循环不检查 isCloseRequested（v1 靠 JVM wrapper 的
+ *   windowClosing→exit 兜底，legacyfix AppletFrame 无此监听），关窗后进程空转不退；
+ * ② **直连进服的非 Applet 启动**（gameArgs 含 `--server`，2026-11-01 用户报障扩展）：老版本
+ *   多人网络读线程为非守护线程，联机中关窗 → 主线程退出但 JVM 被读线程挂住不随窗退出，
+ *   进程残留在任务管理器（v1 由 QuitGame addon 兜底，legacyfix 上游空缺 = plan.md 已登记缺口）。
+ * 轮询到游戏窗消失即 SIGTERM，让"关窗=退出"与常规版本行为一致。
  *
- * 游戏主窗识别 = 窗口类 `SunAwtFrame`（AppletFrame extends Frame 的 AWT 注册类），
+ * 游戏主窗识别 = 窗口类：Applet = `SunAwtFrame`（AppletFrame extends Frame 的 AWT 注册类），
+ * 直连常规版 = `LWJGL`（LWJGL2 主窗注册类；类过滤同时天然排除 conhost/加载帧）。
  * 不吃 MainWindowHandle/标题字符串（2026-10-30 缺陷修复）：
  *   - legacyfix 的 levelServer 询问弹窗是 SunAwtDialog，且弹窗关闭后到游戏窗出现之间
  *     还有 downloadAssets 合法空窗——旧实现 $seen 被弹窗/瞬窗误闩 → 空窗期误报 CLOSED
@@ -77,7 +81,7 @@ export interface GameProcessEvents {
  * 路线：那条路要现场跑 csc 编译，宿主环境 LIB 含失效路径时警告被当错误炸编译
  * （2026-10-30 本机实测），看门狗整体瘫痪。
  */
-function windowWatchdogScript(pid: number): string {
+function windowWatchdogScript(pid: number, windowClass: string): string {
   return [
     `Add-Type -AssemblyName UIAutomationClient`,
     `Add-Type -AssemblyName UIAutomationTypes`,
@@ -91,13 +95,24 @@ function windowWatchdogScript(pid: number): string {
     `  $wins=$root.FindAll([System.Windows.Automation.TreeScope]::Children,$cond)`,
     `  foreach($w in $wins){`,
     `    $c=$w.Current`,
-    `    if($c.ProcessId -eq $gpid -and $c.ClassName -eq 'SunAwtFrame' -and (-not $c.IsOffscreen) -and $c.Name.Length -gt 0){ $found=$true; break }`,
+    `    if($c.ProcessId -eq $gpid -and $c.ClassName -eq '${windowClass}' -and (-not $c.IsOffscreen) -and $c.Name.Length -gt 0){ $found=$true; break }`,
     `  }`,
     `  if($found){ $down=0; if(-not $seen){ $up++; if($up -ge 2){ $seen=$true } } }`,
     `  else { $up=0; if($seen){ $down++; if($down -ge 2){ 'CLOSED'; break } } }`,
     `  Start-Sleep -Milliseconds 1000`,
     `}`,
   ].join('\n');
+}
+
+/**
+ * 看门狗触发面 + 游戏主窗窗口类（纯函数，独立可测）：Applet 容器恒挂（SunAwtFrame）；
+ * 非 Applet 仅直连进服挂（gameArgs 含 `--server` = 一次性直连/服务器页启动实锤信号；
+ * LWJGL2 主窗类 `LWJGL`）；其余常规启动游戏自退、不挂。
+ */
+export function watchdogWindowClass(config: LaunchConfig): string | null {
+  if (config.mainClass === APPLET_LAUNCHER_CLASS) return 'SunAwtFrame';
+  if (config.gameArgs.includes('--server')) return 'LWJGL';
+  return null;
 }
 
 export class GameProcessManager {
@@ -178,15 +193,18 @@ export class GameProcessManager {
 
     this.child = child;
 
-    if (process.platform === 'win32' && config.mainClass === APPLET_LAUNCHER_CLASS) {
-      this.startWindowWatchdog(child, pid);
+    // 看门狗触发面（见 windowWatchdogScript 头注）：Applet 容器恒挂；非 Applet 仅直连进服挂
+    // （--server 在 gameArgs = 一次性直连/服务器页启动的实锤信号，联机关窗挂线程残留的修复面）。
+    if (process.platform === 'win32') {
+      const watchdogClass = watchdogWindowClass(config);
+      if (watchdogClass) this.startWindowWatchdog(child, pid, watchdogClass);
     }
     return this.session;
   }
 
   /** 看门狗进程输出 CLOSED（用户关窗且进程未自退）→ SIGTERM 游戏，走常规退出事件链。 */
-  private startWindowWatchdog(child: ChildProcessByStdio<null, Readable, Readable>, pid: number): void {
-    const ps = spawn('powershell', ['-NoProfile', '-Command', windowWatchdogScript(pid)], {
+  private startWindowWatchdog(child: ChildProcessByStdio<null, Readable, Readable>, pid: number, windowClass: string): void {
+    const ps = spawn('powershell', ['-NoProfile', '-Command', windowWatchdogScript(pid, windowClass)], {
       stdio: ['ignore', 'pipe', 'ignore'],
       windowsHide: true,
     });

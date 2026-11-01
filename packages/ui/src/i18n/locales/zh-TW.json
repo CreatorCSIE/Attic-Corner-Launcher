@@ -312,6 +312,10 @@
         "name": "試玩模式",
         "desc": "以歷史試玩（Demo）模式啟動，重現 12w16a–1.5.2 的試玩限制（-Dlf.demo）；其餘版本該項無效果。"
       },
+      "intel": {
+        "name": "Intel 顯示卡修復",
+        "desc": "修復老 Intel GPU 的多紋理渲染錯亂（glActiveTexture 前補發 glClientActiveTexture，b1.9–1.7.10）（-Dlf.intel）。"
+      },
       "skins": {
         "name": "皮膚處理",
         "desc": "LegacyFix 接管皮膚與個人資料；與皮膚模組衝突時關閉（預設開啟）。"

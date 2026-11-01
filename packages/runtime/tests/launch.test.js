@@ -225,7 +225,7 @@ test('实例 launchArgs 紧随固定 -Xmx 注入；Applet 容器 gameArgs 末尾
 test('addons 注入：档案三态 + 勾选/取消按目录映射 -Dlf.*', () => {
   const versionJson = { id: 'b1.7.3', mainClass: 'net.minecraft.client.Minecraft' };
   // 属性表钉死 legacyfix 契约（不引目录常量，防"测试跟着实现一起写错"）
-  const ENABLE = ['vsync', 'visualizer', 'modloader', 'beta-forge', 'bouncycastle', 'showNotice', 'demo'];
+  const ENABLE = ['vsync', 'visualizer', 'modloader', 'beta-forge', 'bouncycastle', 'showNotice', 'demo', 'intel'];
   const DISABLE = ['skin.disable', 'proxy.disable', 'auth-on-server-join.disable'];
   const has = (c, p) => c.jvmArgs.includes(`-Dlf.${p}`);
   // 态一：老档案无 addons 键（undefined）→ 零注入，行为 = legacyfix 自身缺省

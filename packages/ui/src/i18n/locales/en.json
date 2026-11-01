@@ -323,6 +323,10 @@
         "name": "Demo mode",
         "desc": "Launch in the historical demo (trial) mode, reproducing the 12w16a-1.5.2 demo restrictions (-Dlf.demo); no effect outside that range."
       },
+      "intel": {
+        "name": "Intel graphics fix",
+        "desc": "Fix multi-texture rendering glitches on old Intel GPUs (emits glClientActiveTexture before glActiveTexture, b1.9-1.7.10) (-Dlf.intel)."
+      },
       "skins": {
         "name": "Skin handling",
         "desc": "LegacyFix takes over skins and profiles; turn off when it conflicts with skin mods (on by default)."

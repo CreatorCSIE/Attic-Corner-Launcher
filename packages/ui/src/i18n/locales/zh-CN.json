@@ -312,6 +312,10 @@
         "name": "试玩模式",
         "desc": "以历史试玩（Demo）模式启动，复刻 12w16a–1.5.2 的试玩限制（-Dlf.demo）；其余版本该项无效果。"
       },
+      "intel": {
+        "name": "Intel 显卡修复",
+        "desc": "修复老 Intel GPU 的多纹理渲染错乱（glActiveTexture 前补发 glClientActiveTexture，b1.9–1.7.10）（-Dlf.intel）。"
+      },
       "skins": {
         "name": "皮肤处理",
         "desc": "LegacyFix 接管皮肤与个人资料；与皮肤模组冲突时关闭（默认开启）。"

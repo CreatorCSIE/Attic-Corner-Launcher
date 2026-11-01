@@ -263,6 +263,9 @@ export const INSTANCE_ADDONS: AddonDef[] = [
   // legacyfix 原生 -Dlf.demo 即等价开关（GameArgs.isDemo）；
   // 官方生效区间 12w16a–1.5.2，区间外该属性无感
   { id: 'demo', prop: 'demo', mode: 'enable' },
+  // legacyfix IntelGraphicsPatch：glActiveTexture 前补发 glClientActiveTexture，
+  // 修老 Intel GPU 多纹理渲染错乱（b1.9–1.7.10）；opt-in 默认关
+  { id: 'intel', prop: 'intel', mode: 'enable' },
   // v1 addons 清单占位（legacyfix 无对应开关）
   { id: 'fullscreen', prop: '', mode: 'enable', placeholder: true },
   { id: 'game-mode-switch', prop: '', mode: 'enable', placeholder: true },

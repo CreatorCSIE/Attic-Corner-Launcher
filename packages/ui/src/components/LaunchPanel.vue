@@ -327,6 +327,10 @@ function onInstanceSettings(): void {
       </header>
       <footer class="prompt-foot">
         <span class="prompt-spacer"></span>
+        <!-- 显式取消（2026-11-01 用户拍板）：此前出路只有两个启动钮，「不启动了」没有途径 -->
+        <button class="prompt-single" type="button" @click="serverPrompt = false">
+          {{ t('launch.serverDialog.cancel') }}
+        </button>
         <button class="prompt-single" type="button" @click="onLaunchSingle">
           {{ t('launch.serverDialog.single') }}
         </button>

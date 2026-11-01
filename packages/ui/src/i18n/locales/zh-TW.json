@@ -37,10 +37,12 @@
     "accountsEmpty": "還沒有帳戶——建立一個離線帳戶即可開始。",
     "accountsName": "Minecraft 使用者名稱（3–16 位）",
     "accountsSkipHint": "留空跳過也行，帳戶隨時可以新增。",
+    "msLogin": "使用微軟帳戶登入",
     "javaDetecting": "正在偵測 Java…",
     "javaFound": "自動選擇：{reason}",
     "javaNone": "找不到合適的 Java 8。啟動時應用程式可自動取得，也可手動指定。",
-    "javaManual": "手動選擇 Java…",
+    "javaDir": "指定 Java 目錄…",
+    "javaPickHint": "點選候選可固定所選 Java；未列出時指定其 JDK 目錄。",
     "javaAuto": "繼續使用自動偵測",
     "javaManualSet": "已手動指定 Java：{path}",
     "javaCandidates": "偵測詳細資訊（{count}）",
@@ -375,7 +377,8 @@
       "message": "目前實例已設定直連位址 {server}。本次啟動是否直連該伺服器？",
       "manualHint": "該版本支援經典多人連線。輸入伺服器位址可於本次啟動直連（一次性，不寫入實例檔案）。",
       "direct": "直連啟動",
-      "single": "單人啟動"
+      "single": "單人啟動",
+      "cancel": "取消"
     },
     "visualizerOff": "所選版本的本機 jar 不含無限地圖預覽類別（或未下載），暫不可用",
     "downloadFailed": "下載失敗",

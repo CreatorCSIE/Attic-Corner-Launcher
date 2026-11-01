@@ -9,13 +9,17 @@
  * 目录步骤（B 期）：portable.active 加「exe 旁本地目录（随盘走）」且缺省选中——local = 不写指针；
  * 安装版维持消解式两选项（默认根 / 自定义）；
  * 手选撞进安装目录由宿主 setSettings 护栏拒绝，拒绝原文（实际动作+出路）直陈错误行。
- * 账户/Java 步骤 = 既有通道纯编排（accounts:add / detectJava 全候选 / settings.javaPath），零新 IPC。
+ * 账户/Java 步骤 = 既有通道纯编排（accounts:add / 微软设备码登录弹窗 / detectJava 全候选 / settings.javaPath），零新 IPC。
+ * 2026-11-01 用户拍板两处补强：①账户步引入「添加账户」同款微软登录配方（msOpen 挂 MsLoginDialog，
+ * 成功即落账+选中）；②Java 步对齐设置→Java = 候选列表可点选固定 + 「指定 Java 目录」兜底
+ * （候选未列出时用 pickDirectory 选 JDK 目录，javaPath 双形态由宿主解析 bin/java，exe 文件对话框退役）。
  * 完成与跳过皆写 wizardDone（"已见过向导"语义收敛于此键，与指针职责分离）。
  * 视觉纪律（ui-design §2/§6/§7）：每屏恰一 accent（下一步/开始游戏实心）、stepper 顶置、
  * 五态齐全、动效走 AppDialog 既有 200ms 律。
  */
 import { computed, ref, watch } from 'vue';
 import AppDialog from './AppDialog.vue';
+import MsLoginDialog from './MsLoginDialog.vue';
 import { useI18n } from '../i18n';
 import { useSettings } from '../composables/useSettings';
 import { useSysInfo } from '../composables/useSysInfo';
@@ -99,23 +103,29 @@ async function pickDir(): Promise<void> {
 
 // —— 步骤 2：账户（已有则纯展示；空则一个输入框，留空 = 跳过本步）——
 const newName = ref('');
+/** 微软登录弹窗（AccountsPanel 同款配方；success 内自刷列表并选中，账户区即时更新）。 */
+const msOpen = ref(false);
 
 // —— 步骤 3：Java（进步即探测；手动覆盖可选，继续自动 = 不写 javaPath）——
 const manualJava = ref(settings.value.javaPath ?? '');
 watch(step, (s) => {
   if (s === 2 && !javaReport.value && !javaLoading.value) void detectJava();
 });
-async function pickJava(): Promise<void> {
+/** 「指定 Java 目录」：候选未列出时的兜底（JDK 目录进 javaPath，宿主双形态解析 bin/java）。 */
+async function pickJavaDir(): Promise<void> {
   err.value = null;
-  const res = await bridge.pickJavaExecutable();
+  const res = await bridge.pickDirectory();
   if (!res.ok) {
     err.value = res.error;
     return;
   }
-  if (res.value) manualJava.value = res.value;
+  if (res.value) manualJava.value = res.value; // 取消 = 不动
 }
 
-const javaCandidateCount = () => (javaReport.value ? javaReport.value.installs.length + javaReport.value.failures.length : 0);
+/** 点选候选 = 固定该可执行文件（与设置→Java 手动模式同款语义；再点「继续用自动探测」解除）。 */
+function chooseCandidate(executable: string): void {
+  manualJava.value = executable;
+}
 
 /** 下一步 / 完成；返回 false 拦在当步（错误行已就位）。 */
 async function next(): Promise<void> {
@@ -269,6 +279,9 @@ const STEP_KEYS = ['wizard.stepDir', 'wizard.stepAccounts', 'wizard.stepJava'] a
         spellcheck="false"
       />
       <p class="hint muted">{{ t('wizard.accountsSkipHint') }}</p>
+      <div class="row">
+        <button class="btn btn--ghost" type="button" @click="msOpen = true">{{ t('wizard.msLogin') }}</button>
+      </div>
     </section>
 
     <!-- 步骤 3：Java -->
@@ -280,15 +293,33 @@ const STEP_KEYS = ['wizard.stepDir', 'wizard.stepAccounts', 'wizard.stepJava'] a
         </p>
         <p v-else class="hint warn-line">{{ t('wizard.javaNone') }}</p>
         <p v-if="javaReport.selection.install" class="mono path-line">{{ javaReport.selection.install.executable }}</p>
+        <!-- 候选列表（设置→Java 同款可点选配方；点选 = 固定手动 javaPath，选中行 accent 描边） -->
+        <p v-if="javaReport.installs.length" class="hint muted">{{ t('wizard.javaPickHint') }}</p>
+        <div v-if="javaReport.installs.length" class="cand-list">
+          <button
+            v-for="j in javaReport.installs"
+            :key="j.executable"
+            class="cand-row"
+            :class="{ 'cand-row--on': manualJava === j.executable }"
+            type="button"
+            :title="j.executable"
+            @click="chooseCandidate(j.executable)"
+          >
+            <span class="cand-top">
+              <span class="cand-java">Java {{ j.major }}</span>
+              <span class="cand-meta muted">{{ j.raw }}</span>
+            </span>
+            <span class="cand-path mono">{{ j.executable }}</span>
+          </button>
+        </div>
         <div class="row">
-          <button class="btn btn--ghost" type="button" @click="pickJava">{{ t('wizard.javaManual') }}</button>
+          <button class="btn btn--ghost" type="button" @click="pickJavaDir">{{ t('wizard.javaDir') }}</button>
           <button v-if="manualJava" class="btn btn--ghost" type="button" @click="manualJava = ''">{{ t('wizard.javaAuto') }}</button>
         </div>
         <p v-if="manualJava" class="mono path-line">{{ t('wizard.javaManualSet', { path: manualJava }) }}</p>
-        <details v-if="javaCandidateCount() > 0" class="cand">
-          <summary>{{ t('wizard.javaCandidates', { count: javaCandidateCount() }) }}</summary>
+        <details v-if="javaReport.failures.length > 0" class="cand">
+          <summary>{{ t('wizard.javaCandidates', { count: javaReport.failures.length }) }}</summary>
           <ul>
-            <li v-for="j in javaReport.installs" :key="j.executable" class="mono cand-line">{{ j.executable }} · {{ j.raw }}</li>
             <li v-for="f in javaReport.failures" :key="f.executable" class="mono cand-line muted">{{ f.executable }} · {{ f.reason }}</li>
           </ul>
         </details>
@@ -306,6 +337,10 @@ const STEP_KEYS = ['wizard.stepDir', 'wizard.stepAccounts', 'wizard.stepJava'] a
         {{ step === 2 ? t('wizard.finish') : t('wizard.next') }}
       </button>
     </footer>
+
+    <!-- 微软登录弹窗：Teleport 后挂 body，同 z-index 下 DOM 序压过向导本体；
+         成功事件在 MsLoginDialog 内自刷账户并选中 -->
+    <MsLoginDialog v-model:open="msOpen" />
   </AppDialog>
 </template>
 
@@ -468,6 +503,59 @@ const STEP_KEYS = ['wizard.stepDir', 'wizard.stepAccounts', 'wizard.stepJava'] a
 }
 .cand-line {
   word-break: break-all;
+}
+/* Java 候选列表（SettingsJava 下沉井配方按向导密度收紧） */
+.cand-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2);
+  background: var(--surface-1);
+  border-radius: var(--radius-md);
+  box-shadow: var(--input-inset);
+}
+.cand-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.cand-row:hover {
+  background: var(--surface-3);
+}
+.cand-row--on {
+  background: var(--surface-3);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.cand-top {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  width: 100%;
+}
+.cand-java {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.cand-meta {
+  font-size: var(--fs-xs);
+}
+.cand-path {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 .err {
   margin: 0;

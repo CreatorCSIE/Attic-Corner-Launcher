@@ -37,10 +37,12 @@
     "accountsEmpty": "No account yet — create an offline one to start playing.",
     "accountsName": "Minecraft username (3–16 chars)",
     "accountsSkipHint": "Leave empty to skip; accounts can be added anytime.",
+    "msLogin": "Sign in with a Microsoft account",
     "javaDetecting": "Detecting Java…",
     "javaFound": "Auto-selected: {reason}",
     "javaNone": "No suitable Java 8 found. The app can fetch one on launch, or pick manually.",
-    "javaManual": "Choose Java manually…",
+    "javaDir": "Choose Java folder…",
+    "javaPickHint": "Click a candidate to pin it; if yours is not listed, choose its JDK folder.",
     "javaAuto": "Keep auto-detection",
     "javaManualSet": "Manual Java: {path}",
     "javaCandidates": "Detection details ({count})",
@@ -386,7 +388,8 @@
       "message": "The active instance has a direct-connect address configured: {server}. Join this server on this launch?",
       "manualHint": "This version supports classic multiplayer. Enter a server address to join directly on this launch (one-off; not saved to the instance profile).",
       "direct": "Direct connect",
-      "single": "Singleplayer"
+      "single": "Singleplayer",
+      "cancel": "Cancel"
     },
     "visualizerOff": "The selected version jar does not contain the visualizer class (or is not downloaded yet)",
     "downloadFailed": "Download failed",

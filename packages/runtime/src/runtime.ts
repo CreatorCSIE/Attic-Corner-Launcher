@@ -337,7 +337,17 @@ export class AtticRuntime {
     this.endpoints = options.endpoints
       ? resolveEndpoints(options.endpoints)
       : endpointsFromOverrides(settingsFromProps(loadSettings(this.root)).endpoints);
-    this.fetchImpl = options.fetchImpl ?? ((url, init) => fetch(url, init));
+    // UA 纪律：全部出站 fetch 统一携带 `Attic/<launcherVersion>`（GitHub API 无 UA 一律 403；
+    // Betacraft/Zulu/Mojang/MS 端点同样可辨识——CDN 区别对待时的排查成本提前掐掉）。
+    // 注入点 = 本层单点（client/下载/zulu/微软登录/检查更新全部消费 this.fetchImpl）；
+    // 调用方自带 User-Agent 头（updateCheck）→ 保留其值不覆盖。
+    const baseFetch: FetchImpl = options.fetchImpl ?? ((url, init) => fetch(url, init));
+    const userAgent = `Attic/${this.version}`;
+    this.fetchImpl = (url, init) => {
+      const headers = init?.headers as Record<string, string> | undefined;
+      const hasUA = headers !== undefined && Object.keys(headers).some((k) => k.toLowerCase() === 'user-agent');
+      return baseFetch(url, hasUA ? init : { ...init, headers: { ...headers, 'User-Agent': userAgent } });
+    };
     this.client = new BetacraftClient({
       endpoints: this.endpoints,
       fetchImpl: this.fetchImpl,

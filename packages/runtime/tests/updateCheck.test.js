@@ -401,6 +401,22 @@ test('AtticRuntime.checkUpdate：显式空串 = unconfigured 关通道逃生舱�
   assert.equal((await runtime.checkUpdate()).status, 'unconfigured');
 });
 
+test('AtticRuntime 出站 UA 统一：fetchImpl 层对无头请求注入 Attic/<version>（数据面卫生，全消费方共享）', async (t) => {
+  const seen = [];
+  const INFO = ['id=b1.7.3', 'launch-method=indev', 'release-date=1310110334000'].join('\n');
+  const runtime = new AtticRuntime({
+    rootDir: tempRoot(t),
+    version: '0.0.11',
+    fetchImpl: async (url, init) => {
+      seen.push({ url, init });
+      return new Response(INFO, { status: 200 });
+    },
+  });
+  await runtime.getVersionJson('b1.7.3');
+  assert.ok(seen.length > 0, '应发生出站请求');
+  for (const call of seen) assert.equal(call.init.headers['User-Agent'], 'Attic/0.0.11');
+});
+
 test('AtticRuntime.getSystemInfo：shell 注入（tauri）与缺省（electron 保守）', (t) => {
   const injected = new AtticRuntime({ rootDir: tempRoot(t), shell: 'tauri' });
   assert.equal(injected.getSystemInfo().shell, 'tauri');

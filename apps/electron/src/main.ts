@@ -133,7 +133,9 @@ function reportLauncherCrash(
     void shell.openExternal(issuesUrl);
   } else clipboard.writeText(text);
   if (opts.exit) {
-    // 给 openPath/openExternal 的 OS 级派发留一拍再硬退（clipboard 为同步写，不丢）。
+    // app.exit 不触发 before-quit（L541 的 kill 被跳过）= 游戏进程孤儿：崩溃硬退前手动收敛一次。
+    if (runtime.status().running) void runtime.kill().catch(() => undefined);
+    // 给 kill 派发与 openPath/openExternal 的 OS 级留一拍再硬退（clipboard 为同步写，不丢）。
     setTimeout(() => app.exit(1), 500);
   } else if (opts.reloadWin && !opts.reloadWin.isDestroyed()) {
     crashReported = false; // 渲染窗事故恢复后允许下一次崩溃再报

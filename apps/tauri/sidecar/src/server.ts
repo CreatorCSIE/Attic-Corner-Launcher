@@ -290,9 +290,10 @@ export function startServer(): void {
     );
   });
   rl.on('close', () => {
-    // 宿主（Rust）关闭 stdin = 优雅退出信号；先收敛游戏进程再退。
+    // 宿主（Rust）关闭 stdin = 优雅退出信号：与 shutdown 通道同款收敛——异步 kill 需要
+    // 一拍才发得出 SIGTERM，同步 exit 会把它截断成孤儿进程；宽限后自尽（Rust 侧另有强杀兜底）。
     if (runtime.status().running) void runtime.kill().catch(() => undefined);
-    process.exit(0);
+    setTimeout(() => process.exit(0), 150);
   });
 }
 

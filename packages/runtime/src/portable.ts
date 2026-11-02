@@ -16,7 +16,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { parseProperties, serializeProperties } from './properties';
-import { ensureLayout, loadSettings, saveSettings } from './storage';
+import { ensureLayout, loadSettingsForMerge, saveSettings } from './storage';
 
 /** exe 旁便携数据目录名（与平台默认根同名不同位：这里随盘走）。 */
 export const PORTABLE_DIR_NAME = '.attic';
@@ -200,7 +200,15 @@ export function writePortableAnchor(exeDir: string, version: string): void {
  * 只读回落态 = 置 `portableFallback`（UI 常驻徽标数据源），面包屑保留上一个便携根不动。
  */
 export function syncPortableRegistry(defaultRoot: string, resolution: PortableResolution): void {
-  const props = loadSettings(defaultRoot);
+  // 合并写回底稿必须严格读（防读失败回 {} 被当底稿整档覆盖丢用户键）；本登记簿是
+  // 机器生成面包屑、非关键面：瞬时锁（AV 扫描）= 跳过本次同步不阻断启动，下次构造重试。
+  let props: Record<string, string>;
+  try {
+    props = loadSettingsForMerge(defaultRoot);
+  } catch (error) {
+    console.log(`[attic-runtime] portable 登记簿同步跳过：${(error as Error).message}`);
+    return;
+  }
   let dirty = false;
   if (resolution.fallback) {
     if (props['portableFallback'] !== 'true') {

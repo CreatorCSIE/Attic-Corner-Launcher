@@ -538,3 +538,54 @@ test('CLIENT_ID 生效值：内嵌缺省 → settings.microsoftClientId 覆盖',
   await until(() => events.length === 2);
   assert.ok(deviceCodeCalls()[1].body.includes('client_id=MY-OWN-CLIENT'));
 });
+
+// ---------- 轮询网络抖动容忍 + profile 误分类（2026-11-02 隐性 bug 审计） ----------
+
+test('轮询网络抖动容忍：瞬时传输失败按 interval 重试（授权窗口不中止）；拿到响应即清零', async () => {
+  let netFails = 0;
+  const base = mockFetch(
+    happyRoutes({
+      '/token': (n) =>
+        n === 0
+          ? { status: 400, json: { error: 'authorization_pending' } }
+          : { json: { access_token: 'MS-A', refresh_token: 'MS-R', expires_in: 3600 } },
+    }),
+  );
+  const fetchImpl = async (url, init) => {
+    if (url.includes('/v2.0/token') && netFails < 2) {
+      netFails++;
+      throw new Error('ECONNRESET 模拟抖动');
+    }
+    return base(url, init);
+  };
+  const sleeps = [];
+  const d = { fetchImpl, clientId: CLIENT, sleep: async (ms) => void sleeps.push(ms) };
+  const pair = await pollDeviceToken(d, 'DEV', 5);
+  assert.equal(pair.accessToken, 'MS-A');
+  assert.equal(netFails, 2);
+  assert.deepEqual(sleeps, [5000, 5000, 5000], '两次抖动 + 一次 pending 各睡 interval');
+});
+
+test('轮询网络失败上限：连续 5 次抖动 = 放弃抛 network（不无限轮询）', async () => {
+  let attempts = 0;
+  const d = {
+    fetchImpl: async () => {
+      attempts++;
+      throw new Error('ETIMEDOUT');
+    },
+    clientId: CLIENT,
+    sleep: async () => {},
+  };
+  await assert.rejects(pollDeviceToken(d, 'DEV', 5), (e) => e instanceof MsAuthError && e.code === 'network');
+  assert.equal(attempts, 5, '第 5 次连续失败即弃');
+});
+
+test('profile 瞬时故障（503）= internal 归因，不误报 no_minecraft（仅 404 才是不持有游戏）', async () => {
+  const { deps: d } = makeDeps(
+    happyRoutes({ '/minecraft/profile': { status: 503, json: { error: 'SERVICE_UNAVAILABLE' } } }),
+  );
+  await assert.rejects(
+    runAuthTail(d, { accessToken: 'MS-A', expiresIn: 3600 }),
+    (e) => e instanceof MsAuthError && e.code === 'internal',
+  );
+});

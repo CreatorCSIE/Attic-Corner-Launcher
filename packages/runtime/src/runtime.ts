@@ -118,6 +118,7 @@ import {
   loadAccounts,
   loadInstance,
   loadSettings,
+  loadSettingsForMerge,
   launcherDir,
   nativesDir,
   offlineUuid,
@@ -289,6 +290,8 @@ export class AtticRuntime {
   private launchAbort: AbortController | null = null;
   /** 在途微软设备码流（single-flight）：msStartLogin 建、链终局清；msCancelLogin 消费 abort。 */
   private msLoginFlow: { controller: AbortController } | null = null;
+  /** 刷新链按账户去重表：并发 msRefreshAccount 共享同一 promise（防同 refresh_token 双刷）。 */
+  private readonly msRefreshInFlight = new Map<string, Promise<AccountView>>();
   /** 微软登录测试缝（见 AtticRuntimeOptions.msDeps）。 */
   private readonly msDeps: NonNullable<AtticRuntimeOptions['msDeps']>;
   private infoWatcher: fs.FSWatcher | null = null;
@@ -1019,6 +1022,18 @@ export class AtticRuntime {
    * 错误以 MsAuthError 抛（message = 分类码，脱敏闸保证不含 token 原文）。
    */
   async msRefreshAccount(id: string): Promise<AccountView> {
+    // 在飞去重：启动自动刷新（L796/L893）与手动刷新并发 = 同一 refresh_token 双刷 →
+    // 后写覆盖先写、MS 轮换令牌失配，重放检测可吊销整个 token 家族。并发调用共享同一 promise。
+    const existing = this.msRefreshInFlight.get(id);
+    if (existing) return existing;
+    const p = this.msRefreshChain(id).finally(() => {
+      if (this.msRefreshInFlight.get(id) === p) this.msRefreshInFlight.delete(id);
+    });
+    this.msRefreshInFlight.set(id, p);
+    return p;
+  }
+
+  private async msRefreshChain(id: string): Promise<AccountView> {
     const stored = loadAccounts(this.root);
     const account = stored.find((a) => a.id === id);
     if (!account) throw new Error(`账户不存在：${id}`);
@@ -1408,7 +1423,7 @@ export class AtticRuntime {
       }
       const rest: AppSettings = { ...settings };
       delete rest.rootOverride;
-      saveSettings(this.root, applySettingsToProps(loadSettings(this.root), rest));
+      saveSettings(this.root, applySettingsToProps(loadSettingsForMerge(this.root), rest));
       return this.getSettings();
     }
     if (
@@ -1421,7 +1436,7 @@ export class AtticRuntime {
           '请选安装目录之外的位置；想要「一切随一个文件夹」请用便携版构件（amcl-*-portable.zip）。',
       );
     }
-    saveSettings(this.root, applySettingsToProps(loadSettings(this.root), settings));
+    saveSettings(this.root, applySettingsToProps(loadSettingsForMerge(this.root), settings));
     return this.getSettings();
   }
 
@@ -1842,7 +1857,7 @@ export class AtticRuntime {
         return res.text();
       },
       download: (url: string, destFile: string, id: string) => this.client.download(url, destFile, 'library', id, undefined, signal),
-      saveVersionKeys: (keys: Record<string, string>) => saveSettings(this.root, { ...loadSettings(this.root), ...keys }),
+      saveVersionKeys: (keys: Record<string, string>) => saveSettings(this.root, { ...loadSettingsForMerge(this.root), ...keys }),
     };
     await ensureDepends(io, this.endpoints, { force });
   }

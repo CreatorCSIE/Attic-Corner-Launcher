@@ -26,6 +26,9 @@ const {
   instancesDir,
   versionListCacheFile,
   readPropertiesFile,
+  readPropertiesFileForMerge,
+  loadAccounts,
+  saveAccounts,
   setInstanceVersionField,
   instanceViewFromConfig,
   isPathWithin,
@@ -678,4 +681,41 @@ test('手动 javaPath 双形态（向导「指定 Java 目录」2026-11-01）：
   fs.mkdirSync(bare, { recursive: true });
   rt.setSettings({ javaPath: bare });
   await assert.rejects(rt.dryRunLaunch({ versionId: 'b1.7.3' }), /bin\/java/);
+});
+
+// ---------- 合并写回底稿严格读（2026-11-02 隐性 bug 审计：宽容读回 {} 当底稿 = 整档覆盖丢键） ----------
+
+test('readPropertiesFileForMerge：缺席={}（新建语义）；读失败（EISDIR）=抛——宽容读只留纯展示面', (t) => {
+  const root = tempRoot(t);
+  const file = settingsFile(root);
+  assert.deepEqual(readPropertiesFileForMerge(file), {}, '缺席必须走新建底稿，不抛');
+  fs.mkdirSync(file, { recursive: true }); // 目录顶替文件：readFileSync = EISDIR
+  assert.deepEqual(readPropertiesFile(file), {}, '宽容读语义不变（纯读展示兜底）');
+  assert.throws(() => readPropertiesFileForMerge(file), /EISDIR/);
+});
+
+test('saveInstance：实例档案不可读（EISDIR）= 抛且拒写回（空底稿整档覆盖丢 v1 遗留键的路被掐死）', (t) => {
+  const root = tempRoot(t);
+  const locked = path.join(instancesDir(root), 'locked.txt');
+  fs.mkdirSync(locked, { recursive: true });
+  assert.throws(
+    () => saveInstance(root, { name: 'locked', version: 'b1.7.3', gameDir: root }),
+    /EISDIR/,
+  );
+  assert.ok(fs.statSync(locked).isDirectory(), '拒绝路径不碰盘');
+});
+
+test('loadAccounts：坏 JSON/非数组=抛（防下一次保存固化空清单）；saveAccounts 原子写不留 .tmp', (t) => {
+  const root = tempRoot(t);
+  const file = path.join(root, 'launcher', 'accounts.json');
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, '{not json');
+  assert.throws(() => loadAccounts(root), SyntaxError);
+  fs.writeFileSync(file, '{"a":1}');
+  assert.throws(() => loadAccounts(root), /不是数组/);
+  fs.rmSync(file);
+  assert.deepEqual(loadAccounts(root), [], '缺席 = 空清单（首启正常语义）');
+  saveAccounts(root, [{ id: 'x', name: 'Steve', type: 'offline' }]);
+  assert.deepEqual(fs.readdirSync(path.dirname(file)).filter((f) => f.endsWith('.tmp')), [], 'tmp 已 rename 归位');
+  assert.equal(JSON.parse(fs.readFileSync(file, 'utf8'))[0].name, 'Steve');
 });

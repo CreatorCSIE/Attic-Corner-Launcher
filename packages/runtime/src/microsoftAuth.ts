@@ -259,12 +259,24 @@ export async function pollDeviceToken(
 ): Promise<MsTokenPair> {
   const sleep = deps.sleep ?? defaultSleep;
   let interval = Math.max(1, intervalSec);
+  /** 连续传输失败计数：瞬时网络抖动 ≠ 授权失败，容忍重试；超限才放弃。任何一次拿到响应即清零。 */
+  let networkFails = 0;
   for (;;) {
     if (deps.signal?.aborted) throw new MsAbortError();
-    const { json: body, raw } = await postTokenForm(
-      deps,
-      `client_id=${deps.clientId}&grant_type=urn:ietf:params:oauth:grant-type:device_code&device_code=${deviceCode}`,
-    );
+    let body: Record<string, unknown> | null;
+    let raw: string;
+    try {
+      ({ json: body, raw } = await postTokenForm(
+        deps,
+        `client_id=${deps.clientId}&grant_type=urn:ietf:params:oauth:grant-type:device_code&device_code=${deviceCode}`,
+      ));
+    } catch (error) {
+      if (!(error instanceof MsAuthError) || error.code !== 'network') throw error;
+      if (++networkFails >= 5) throw error;
+      await sleep(interval * 1000, deps.signal);
+      continue;
+    }
+    networkFails = 0;
     const pair = parseTokenPair(body);
     if (pair) return pair;
     const error = str(body, 'error');
@@ -371,17 +383,18 @@ export interface MsProfileResult {
   skinUrl?: string;
 }
 
-/** profile（GET Bearer；404/无档案 → no_minecraft）。 */
+/** profile（GET Bearer；仅 404 = no_minecraft；其余非 2xx/坏形状 = internal 归因——
+ * 401/429/5xx 误报「未购买游戏」会把瞬时故障说成永久事实，误导用户）。 */
 export async function mcProfile(deps: MsAuthDeps, mcAccessToken: string): Promise<MsProfileResult> {
   const res = await msFetch(deps, MS_URL.mcProfile, {
     method: 'GET',
     headers: { Authorization: `Bearer ${mcAccessToken}` },
   });
   if (res.status === 404) throw new MsAuthError('no_minecraft');
-  const { json: body } = await jsonWithRaw(res);
+  const { json: body, raw } = await jsonWithRaw(res);
   const id = str(body, 'id');
   const name = str(body, 'name');
-  if (!res.ok || !id || !name) throw new MsAuthError('no_minecraft');
+  if (!res.ok || !id || !name) throw failInternal(deps, 'profile', res, body, raw);
   const skinUrl = parseSkinUrl(body);
   return { id, name, ...(skinUrl ? { skinUrl } : {}) };
 }

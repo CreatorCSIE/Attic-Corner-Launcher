@@ -151,12 +151,30 @@ export function readPropertiesFile(file: string): Record<string, string> {
   }
 }
 
+/** 读-改-写底稿专用（saveInstance/setSettings 同款纪律的读侧）：文件缺席（ENOENT）= {}
+ * 走新建档案语义；其余读失败（AV 锁定 EBUSY/权限 EPERM）**抛**——不得静默回 {} 当底稿，
+ * 否则托管键集整档覆盖会把 v1 遗留键静默丢掉（readPropertiesFile 的宽容只适用于纯读展示面）。 */
+export function readPropertiesFileForMerge(file: string): Record<string, string> {
+  let raw: string;
+  try {
+    raw = fs.readFileSync(file, 'utf8');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return {};
+    throw error;
+  }
+  return parseProperties(raw);
+}
+
 export function writePropertiesFile(file: string, entries: Record<string, string>): void {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, serializeProperties(entries), 'utf8');
 }
 
 export const loadSettings = (root: string): Record<string, string> => readPropertiesFile(settingsFile(root));
+
+/** settings 读-改-写底稿专用（合并写回前必须用这条，防整档覆盖丢未知键）。 */
+export const loadSettingsForMerge = (root: string): Record<string, string> =>
+  readPropertiesFileForMerge(settingsFile(root));
 
 export const saveSettings = (root: string, settings: Record<string, string>): void =>
   writePropertiesFile(settingsFile(root), settings);
@@ -296,7 +314,7 @@ export function renameInstance(root: string, name: string, newName: string): Ins
 export function setInstanceVersionField(root: string, name: string, version: string): boolean {
   assertInstanceName(name);
   const file = INSTANCE_FILE(root, name);
-  const props = readPropertiesFile(file);
+  const props = readPropertiesFileForMerge(file);
   if (Object.keys(props).length === 0) return false;
   if (props['version'] === version) return false;
   props['version'] = version;
@@ -312,7 +330,7 @@ export function setInstanceVersionField(root: string, name: string, version: str
 export function saveInstance(root: string, config: InstanceConfig): void {
   assertInstanceName(config.name);
   const file = INSTANCE_FILE(root, config.name);
-  const props = readPropertiesFile(file);
+  const props = readPropertiesFileForMerge(file);
   const managed: Record<string, string | undefined> = {
     name: config.name,
     version: config.version,
@@ -401,17 +419,27 @@ export function scanInstalledVersions(root: string): string[] {
 // ---------- 账户 ----------
 
 export function loadAccounts(root: string): Account[] {
+  let raw: string;
   try {
-    const parsed: unknown = JSON.parse(fs.readFileSync(accountsFile(root), 'utf8'));
-    return Array.isArray(parsed) ? (parsed as Account[]) : [];
-  } catch {
-    return [];
+    raw = fs.readFileSync(accountsFile(root), 'utf8');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
+    throw error;
   }
+  // parse 失败/形状不正 = 抛：静默回 [] 会让下一次 saveAccounts 把空清单固化（全账户丢失）。
+  const parsed: unknown = JSON.parse(raw);
+  if (!Array.isArray(parsed)) throw new Error('accounts.json 顶层不是数组：请手工修复或删除该文件');
+  return parsed as Account[];
 }
 
 export function saveAccounts(root: string, accounts: Account[]): void {
   fs.mkdirSync(launcherDir(root), { recursive: true });
-  fs.writeFileSync(accountsFile(root), JSON.stringify(accounts, null, 2), 'utf8');
+  const file = accountsFile(root);
+  // 原子写（tmp+rename）：直写中断（断电/强杀）会留下半截 JSON，配合 loadAccounts 的
+  // parse-抛 语义即不会把坏文件误当空清单固化。
+  const tmp = `${file}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(accounts, null, 2), 'utf8');
+  fs.renameSync(tmp, file);
 }
 
 /** MC 离线 UUID 算法：md5("OfflinePlayer:" + name)，version 3 / variant 2。 */

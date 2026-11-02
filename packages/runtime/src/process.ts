@@ -124,6 +124,8 @@ export class GameProcessManager {
   private lastError: string | null = null;
   private outputTail = '';
   private closedResolve: (() => void) | null = null;
+  /** 在途的 close 等待 promise——并发 kill 共享同一条，防后者覆写 closedResolve 让前者 await 永不 resolve。 */
+  private closeWait: Promise<void> | null = null;
 
   constructor(private readonly events: GameProcessEvents) {}
 
@@ -188,6 +190,7 @@ export class GameProcessManager {
       this.events.onExit({ ...exit, pid, versionId: session?.versionId ?? versionId });
       this.closedResolve?.();
       this.closedResolve = null;
+      this.closeWait = null;
     });
 
     this.child = child;
@@ -208,6 +211,12 @@ export class GameProcessManager {
       windowsHide: true,
     });
     this.watchdog = ps;
+    // spawn 失败（powershell 缺失/被策略拦截）走 error 事件：无监听 = 未捕获异常炸宿主。
+    // 看门狗不可用只回退「关窗后进程残留」旧行为；不写 outputTail——避免 "not recognized"
+    // 之类消息误命中 java-missing 崩溃分类。
+    ps.on('error', (error: Error) => {
+      console.log(`[attic-runtime] 看门狗不可用：${error.message}`);
+    });
     ps.stdout.setEncoding('utf8');
     ps.stdout.on('data', (data: string) => {
       if (!data.includes('CLOSED') || this.child !== child) return;
@@ -226,9 +235,11 @@ export class GameProcessManager {
     if (!this.child) {
       return this.lastExit ?? { code: null, signal: null, crash: null };
     }
-    const closed = new Promise<void>((resolve) => {
+    // 并发 kill（连点停止/两处同时调用）复用同一条 close-wait：各自新建会覆写
+    // closedResolve，先 await 的那条永不 resolve（停止按钮假死）。
+    const closed = (this.closeWait ??= new Promise<void>((resolve) => {
       this.closedResolve = resolve;
-    });
+    }));
     this.stopRequested = true;
     this.child.kill('SIGTERM');
     await closed;

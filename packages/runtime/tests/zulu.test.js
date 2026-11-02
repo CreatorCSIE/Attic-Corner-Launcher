@@ -10,7 +10,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const { queryZuluPackages, zuluOs, zuluArch, provisionArch, findJavaExecutable } = require('../dist/index.js');
+const { queryZuluPackages, zuluOs, zuluArch, provisionArch, findJavaExecutable, installZuluPackage } = require('../dist/index.js');
 
 const endpoints = { zuluMetadata: 'https://api.example.test/zulu/packages/' };
 
@@ -140,4 +140,22 @@ test('findJavaExecutable：win 找 java.exe；空目录/不存在返回 null', (
   // 同目录只有 java.exe，posix 平台查 java 不命中
   assert.equal(findJavaExecutable(root, 'linux'), null);
   assert.equal(findJavaExecutable(path.join(root, 'missing'), 'linux'), null);
+});
+
+// ---------- 失败清理（2026-11-02 隐性 bug 审计：半套 JDK 幸存 = 供给缓存命中坏 javaPath） ----------
+
+test('installZuluPackage 下载中断：半截 zip 不留存、失败归因照回', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'attic-zulu-inst-'));
+  const pkg = { name: 'zulu8-test-linux_x64.zip', url: 'https://cdn.azul.com/zulu/bin/zulu8-test-linux_x64.zip' };
+  const client = {
+    download: async (_url, dest) => {
+      fs.writeFileSync(dest, 'HALF-DO'); // 半截文件落盘后才失败（ENOSPC/abort 形态）
+      throw new Error('download aborted');
+    },
+  };
+  const out = await installZuluPackage(pkg, dir, { client, platform: 'linux' });
+  assert.equal(out.ok, false);
+  assert.match(out.reason, /download aborted/);
+  assert.ok(!fs.existsSync(path.join(dir, pkg.name)), '半截 zip 已清理（下次供给走全新下载，不依赖覆盖语义）');
+  fs.rmSync(dir, { recursive: true, force: true });
 });

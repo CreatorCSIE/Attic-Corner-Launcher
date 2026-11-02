@@ -158,8 +158,9 @@ export async function installZuluPackage(
   },
 ): Promise<ZuluInstallOutcome> {
   const platform = deps.platform ?? process.platform;
+  const zipPath = path.join(destRoot, pkg.name);
+  const extractDir = path.join(destRoot, pkg.name.replace(/\.zip$/i, ''));
   try {
-    const zipPath = path.join(destRoot, pkg.name);
     fs.mkdirSync(destRoot, { recursive: true });
     await deps.client.download(
       pkg.url,
@@ -169,12 +170,21 @@ export async function installZuluPackage(
       pkg.sha256 ? { algo: 'sha256', value: pkg.sha256 } : undefined,
       deps.signal,
     );
-    const extractDir = path.join(destRoot, pkg.name.replace(/\.zip$/i, ''));
     await extractZip(zipPath, extractDir, platform);
     const javaPath = findJavaExecutable(extractDir, platform);
-    if (!javaPath) return { ok: false, reason: `解压后未找到 bin/java：${extractDir}` };
+    if (!javaPath) throw new Error(`解压后未找到 bin/java：${extractDir}`);
     return { ok: true, javaPath };
   } catch (error) {
+    // 失败清理：半套 JDK 不得幸存——findJavaExecutable 两层扫描会命中残缺目录的
+    // bin/java，供给缓存据此把坏 javaPath 当已装返回（zip 同理：下次直写覆盖不可依赖）。
+    // rm 尽力而为（AV 瞬时锁不让清理炸掉失败归因路径，同 legacyfixPatch/CI 清理先例）。
+    for (const p of [extractDir, zipPath]) {
+      try {
+        fs.rmSync(p, { recursive: true, force: true });
+      } catch {
+        /* 清理失败不影响本次失败返回 */
+      }
+    }
     return { ok: false, reason: error instanceof Error ? error.message : String(error) };
   }
 }

@@ -80,6 +80,7 @@ export function readZipEntries(zipFile: string): ZipEntry[] {
     const lNameLen = buf.readUInt16LE(localOffset + 26);
     const lExtraLen = buf.readUInt16LE(localOffset + 28);
     const dataStart = localOffset + 30 + lNameLen + lExtraLen;
+    if (dataStart + compSize > buf.length) throw new Error(`zip 数据段截断：${zipFile}`);
     const comp = buf.subarray(dataStart, dataStart + compSize);
     let data: Buffer;
     if (method === 0) data = Buffer.from(comp);
@@ -170,8 +171,10 @@ function crc32(buf: Buffer): number {
   return ~c >>> 0;
 }
 
-/** 从 zip 文件解出全部文件条目到 destDir；已存在的目标文件跳过。返回解出条目数。 */
-export function extractZipTo(zipFile: string, destDir: string): number {
+/** 从 zip 文件解出全部文件条目到 destDir；已存在且大小相符的目标跳过。返回解出条目数。
+ * strictMethods=true（depends 库集通道用）：罕见压缩法抛错而非静默跳过——半套库集
+ * 不得带着成功假象让版本号指纹闸门恒过。 */
+export function extractZipTo(zipFile: string, destDir: string, opts: { strictMethods?: boolean } = {}): number {
   const buf = fs.readFileSync(zipFile);
   // EOCD（End of Central Directory, PK\x05\x06）从尾部向前找。
   let eocd = -1;
@@ -191,6 +194,7 @@ export function extractZipTo(zipFile: string, destDir: string): number {
     if (buf.readUInt32LE(offset) !== 0x02014b50) throw new Error(`zip 中央目录损坏：${zipFile}`);
     const method = buf.readUInt16LE(offset + 10);
     const compSize = buf.readUInt32LE(offset + 20);
+    const uncompSize = buf.readUInt32LE(offset + 24);
     const nameLen = buf.readUInt16LE(offset + 28);
     const extraLen = buf.readUInt16LE(offset + 30);
     const commentLen = buf.readUInt16LE(offset + 32);
@@ -201,21 +205,36 @@ export function extractZipTo(zipFile: string, destDir: string): number {
     if (name.endsWith('/')) continue; // 目录条目
     if (name.includes('..') || path.isAbsolute(name)) continue; // 路径穿越防御
     const target = path.join(destDir, name);
-    if (fs.existsSync(target)) continue;
+    if (fs.existsSync(target)) {
+      // 已存在 ≠ 完整：上次中断（磁盘满/被杀）留下的半截文件 size 必不符，
+      // 须重解——「存在即跳过」会让坏 dll 永久幸存、UnsatisfiedLinkError 自愈失效。
+      let intact = false;
+      try {
+        intact = fs.statSync(target).size === uncompSize;
+      } catch {
+        /* stat 失败（并发删除）= 按不完整处理 */
+      }
+      if (intact) continue;
+    }
 
     // 本地文件头：数据起点 = localOffset + 30 + 本地 nameLen + 本地 extraLen。
     if (buf.readUInt32LE(localOffset) !== 0x04034b50) throw new Error(`zip 本地头损坏：${zipFile}`);
     const lNameLen = buf.readUInt16LE(localOffset + 26);
     const lExtraLen = buf.readUInt16LE(localOffset + 28);
     const dataStart = localOffset + 30 + lNameLen + lExtraLen;
+    if (dataStart + compSize > buf.length) throw new Error(`zip 数据段截断：${zipFile}`);
     const comp = buf.subarray(dataStart, dataStart + compSize);
     let data: Buffer;
     if (method === 0) data = Buffer.from(comp);
     else if (method === 8) data = zlib.inflateRawSync(comp);
+    else if (opts.strictMethods) throw new Error(`zip 条目含不支持的压缩法 ${method}：${name}（${zipFile}）`);
     else continue; // 罕见压缩方法：跳过（原生库 jar 只用 stored/deflate）
 
     fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.writeFileSync(target, data);
+    // 原子落盘（tmp+rename）：直写中途 ENOSPC 会留下新半截文件，本函数修的正是这类幸存。
+    const tmp = `${target}.${process.pid}.tmp`;
+    fs.writeFileSync(tmp, data);
+    fs.renameSync(tmp, target);
     extracted++;
   }
   return extracted;

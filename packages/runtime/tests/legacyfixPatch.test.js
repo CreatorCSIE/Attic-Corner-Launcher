@@ -175,3 +175,35 @@ test('jar 补丁门控：未钉版 skipped 且 jar 字节不变；无 DeAwtPatch
   const r3 = applyLegacyfixDeawtPatch(path.join(dir, 'missing.jar'), new Set());
   assert.equal(r3.status, 'skipped');
 });
+
+// ---------- extractZipTo 自愈与严格化（2026-11-02 隐性 bug 审计：存在即跳过 = 半截幸存） ----------
+
+test('extractZipTo：半截文件（size 不符）重解自愈；完好目标零重写；截断数据段抛；strictMethods 拒静默跳过', (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'attic-zipfix-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const zip = path.join(dir, 'natives.zip');
+  writeZipEntries(zip, [{ name: 'lwjgl.dll', method: 0, dosTime: 0, dosDate: 0, data: Buffer.from('fake-dll-contents') }]);
+  const out = path.join(dir, 'out');
+  assert.equal(extractZipTo(zip, out), 1);
+  const dll = path.join(out, 'lwjgl.dll');
+  fs.writeFileSync(dll, 'half'); // 模拟上次 ENOSPC/被杀留下的半截幸存
+  assert.equal(extractZipTo(zip, out), 1, 'size 不符 = 重解（存在即跳过不再成立）');
+  assert.equal(fs.readFileSync(dll, 'utf8'), 'fake-dll-contents');
+  assert.equal(extractZipTo(zip, out), 0, '完好目标 = 零重写');
+
+  const buf = fs.readFileSync(zip);
+  const cd = buf.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02]));
+
+  const trunc = Buffer.from(buf);
+  trunc.writeUInt32LE(0xffff, cd + 20); // compSize 吹到超缓冲尾
+  const truncZip = path.join(dir, 'trunc.zip');
+  fs.writeFileSync(truncZip, trunc);
+  assert.throws(() => extractZipTo(truncZip, path.join(dir, 'out2')), /截断/);
+
+  const odd = Buffer.from(buf);
+  odd.writeUInt16LE(14, cd + 10); // 中央目录 method=bzip2（本地头无需同步：method 只从中目录读）
+  const oddZip = path.join(dir, 'odd.zip');
+  fs.writeFileSync(oddZip, odd);
+  assert.equal(extractZipTo(oddZip, path.join(dir, 'out3')), 0, '宽容模式罕见法照旧跳过');
+  assert.throws(() => extractZipTo(oddZip, path.join(dir, 'out4'), { strictMethods: true }), /不支持的压缩法/);
+});

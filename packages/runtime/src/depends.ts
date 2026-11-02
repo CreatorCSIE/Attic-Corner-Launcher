@@ -135,10 +135,11 @@ export async function ensureDepends(
   await io.download(endpoints.nativesZip(io.os), nativesZip, 'natives.zip');
 
   // v1 L943-949：清空 bin（含 natives 子目录）再解包；版本号写在解包成功之后。
+  // strictMethods：罕见压缩法抛错中断（版本号不落）——静默跳过会产半套库集 + 指纹恒过。
   removeContents(binDir(io.root));
   fs.mkdirSync(nativesDir(io.root), { recursive: true });
-  extractZipTo(nativesZip, nativesDir(io.root));
-  extractZipTo(libsZip, binDir(io.root));
+  extractZipTo(nativesZip, nativesDir(io.root), { strictMethods: true });
+  extractZipTo(libsZip, binDir(io.root), { strictMethods: true });
   dropStaleZips(io.root);
   io.saveVersionKeys({ 'libs-version': remote.libs, 'natives-version': remote.natives });
 }

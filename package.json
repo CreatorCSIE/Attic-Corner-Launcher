@@ -1,6 +1,6 @@
 {
   "name": "attic-launcher",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "private": true,
   "attic": {
     "nightlyBase": "0.1.0"

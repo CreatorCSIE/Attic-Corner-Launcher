@@ -8,6 +8,8 @@
  * matchedVersionId 缺省（宿主匹配未命中）→ 卡片弱提示 + 弹窗内版本下拉（数据源 = useVersions 清单）。
  * compatibleVersionIds 非空（宿主协议派生的兼容全集）→ 目标版本区直接出下拉，
  * 预选 = matched ?? 集合末项，用户改选即换启动目标。
+ * versionOutOfRange（宿主判定：协议已知但库里无同协议客户端）→ 卡片「超出支持范围」提示 +
+ * 弹窗解释态（要求版本/协议 + 复制地址），无手动下拉、无确认钮——此分支物理不可进服。
  * Online Mode 服 × 当前离线账户 → 弹窗内警告行（账户切换由用户自理，不做跳转）。
  */
 import { computed, ref } from 'vue';
@@ -50,6 +52,9 @@ const dialogServer = ref<ServerListView | null>(null);
 const manualVersion = ref('');
 /** 兼容集合下拉的当前选择（openDialog 时按预选规则初始化）。 */
 const pickedVersion = ref('');
+/** 复制服务器地址的瞬时反馈（1.5s 回落）。 */
+const copiedAddr = ref(false);
+let copiedAddrTimer: ReturnType<typeof setTimeout> | undefined;
 const launchError = ref<string | null>(null);
 const confirming = ref(false);
 
@@ -87,6 +92,7 @@ const customHintVisible = computed(
 function openDialog(s: ServerListView): void {
   dialogServer.value = s;
   manualVersion.value = '';
+  copiedAddr.value = false;
   // 预选规则：matched 在集合中则选它（宿主保证追加），否则集合末项。
   const ids = s.compatibleVersionIds ?? [];
   pickedVersion.value =
@@ -98,6 +104,20 @@ function closeDialog(): void {
   // 在途启动不可打断（AppDialog dismissible=false 同口径，Esc/遮罩已被掐断）
   if (confirming.value) return;
   dialogServer.value = null;
+}
+
+/** 范围外服的解释态出口：复制 `address:port` 供用户拿去别的启动器进（剪贴板不可用=静默，账户页同款纪律）。 */
+async function copyAddress(): Promise<void> {
+  const s = dialogServer.value;
+  if (!s) return;
+  try {
+    await navigator.clipboard.writeText(`${s.address}:${s.port}`);
+    copiedAddr.value = true;
+    clearTimeout(copiedAddrTimer);
+    copiedAddrTimer = setTimeout(() => (copiedAddr.value = false), 1500);
+  } catch {
+    /* 剪贴板不可用（无焦点/权限）：静默，不打断布局 */
+  }
 }
 
 /**
@@ -222,7 +242,8 @@ async function confirmJoin(): Promise<void> {
               <span v-if="s.players" class="sc-players">({{ s.players.online }} / {{ s.players.max }})</span>
             </span>
             <span class="sc-desc">{{ s.description }}</span>
-            <span v-if="!s.matchedVersionId && !s.compatibleVersionIds?.length" class="sc-need">{{ t('servers.needVersion') }}</span>
+            <span v-if="s.versionOutOfRange" class="sc-need">{{ t('servers.outOfRange') }}</span>
+            <span v-else-if="!s.matchedVersionId && !s.compatibleVersionIds?.length" class="sc-need">{{ t('servers.needVersion') }}</span>
           </span>
         </button>
       </div>
@@ -252,6 +273,19 @@ async function confirmJoin(): Promise<void> {
             <p class="dlg-ver-val mono">{{ dialogServer.matchedVersionId }}</p>
             <p v-if="dialogServer.matchedVersionIsCustom" class="dlg-hint">{{ t('servers.dialog.customMatchHint') }}</p>
           </template>
+          <!-- 版本库范围外（宿主判定）= 解释态：BC v1 空白选版本窗的可见化替代。
+               不提供手动下拉（库内任选必握手失败 = 自相矛盾；自备客户端走启动页经典多人直连，
+               名字对得上的自定义版本宿主 mod 轨本就会命中、不进此分支）。 -->
+          <template v-else-if="dialogServer.versionOutOfRange">
+            <p class="dlg-warn">
+              {{ t('servers.dialog.outOfRangeHint', { version: dialogServer.preferredVersion, protocol: dialogServer.protocol }) }}
+            </p>
+            <div class="dlg-out-actions">
+              <button class="ghost" type="button" @click="void copyAddress()">
+                {{ copiedAddr ? t('servers.dialog.copied') : t('servers.dialog.copyAddress') }}
+              </button>
+            </div>
+          </template>
           <template v-else>
             <p class="dlg-hint">{{ t('servers.dialog.manualHint') }}</p>
             <AppSelect
@@ -274,7 +308,9 @@ async function confirmJoin(): Promise<void> {
           <button class="ghost" type="button" :disabled="confirming" @click="closeDialog">
             {{ t('servers.dialog.cancel') }}
           </button>
+          <!-- 范围外分支无可选目标 = 无「进服」动作可确认，确认钮不渲染（避免永久置灰的主按钮） -->
           <button
+            v-if="!dialogServer.versionOutOfRange"
             class="primary"
             type="button"
             :disabled="!targetVersion || confirming || busy"
@@ -562,6 +598,13 @@ async function confirmJoin(): Promise<void> {
   margin: 0;
   font-size: var(--fs-sm);
   color: var(--text-secondary);
+}
+/* 范围外解释态动作行（复制地址） */
+.dlg-out-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
 }
 .dlg-warn {
   margin: 0;

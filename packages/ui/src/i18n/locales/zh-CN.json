@@ -182,6 +182,7 @@
     "onlineMode": "正版验证",
     "preferredVersionHint": "服务器偏好版本：{version}",
     "needVersion": "需手动选版本",
+    "outOfRange": "超出支持版本范围",
     "category": {
       "all": "全部",
       "classic": "Classic",
@@ -193,6 +194,9 @@
     "dialog": {
       "targetVersion": "目标版本",
       "manualHint": "未能自动匹配到本地版本，请手动选择要启动的版本。",
+      "outOfRangeHint": "该服务器要求 {version}（协议 {protocol}），当前版本库中没有能与之握手成功的客户端。",
+      "copyAddress": "复制服务器地址",
+      "copied": "已复制",
       "customMatchHint": "匹配到的版本为模组/自定义客户端，将以它进入本服务器。",
       "pickVersion": "选择版本",
       "onlineModeWarn": "当前账户为离线账户，不满足该服务器的正版验证要求，可能无法进入。",

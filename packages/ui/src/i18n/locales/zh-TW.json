@@ -182,6 +182,7 @@
     "onlineMode": "正版驗證",
     "preferredVersionHint": "伺服器偏好版本：{version}",
     "needVersion": "需手動選擇版本",
+    "outOfRange": "超出支援版本範圍",
     "category": {
       "all": "全部",
       "classic": "Classic",
@@ -193,6 +194,9 @@
     "dialog": {
       "targetVersion": "目標版本",
       "manualHint": "無法自動對應到本機版本，請手動選擇要啟動的版本。",
+      "outOfRangeHint": "該伺服器要求 {version}（協定 {protocol}），目前版本庫中沒有能與其握手成功的客戶端。",
+      "copyAddress": "複製伺服器位址",
+      "copied": "已複製",
       "customMatchHint": "對應到的版本為模組/自訂客戶端，將以其進入本伺服器。",
       "pickVersion": "選擇版本",
       "onlineModeWarn": "目前帳戶為離線帳戶，不符合該伺服器的正版驗證要求，可能無法進入。",

@@ -334,15 +334,15 @@
       },
       "fullscreen": {
         "name": "全螢幕啟動",
-        "desc": "以全螢幕模式啟動遊戲（v1 功能，待接入）。"
+        "desc": "以全螢幕模式啟動遊戲（legacyfix-attic addon）。"
       },
       "game-mode-switch": {
         "name": "遊戲模式切換",
-        "desc": "在 Classic 中按鍵切換創造/生存模式（v1 功能，待接入）。"
+        "desc": "在 Classic 中按鍵切換創造/生存模式（legacyfix-attic addon）。"
       },
       "quit-game": {
         "name": "快速退出",
-        "desc": "遊戲內一鍵退出台階（v1 功能，待接入）。"
+        "desc": "遊戲內一鍵退出台階（legacyfix-attic addon）。"
       }
     },
     "javaPath": "Java 路徑",

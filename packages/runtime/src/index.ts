@@ -128,6 +128,7 @@ export {
 export {
   assembleLaunchConfig,
   filterAgentMounts,
+  legacyfixReleaseVersion,
   APPLET_LAUNCHER_CLASS,
   APPLET_CLASS_BY_METHOD,
   type LaunchContext,
@@ -136,12 +137,6 @@ export {
 export { classifyCrash, GameProcessManager, watchdogWindowClass, type GameProcessEvents } from './process';
 export { canonicalLaunchMethod, detectLaunchMethod, probeIndevEntry, probePreclassicEntry } from './wrapperDetector';
 export { extractZipTo, listZipEntryNames, readZipEntries, writeZipEntries, type ZipEntry } from './zip';
-export {
-  applyLegacyfixDeawtPatch,
-  patchDeawtClassBytes,
-  reportLegacyfixDeawtPatch,
-  type LfPatchOutcome,
-} from './legacyfixPatch';
 export {
   resolveAssetIndexId,
   resolveLaunchAssetIndexId,

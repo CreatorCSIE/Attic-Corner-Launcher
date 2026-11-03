@@ -244,9 +244,40 @@ test('addons 注入：档案三态 + 勾选/取消按目录映射 -Dlf.*', () =>
   assert.ok(has(mixed, 'demo')); // v1 Demo addon 转正项：-Dlf.demo（legacyfix 原生开关）
   assert.ok(!has(mixed, 'skin.disable'));
   assert.ok(has(mixed, 'proxy.disable'));
-  // 占位项（v1 fullscreen/game-mode-switch/quit-game）勾选也不产生空属性开关
-  const ph = assembleLaunchConfig(versionJson, { ...baseContext(), addons: ['fullscreen', 'game-mode-switch', 'quit-game'] });
-  assert.ok(!ph.jvmArgs.includes('-Dlf.'));
+  // jar 形态 addon（fork addonAsset 三枚转正）：勾选集 → 单条 -Dlf.addons=<逗号分隔绝对路径>，
+  // 版本 = agentMount 文件名钉版；未勾项不进列表、顺序 = 目录序（fullscreen→game-mode-switch→quit-game）。
+  const jarMountJson = {
+    id: 'b1.7.3',
+    mainClass: 'net.minecraft.client.Minecraft',
+    betacraft: {
+      agentMount: [
+        { form: 'javaagent', path: 'legacyfix/legacyfix-26.10-attic.6.jar', appliesFrom: 'c0.0.13a', appliesTo: '1.3.2', quirk: 'legacyfix' },
+      ],
+    },
+  };
+  const allOn = assembleLaunchConfig(jarMountJson, { ...baseContext(), addons: ['fullscreen', 'game-mode-switch', 'quit-game'] });
+  const addonsArg = allOn.jvmArgs.filter((a) => a.startsWith('-Dlf.addons='));
+  assert.equal(addonsArg.length, 1);
+  assert.equal(
+    addonsArg[0],
+    '-Dlf.addons=/data/launcher/addons/legacyfix-addon-fullscreen-26.10-attic.6.jar,' +
+      '/data/launcher/addons/legacyfix-addon-gamemodeswitch-26.10-attic.6.jar,' +
+      '/data/launcher/addons/legacyfix-addon-quitgame-26.10-attic.6.jar',
+  );
+  const oneOn = assembleLaunchConfig(jarMountJson, { ...baseContext(), addons: ['quit-game'] });
+  assert.deepEqual(oneOn.jvmArgs.filter((a) => a.startsWith('-Dlf.addons')), [
+    '-Dlf.addons=/data/launcher/addons/legacyfix-addon-quitgame-26.10-attic.6.jar',
+  ]);
+  // addons=undefined（老档案无键）→ 零注入
+  const noAddons = assembleLaunchConfig(jarMountJson, baseContext());
+  assert.ok(!noAddons.jvmArgs.some((a) => a.startsWith('-Dlf.addons')));
+  // 无 agent 挂载（versionJson 无 betacraft 表）→ 不注入 + 一条诊断
+  {
+    const jarDiags = [];
+    const noMount = assembleLaunchConfig(versionJson, { ...baseContext(), addons: ['fullscreen'] }, { onDiagnostic: (m) => jarDiags.push(m) });
+    assert.ok(!noMount.jvmArgs.some((a) => a.startsWith('-Dlf.addons')));
+    assert.equal(jarDiags.length, 1);
+  }
   // 注入位置：紧随实例 launchArgs token、固定收尾属性之前
   const pos = assembleLaunchConfig(versionJson, { ...baseContext(), launchArgs: '-XX:+UseG1GC', addons: ['vsync'] });
   assert.ok(pos.jvmArgs.indexOf('-XX:+UseG1GC') < pos.jvmArgs.indexOf('-Dlf.vsync'));

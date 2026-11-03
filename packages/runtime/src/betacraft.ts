@@ -13,7 +13,7 @@ import path from 'node:path';
 import type { DownloadItem, DownloadProgressEvent, LibraryInfo, ModCategoryRaw, VersionEra, VersionJson, VersionRef } from '@attic/core-spec';
 
 import { resolveEndpoints, type Endpoints } from './endpoints';
-import { applyLegacyfixDeawtPatch, reportLegacyfixDeawtPatch } from './legacyfixPatch';
+
 import { ASSET_INDEXES, planAssetObjects, resolveLaunchAssetIndexId } from './legacyAssets';
 import { modMissingMessage, parseModCategories } from './mods';
 import { assetIndexFile, assetsDir, binDir, clientJarFile, infoFile, modJarFile } from './storage';
@@ -541,22 +541,40 @@ export class BetacraftClient {
 
   /**
    * legacyfix 钉版直链下载 → <root>/<relPath>（relPath 来自 agentMount.path，
-   * 文件名携带的版本号 = 唯一事实源；直链拼法见下方注释）。
+   * 文件名携带的版本号 = 唯一事实源；直链拼法见 ensureLegacyfixAsset）。
+   * 源 = 自有 fork CreatorCSIE/legacyfix-attic（endpoints.legacyfixRelease）：
+   * DeAwt 窗口位置已在 fork 源码层修复，启动器层二进制常量池补丁（原 legacyfixPatch.ts）
+   * 随切源退役。
+   */
+  async ensureLegacyfix(root: string, relPath: string, signal?: AbortSignal): Promise<string> {
+    const file = path.basename(relPath);
+    const version = /^legacyfix-(.+)\.jar$/i.exec(file)?.[1];
+    if (!version) throw new Error(`无法从 agentMount 文件名解析 legacyfix 版本（应为 legacyfix-<version>.jar）：${file}`);
+    return this.ensureLegacyfixAsset(root, relPath, version, signal);
+  }
+
+  /**
+   * 同 release 构件落位（agent 胖 jar 与 fork addon jar 共用 URL 拼装/校验）：
+   * `<base>/<version>/<basename>` → <root>/<relPath>。addon jar 版本由调用方从
+   * agentMount 文件名解析传入（addon 文件名不满足 `legacyfix-<ver>.jar` 正则）。
    * **SHA 校验自愈**：GitHub release 构件无官方哈希可锚，改为本地锚点——
-   * 下载+DeAwtPatch 落定后算 sha256+size 写 sidecar `<dest>.meta`；下次启动三级校验
+   * 下载落定后算 sha256+size 写 sidecar `<dest>.meta`；下次启动三级校验
    * （size → zip 尾部 EOCD → sha256），任一级不过 = 残缺/损坏 → 删本体+meta 重下
    * （防网络中断留半截 jar、被「存在=跳过」喂给 -javaagent 崩）。
    * meta 缺席的历史文件 = 首见信任：EOCD 过了才立锚。
    */
-  async ensureLegacyfix(root: string, relPath: string, signal?: AbortSignal): Promise<string> {
+  async ensureLegacyfixAsset(
+    root: string,
+    relPath: string,
+    version: string,
+    signal?: AbortSignal,
+  ): Promise<string> {
     const dest = path.join(root, relPath);
+    const file = path.basename(relPath);
     if (fs.existsSync(dest)) {
-      const file = path.basename(relPath);
       const size = fs.statSync(dest).size;
       this.emit({ item: 'legacyfix', id: file, phase: 'queued', bytesDone: 0, bytesTotal: size });
       if (await this.legacyfixIntact(dest)) {
-        // DeAwtPatch 窗口位置补丁幂等维持（钉版不匹配/锚点异常自动跳过，不阻断启动）。
-        reportLegacyfixDeawtPatch(dest, applyLegacyfixDeawtPatch(dest));
         this.emit({ item: 'legacyfix', id: file, phase: 'done', bytesDone: size, bytesTotal: size });
         return dest;
       }
@@ -564,15 +582,11 @@ export class BetacraftClient {
       fs.rmSync(dest, { force: true });
       fs.rmSync(`${dest}.meta`, { force: true });
     }
-    // 钉版直链：agentMount 文件名 `legacyfix-<version>.jar` 即版本唯一事实源 →
-    // tag=<version> 直链下载。不走 api.github.com/releases/latest：未认证 60 req/h/IP
+    // 钉版直链：版本唯一事实源 = agentMount 文件名（调用方解析后传入）→ tag=<version> 直链。
+    // 不走 api.github.com/releases/latest：未认证 60 req/h/IP
     // 限流会直接导致下载失败；且 latest 语义下突发新 release 会经 fallback 匹配换掉
-    // jar 版本、与补丁钉版表打架——直链天然把版本锁死在数据表。
-    const file = path.basename(relPath);
-    const version = /^legacyfix-(.+)\.jar$/i.exec(file)?.[1];
-    if (!version) throw new Error(`无法从 agentMount 文件名解析 legacyfix 版本（应为 legacyfix-<version>.jar）：${file}`);
+    // jar 版本、与数据表钉版打架——直链天然把版本锁死在数据表。
     await this.download(`${this.endpoints.legacyfixRelease}/${version}/${file}`, dest, 'legacyfix', file, undefined, signal);
-    reportLegacyfixDeawtPatch(dest, applyLegacyfixDeawtPatch(dest));
     await this.writeLegacyfixMeta(dest);
     return dest;
   }

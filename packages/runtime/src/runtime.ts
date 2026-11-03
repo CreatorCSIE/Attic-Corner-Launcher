@@ -9,6 +9,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import {
+  INSTANCE_ADDONS,
   IPC_EVENTS,
   LAUNCH_CANCELLED_MESSAGE,
   type Account,
@@ -63,7 +64,7 @@ import { checkLwjgl2Arch, dependsOsFor, ensureDepends, type DependsIO } from './
 import { detectJavaRuntime } from './java/detect';
 import { probeJavaExecutable } from './java/probe';
 import { hasLegacyResourceProbes, materializeLegacyResources } from './legacyResources';
-import { APPLET_LAUNCHER_CLASS, assembleLaunchConfig, type LaunchContext } from './launch';
+import { APPLET_LAUNCHER_CLASS, assembleLaunchConfig, legacyfixReleaseVersion, type LaunchContext } from './launch';
 import {
   composeModJars,
   downloadInfoAtomic,
@@ -785,6 +786,20 @@ export class AtticRuntime {
         const targetDir = path.join(context.gameDir, mount.form === 'coremod' ? 'coremods' : 'mods');
         fs.mkdirSync(targetDir, { recursive: true });
         fs.copyFileSync(source, path.join(targetDir, path.basename(mount.path)));
+      }
+
+      // fork addon jar 落位（勾选的 addonAsset 项 → launcher/addons/<基名>-<agent 钉版>.jar，
+      // 同 release 同版本；拼装器据此注入 -Dlf.addons=，见 launch.ts）。addon 文件名不满足
+      // agent 版本正则，版本从挂载集解析后显式传入；无挂载（版本在区间外）→ 不落位（拼装端同条件不注入）。
+      if (context.addons?.length) {
+        const lfVersion = legacyfixReleaseVersion(config.agentMount);
+        if (lfVersion) {
+          for (const def of INSTANCE_ADDONS) {
+            if (!def.addonAsset || !context.addons.includes(def.id)) continue;
+            const relPath = path.join('launcher', 'addons', `${def.addonAsset}-${lfVersion}.jar`);
+            await this.client.ensureLegacyfixAsset(this.root, relPath, lfVersion, signal);
+          }
+        }
       }
 
       // 微软验证预注册：server 直连 ∧ 微软账户 → spawn 前 joinServer

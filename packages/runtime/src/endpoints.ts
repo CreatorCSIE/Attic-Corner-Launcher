@@ -16,6 +16,10 @@ export interface Endpoints {
    * legacyfix GitHub Release **直链 base**（拼 `<base>/<version>/<asset>`，version 取自
    * agentMount 文件名 = 钉版唯一事实源；不走 api.github.com——未认证 60 req/h/IP 限流
    * 会直接导致 legacyfix 下载失败）。
+   * 缺省源 = 自有 fork `CreatorCSIE/legacyfix-attic`（attic 分支，版本命名 `<upstream>-attic.<n>`；
+   * DeAwt setLocation 源码化 + AddonLoader 外部 addon + c0.24 双协议 patch 所在，
+   * 同 release 挂 agent 胖 jar + addon jar 构件）。`endpoint.legacyfixRelease` 覆盖键
+   * （launcher.settings）仍可指回上游 betacraftuk/legacyfix。
    */
   legacyfixRelease: string;
   /** Azul Zulu 元数据 API。 */
@@ -43,7 +47,7 @@ export const DEFAULT_ENDPOINTS: Endpoints = {
   versionList: `${FILES_BASE}/version_list.txt`,
   versionJson: (id: string) => `${FILES_BASE}/jsons/${encodeURIComponent(id)}.info`,
   assetIndex: (id: string) => `${FILES_BASE}/indexes/${encodeURIComponent(id)}.json`,
-  legacyfixRelease: 'https://github.com/betacraftuk/legacyfix/releases/download',
+  legacyfixRelease: 'https://github.com/CreatorCSIE/legacyfix-attic/releases/download',
   zuluMetadata: 'https://api.azul.com/metadata/v1/zulu/packages/',
   mojangManifest: 'https://piston-meta.mojang.com/mc/game/version_manifest_v2.json',
   modsList: 'http://api.betacraft.uk/getmods.jsp',

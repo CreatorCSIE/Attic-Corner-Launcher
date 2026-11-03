@@ -247,6 +247,13 @@ export interface AddonDef {
   uiSection?: 'basic' | 'addons' | 'launchmenu';
   /** jar 内条目路径（如 `net/minecraft/isom/IsomPreviewApplet.class`）；uiSection=launchmenu 时提供。 */
   probeClass?: string;
+  /**
+   * jar 形态 addon 的 release 构件基名（如 `legacyfix-addon-fullscreen`；实际 asset =
+   * `<基名>-<agent 钉版>.jar`）。有值 = fork AddonLoader 外部 addon：勾选不注入 `-Dlf.<prop>`
+   * 属性，而是把 `<dataDir>/launcher/addons/<基名>-<版本>.jar` 绝对路径汇入 `-Dlf.addons=`
+   * （逗号分隔单条）；jar 本体随 agent 同 release 同版本由宿主下载链落位。
+   */
+  addonAsset?: string;
 }
 
 export const INSTANCE_ADDONS: AddonDef[] = [
@@ -266,10 +273,11 @@ export const INSTANCE_ADDONS: AddonDef[] = [
   // legacyfix IntelGraphicsPatch：glActiveTexture 前补发 glClientActiveTexture，
   // 修老 Intel GPU 多纹理渲染错乱（b1.9–1.7.10）；opt-in 默认关
   { id: 'intel', prop: 'intel', mode: 'enable' },
-  // v1 addons 清单占位（legacyfix 无对应开关）
-  { id: 'fullscreen', prop: '', mode: 'enable', placeholder: true },
-  { id: 'game-mode-switch', prop: '', mode: 'enable', placeholder: true },
-  { id: 'quit-game', prop: '', mode: 'enable', placeholder: true },
+  // v1 addons 转正（fork legacyfix-attic 外部 addon jar，AddonLoader 经 -Dlf.addons= 装载；
+  // 上游矩阵确认无对应 Patch = 真缺口，fork 任务 B 首批三枚）
+  { id: 'fullscreen', prop: '', mode: 'enable', addonAsset: 'legacyfix-addon-fullscreen' },
+  { id: 'game-mode-switch', prop: '', mode: 'enable', addonAsset: 'legacyfix-addon-gamemodeswitch' },
+  { id: 'quit-game', prop: '', mode: 'enable', addonAsset: 'legacyfix-addon-quitgame' },
   // 启动页「≡」菜单动作项（探测到类才可点击；点击 = LaunchRequest.visualizer 一次性注入，
   // 档案 addons 仍可携带同 id = 常开语义，装配器去重不双注）
   {

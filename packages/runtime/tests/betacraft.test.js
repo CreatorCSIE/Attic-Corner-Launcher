@@ -299,12 +299,38 @@ test('ensureLegacyfix：钉版直链下载落位（不走 api.github.com，版�
   const jar = 'LEGACYFIX';
   const client = new BetacraftClient({
     fetchImpl: fakeFetch({
-      'https://github.com/betacraftuk/legacyfix/releases/download/26.10/legacyfix-26.10.jar': jar,
+      'https://github.com/CreatorCSIE/legacyfix-attic/releases/download/26.10/legacyfix-26.10.jar': jar,
     }),
   });
   const dest = await client.ensureLegacyfix(root, 'legacyfix/legacyfix-26.10.jar');
   assert.equal(dest, path.join(root, 'legacyfix', 'legacyfix-26.10.jar'));
   assert.equal(fs.readFileSync(dest, 'utf8'), jar);
+});
+
+test('ensureLegacyfixAsset：addon jar 显式版本落位（同 release 同 URL 拼装/同 meta 锚自愈）', async (t) => {
+  const jar = buildZip(['uk/betacraft/legacyfix/addon/Fullscreen.class']);
+  const root = tempRoot(t);
+  let fetches = 0;
+  const client = new BetacraftClient({
+    fetchImpl: async (url) => {
+      if (url === 'https://github.com/CreatorCSIE/legacyfix-attic/releases/download/26.10-attic.6/legacyfix-addon-fullscreen-26.10-attic.6.jar') {
+        fetches++;
+        return new Response(jar, { status: 200, headers: { 'content-length': String(jar.length) } });
+      }
+      return new Response('not found', { status: 404 });
+    },
+  });
+  const rel = path.join('launcher', 'addons', 'legacyfix-addon-fullscreen-26.10-attic.6.jar');
+  const dest = await client.ensureLegacyfixAsset(root, rel, '26.10-attic.6');
+  assert.equal(dest, path.join(root, 'launcher', 'addons', 'legacyfix-addon-fullscreen-26.10-attic.6.jar'));
+  assert.ok(fs.existsSync(`${dest}.meta`), 'meta 锚随 addon jar 同立');
+  // 完好复核 = 不重下；截断（无 EOCD）= 自愈重下——与 agent jar 同一纪律
+  await client.ensureLegacyfixAsset(root, rel, '26.10-attic.6');
+  assert.equal(fetches, 1);
+  fs.writeFileSync(dest, 'TRUNC');
+  await client.ensureLegacyfixAsset(root, rel, '26.10-attic.6');
+  assert.equal(fetches, 2);
+  assert.ok(fs.readFileSync(dest).equals(jar), '自愈重下还原完整构件');
 });
 
 test('ensureLegacyfix：文件名无版本号 = 数据表错误，直链无从派生 → 显式报错', async (t) => {
@@ -394,7 +420,7 @@ function legacyfixHarness(t, jar) {
   let jarFetches = 0;
   const client = new BetacraftClient({
     fetchImpl: async (url) => {
-      if (url === 'https://github.com/betacraftuk/legacyfix/releases/download/26.10/legacyfix-26.10.jar') {
+      if (url === 'https://github.com/CreatorCSIE/legacyfix-attic/releases/download/26.10/legacyfix-26.10.jar') {
         jarFetches++;
         return new Response(jar, { status: 200, headers: { 'content-length': String(jar.length) } });
       }

@@ -114,6 +114,20 @@ export function filterAgentMounts(
   });
 }
 
+/**
+ * 从 agentMount 集解析 legacyfix release 版本（文件名 `legacyfix-<version>.jar` = 钉版唯一
+ * 事实源，与 betacraft.ensureLegacyfix 同一正则；agent 与 fork addon jar 同 release 同版本）。
+ * 空挂载集/解析不出 → null（jar addon 不注入、不落位）。
+ */
+export function legacyfixReleaseVersion(mounts: AgentMount[]): string | null {
+  for (const mount of mounts) {
+    const file = mount.path.split('/').pop() ?? '';
+    const version = /^legacyfix-(.+)\.jar$/i.exec(file)?.[1];
+    if (version) return version;
+  }
+  return null;
+}
+
 function placeholderValues(versionJson: VersionJson, context: LaunchContext): Record<string, string> {
   return {
     auth_player_name: context.username,
@@ -182,11 +196,26 @@ export function assembleLaunchConfig(
   }
   // 实例 addons → legacyfix 开关（目录 INSTANCE_ADDONS）：enable 勾选注入 / disable 取消注入。
   // addons=undefined（老档案无键）零注入 = legacyfix 自身缺省行为，不擅自改写。
+  // addonAsset 项走 jar 形态通道（下方 -Dlf.addons=），不吃属性开关。
   if (context.addons) {
     for (const def of INSTANCE_ADDONS) {
-      if (def.placeholder) continue;
+      if (def.placeholder || def.addonAsset) continue;
       const on = context.addons.includes(def.id);
       if ((def.mode === 'enable') === on) jvmArgs.push(`-Dlf.${def.prop}`);
+    }
+    // jar 形态 addon（fork AddonLoader）：勾选集 → `-Dlf.addons=<逗号分隔绝对路径>` 单条注入。
+    // 路径 = launcher/addons/<构件基名>-<agent 钉版>.jar（版本唯一事实源 = agentMount 文件名，
+    // 与宿主下载链同源）；无 agent 挂载（版本在区间外）→ 不注入 + 诊断（addon 依赖 agent 在场）。
+    // AddonLoader 语义 = 逗号分隔路径逐项加载（.jar 结尾按文件，不扫目录），坏 addon 只跳过不炸 agent。
+    const jarDefs = INSTANCE_ADDONS.filter((d) => d.addonAsset && context.addons!.includes(d.id));
+    if (jarDefs.length > 0) {
+      const lfVersion = legacyfixReleaseVersion(mounts);
+      if (!lfVersion) {
+        opts.onDiagnostic?.('jar addon 已勾选但当前版本无 legacyfix 挂载，未注入 -Dlf.addons');
+      } else {
+        const paths = jarDefs.map((d) => `${dataDir}/launcher/addons/${d.addonAsset}-${lfVersion}.jar`);
+        jvmArgs.push(`-Dlf.addons=${paths.join(',')}`);
+      }
     }
   }
   // 一次性可视化器（LaunchRequest.visualizer，菜单动作项）：同位补注；档案已含则上面已注入，不重复。
@@ -194,8 +223,9 @@ export function assembleLaunchConfig(
   jvmArgs.push('-Djava.util.Arrays.useLegacyMergeSort=true');
   // 注：-Dsun.java2d.dpiaware 对 applet 容器高 DPI 窗口右下偏移无效——该 Oracle JDK8
   // 扩展属性只影响 Java2D 字体/渲染缩放，不影响 LWJGL 原生窗 SetWindowPos 坐标语义，勿注入。
-  // 根因（legacyfix DeAwtPatch 不交接 frame 位置 + LWJGL getWindowX/Y 混源居中公式）未修；
-  // 组合代理修复路线会引入双窗/挂起，后续修复需另寻方案（上游 PR 或宿主侧）。
+  // 根因（DeAwtPatch 注入体不交接 frame 位置 + LWJGL getWindowX/Y 混源居中公式）已在 fork
+  // 源码层修复（legacyfix-attic DeAwtPatch.java 注入体 Display.setLocation(frame.getX(), frame.getY())），
+  // 启动器层二进制常量池补丁随切源退役。
   jvmArgs.push(`-Dhttp.nonProxyHosts=${NON_PROXY_HOSTS}`);
   const natives = `${dataDir}/bin/natives`;
   jvmArgs.push(`-Dorg.lwjgl.librarypath=${natives}`);
@@ -274,10 +304,6 @@ export function assembleLaunchConfig(
   // 实例值以 v1 缺省 854x480 显式传入；非 Applet 版本窗口由 LWJGL/DeAwt 自管，不注入（避免污染主类参数解析）。
   if (isAppletContainer && context.width && context.height) {
     gameArgs.push('--width', String(context.width), '--height', String(context.height));
-    // DeAwtPatch V2 保底分辨率通道（legacyfixPatch.ts 注入体 Integer.getInteger("lf.minW/lf.minH") 读取）：
-    // applet 布局未定时 child 尺寸为 0 → DisplayMode(0,0) 坍缩 → EntityRenderer 整数除零崩溃。
-    // 钳制下限=启动尺寸；-D 通道两代 legacyfix jar 通吃（旧版 GameArgs 无 getValue，反射路线不可用）。
-    jvmArgs.push(`-Dlf.minW=${context.width}`, `-Dlf.minH=${context.height}`);
   }
   // Applet 子类型指定（4k-* → --appletClass M；pre-Classic → 宿主按 jar 探测注入 RubyDung）。
   // 注入值优先于方法表：rd 系 launch-method 同键（preclassic）但 jar 形态跨两代类名，表无法表达。

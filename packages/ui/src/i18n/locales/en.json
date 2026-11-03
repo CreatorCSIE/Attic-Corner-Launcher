@@ -345,15 +345,15 @@
       },
       "fullscreen": {
         "name": "Fullscreen launch",
-        "desc": "Start the game in fullscreen mode (v1 feature, not wired yet)."
+        "desc": "Start the game in fullscreen mode (legacyfix-attic addon)."
       },
       "game-mode-switch": {
         "name": "Game mode switch",
-        "desc": "Toggle creative/survival by key in Classic (v1 feature, not wired yet)."
+        "desc": "Toggle creative/survival by key in Classic (legacyfix-attic addon)."
       },
       "quit-game": {
         "name": "Quick quit",
-        "desc": "In-game quit-to-launcher shortcut (v1 feature, not wired yet)."
+        "desc": "In-game quit-to-launcher shortcut (legacyfix-attic addon)."
       }
     },
     "javaPath": "Java path",

@@ -1,6 +1,6 @@
 {
   "name": "@attic/electron",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "private": true,
   "description": "Electron 壳（双壳并进第二发行形态 + 日常开发壳）：无边距主窗 + 加载 @attic/ui + IPC 骨架；Windows 发行 = tsc 直出 + electron-builder --dir + Inno（installer/attic.iss electron flavor）",
   "main": "dist/main.js",

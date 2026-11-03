@@ -1,6 +1,6 @@
 {
   "name": "@attic/electron-legacy",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "private": true,
   "description": "Win7/8/8.1 兜底壳：Electron 22（Chromium 108 / Node 16.17）+ electron-builder --dir + Inno Setup（installer/attic.iss legacy flavor）；复用 apps/electron 主入口源码（esbuild 单文件化 + electron.net fetch 桥）",
   "main": "dist/legacy-main.cjs",

@@ -5,12 +5,16 @@
  * - parseServerList：五分类分段、双行配对、join:// 四段拆解、名字 [版本] 前缀剥除、
  *   HTML 实体解码（名字/描述）、icon 两型（server_icon 投值 / unknown_pack 省略键）、
  *   Online Mode / players 有无两态、mppass=use 省略键（真实密码保留）、地址权威 = join 段；
- * - normalizePreferredVersion / matchVersionId：三级匹配（精确/前缀双向取最长/未命中缺省），
+ * - normalizePreferredVersion / matchVersionId：四级匹配（精确/去分隔符精确/前缀双向取最长/未命中缺省），
  *   脏样本（构建后缀/含空格/第三方客户端名/protocol=unknown）各就各位；
  * - parseServerList 两轨匹配：官方轨先行防 mod 前缀劫持；mod/自定义轨兜底命中打
  *   matchedVersionIsCustom（第三方客户端服正解 + UI 知情提示）；
  * - parseServerList 协议全集（v1 区间语义）：protocol 同值官方全集（清单序）+ matched
  *   缺席追加 + unknown/空协议/全集空 = 键省略各形态；
+ * - parseServerList 范围外 versionOutOfRange：协议已知 + 全集/matched 双空或矛盾闸才打，
+ *   unknown 协议/mod 轨命中/降级无对照集各形态省略键；
+ * - 矛盾闸 + 去分隔符精确级（2026-11-03 4B4T 实锤）：preferred 与协议段互斥 = 全集省略投范围外，
+ *   连字符噪声真实 id 名字轨救援不进闸，空 preferred 保留 v1 纯协议过滤；
  * - AtticRuntime.listServers：现拉现发 + 版本目录派生 + 清单不可得降级 + 失败可见错误。
  */
 
@@ -240,8 +244,9 @@ test('parseServerList 前缀边界闸：`1.12.2` 不被官方 `1.1` 抢走；合
   ];
   const list = parseServerList(html, officials, []);
   const nomad = list.find((s) => s.name === 'Nomad Anarchy');
-  assert.equal(nomad.matchedVersionId, undefined, '下一字符是数字 = 非边界，不匹配 = UI 手动选');
-  assert.deepEqual(nomad.compatibleVersionIds, ['1.1'], '兼容集不受影响（协议同值仍在）');
+  assert.equal(nomad.matchedVersionId, undefined, '下一字符是数字 = 非边界，不匹配');
+  assert.ok(!('compatibleVersionIds' in nomad), '矛盾闸（2026-11-03 4B4T 实锤）：preferred 1.12.2 与协议集 [1.1] 互斥 = 协议段不可信，全集省略');
+  assert.equal(nomad.versionOutOfRange, true, '改投解释态——旧断言「给 1.1 候选下拉」正是误导形态');
   const hyper = list.find((s) => s.name === 'The Hyperion');
   assert.equal(hyper.matchedVersionId, 'b1.4-1507', '下一字符是 `-` = 合法边界，前缀级保住');
 });
@@ -272,6 +277,78 @@ test('parseServerList 协议全集：无同值官方版本且无 matched = 键�
   const list = parseServerList(FIXTURE, OFFICIALS);
   assert.ok(!('compatibleVersionIds' in byName(list, 'Stone11')), 'alpha_6 无同值官方 + 未命中');
   assert.ok(!('compatibleVersionIds' in byName(list, 'TurtleSMP')), 'protocol=5 无同值官方 + 无 mod 轨');
+});
+
+// ---------- 版本库范围外（宿主判定 versionOutOfRange：协议已知 + 清单可对照 + 全集/matched 双空） ----------
+
+test('parseServerList 范围外：协议已知且无同值官方无 matched = 打 versionOutOfRange；unknown 协议/matched 在场 = 省略键', () => {
+  const list = parseServerList(FIXTURE, OFFICIALS);
+  assert.equal(byName(list, 'Stone11').versionOutOfRange, true, 'alpha_6 无同值官方 + 未命中 = 范围外');
+  assert.equal(byName(list, 'TurtleSMP').versionOutOfRange, true, 'protocol=5 无同值官方 + 未命中 = 范围外');
+  assert.ok(!('versionOutOfRange' in byName(list, "Twizl's Beta World")), 'protocol=unknown 不可信 = 恒省略（UI 维持手动形态）');
+  assert.ok(!('versionOutOfRange' in byName(list, 'Not Awesome 2')), '官方轨命中 = 不打');
+});
+
+test('parseServerList 范围外：mod 轨命中（matched 追加进全集）= 不算范围外（第三方客户端服正解面）', () => {
+  const list = parseServerList(FIXTURE, OFFICIALS, [{ id: 'v0.1.7' }]);
+  assert.ok(!('versionOutOfRange' in byName(list, 'TurtleSMP')), 'compatible=[matched] 非空');
+});
+
+test('parseServerList 范围外：降级护栏——官方清单空 / protocol 列整体缺席 = 全服省略键（不误判范围外）', () => {
+  // 清单不可得（listVersions 降级 = 官方轨空）
+  const empty = parseServerList(FIXTURE, []);
+  assert.ok(empty.every((s) => !('versionOutOfRange' in s)));
+  // 旧缓存形：id 在场但 protocol 列整体缺席（无对照集，matched 仍可名字命中）
+  const bare = parseServerList(FIXTURE, OFFICIALS.map((v) => ({ id: v.id })));
+  assert.ok(bare.every((s) => !('versionOutOfRange' in s)));
+  assert.equal(byName(bare, 'Not Awesome 2').matchedVersionId, 'c0.30-c', '降级面匹配照常');
+});
+
+// ---------- 矛盾闸 + 去分隔符精确级（上游脏数据防线，2026-11-03 4B4T 实锤） ----------
+
+/** 最小列表三行：4B4T（协议段 release_22 × preferred 1.21.11 互相矛盾）、
+ *  Goplex（同协议段 × preferred b1.9pre6 = 真实 id 带连字符噪声）、空 preferred。 */
+const CONTRA_HTML = [
+  '<div class="category"><h2>Release</h2><table class="servers">',
+  '<tr class="server"><td><div class="server__info"><a href="join://4b4t.cn:25565/use/release_22/1.21.11"><span class="server__name"><span class="server__version">[26.1.2 (modded)] </span>4B4T</span></a><span class="server__address">4b4t.cn:25565</span></div></td></tr>',
+  '<tr class="server"><td><div class="server__info"><a href="join://b6.goplex.me:11/use/release_22/b1.9pre6"><span class="server__name"><span class="server__version">[b1.9pre6] </span>Goplex</span></a><span class="server__address">b6.goplex.me:11</span></div></td></tr>',
+  '<tr class="server"><td><div class="server__info"><a href="join://quiet.example:25565/use/release_22/"><span class="server__name"><span class="server__version">[] </span>Quiet</span></a><span class="server__address">quiet.example:25565</span></div></td></tr>',
+  '</table></div>',
+].join('\n');
+
+const CONTRA_OFFICIALS = [
+  { id: '1.0.0', protocol: 'release_22' },
+  { id: '11w50a', protocol: 'release_22' },
+  { id: 'b1.9-pre6', protocol: 'beta_22' },
+];
+
+test('矛盾闸：matched 落空 ∧ preferred 非空 ∧ 协议全集非空 = 全集键一并省略 + 投范围外（4B4T 形态不再给 1.0 候选下拉）', () => {
+  const list = parseServerList(CONTRA_HTML, CONTRA_OFFICIALS);
+  const b4 = byName(list, '4B4T');
+  assert.equal(b4.matchedVersionId, undefined, '1.21.11 与任何官方无名字关系');
+  assert.ok(!('compatibleVersionIds' in b4), '协议段不可信 = 全集键省略，不给 1.0 时代候选');
+  assert.equal(b4.versionOutOfRange, true, '改投解释态（preferred 与协议同屏，上游矛盾对用户可见）');
+});
+
+test('矛盾闸：去分隔符精确级救援真实可玩服（Goplex b1.9pre6↔b1.9-pre6 名字轨命中 = 不进闸）', () => {
+  const list = parseServerList(CONTRA_HTML, CONTRA_OFFICIALS);
+  const gp = byName(list, 'Goplex');
+  assert.equal(gp.matchedVersionId, 'b1.9-pre6', '官方轨去分隔符精确级命中');
+  assert.deepEqual(gp.compatibleVersionIds, ['1.0.0', '11w50a', 'b1.9-pre6'], '协议全集 + matched 追加末尾（v1 语义不变，预选=matched）');
+  assert.ok(!('versionOutOfRange' in gp), 'matched 在场 = 不投范围外');
+});
+
+test('矛盾闸：preferred 空串 = 无矛盾信号，协议全集照常给出（v1 纯协议过滤语义保留）', () => {
+  const list = parseServerList(CONTRA_HTML, CONTRA_OFFICIALS);
+  const q = byName(list, 'Quiet');
+  assert.deepEqual(q.compatibleVersionIds, ['1.0.0', '11w50a']);
+  assert.ok(!('versionOutOfRange' in q));
+});
+
+test('matchVersionId：去分隔符精确级（连字符/下划线噪声）', () => {
+  assert.equal(matchVersionId('b1.9pre6', ['b1.9-pre6', '1.5.2']), 'b1.9-pre6');
+  assert.equal(matchVersionId('c0.30c', ['c0.30-c']), 'c0.30-c');
+  assert.equal(matchVersionId('1.21.11', ['1.0.0', '11w50a', 'b1.9-pre6']), undefined, '矛盾形态四级全不落空');
 });
 
 // ---------- 门面集成（版本目录 = 既有清单缓存 API，fakeFetch 桩） ----------
@@ -361,6 +438,7 @@ test('listServers：版本清单不可得 = 匹配级全未命中降级，列表
   const list = await rt.listServers();
   assert.equal(list.length, 7);
   assert.ok(list.every((s) => s.matchedVersionId === undefined), '全部缺省 matchedVersionId');
+  assert.ok(list.every((s) => !('versionOutOfRange' in s)), '降级态无对照协议集 = 全服不打范围外（UI 维持手动形态）');
 });
 
 test('listServers：上游失败 = 可读错误（壳层 handle 封装 IpcResult 错误字符串，UI 空态+重试）', async (t) => {

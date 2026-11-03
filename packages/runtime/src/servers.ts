@@ -57,9 +57,10 @@ export function normalizePreferredVersion(raw: string): string {
 }
 
 /**
- * 对单个版本轨 id 集三级匹配：① 精确（大小写不敏感）；② 前缀双向（`c0.30-c-1900` 命中目录
- * `c0.30-c`；反向如 `b1.7` 命中 `b1.7.3`），多个命中取最长公共段；③ 未命中 = undefined
- * （UI 走手动选版本，matchedVersionId 键省略）。
+ * 对单个版本轨 id 集四级匹配：① 精确（大小写不敏感）；② 去分隔符精确（`b1.9pre6`↔`b1.9-pre6`，
+ * 上游连字符噪声救援）；③ 前缀双向（`c0.30-c-1900` 命中目录 `c0.30-c`；反向如 `b1.7` 命中
+ * `b1.7.3`），多个命中取最长公共段；④ 未命中 = undefined
+ * （UI 走手动选版本或范围外解释态，matchedVersionId 键省略）。
  * 各轨调用序（自定义原样精确先行 → 官方 → 自定义兜底）在 parseServerList，见其注释。
  */
 export function matchVersionId(preferred: string, versionIds: readonly string[]): string | undefined {
@@ -103,11 +104,25 @@ function prefixAtBoundary(longer: string, shorter: string): boolean {
   return !/[0-9]/.test(longer[shorter.length] as string);
 }
 
-/** 对已归一串执行三级匹配（精确→前缀双向取最长→undefined），matchVersionId 的裸形核。 */
+/** 剥连字符/下划线（上游 preferred 带连字符噪声形态：`b1.9pre6` ↔ 官方 `b1.9-pre6`）。 */
+function stripSeps(s: string): string {
+  return s.replace(/[-_]/g, '');
+}
+
+/** 对已归一串执行三级匹配（精确→去分隔符精确→前缀双向取最长→undefined），matchVersionId 的裸形核。 */
 function matchNormalized(norm: string, versionIds: readonly string[]): string | undefined {
   if (norm === '') return undefined;
   for (const id of versionIds) {
     if (id.toLowerCase() === norm) return id;
+  }
+  // 去分隔符精确级（矛盾闸的配套救援，2026-11-03）：goplex `use/release_22/b1.9pre6` 类
+  // 「协议段脏但 preferred 是真实 id 只差连字符」的服靠本级在名字轨先行命中，
+  // matched 在场即不进矛盾闸——真实可玩服不被误杀成解释态。
+  const stripped = stripSeps(norm);
+  if (stripped !== '') {
+    for (const id of versionIds) {
+      if (stripSeps(id.toLowerCase()) === stripped) return id;
+    }
   }
   let best: string | undefined;
   let bestLen = 0;
@@ -171,6 +186,12 @@ function extractIconUrl(rowHtml: string): string | undefined {
  * 协议兼容全集（v1 区间语义，WebsitePanel 同款）：官方清单中 protocol 与 join:// 第三段
  * 字符串相等的全部版本（清单序）；matchedVersionId 不在其中（mod 兜底形）追加末尾；
  * 协议段空/`unknown` 或全集为空 = 省略 compatibleVersionIds 键（UI 回落单值/手动形态）。
+ * 〔取证 2026-11-03：v1 该路径实为坏档——ReleaseJson L68 从 .info 读 `protocolVersion` 键，
+ * 全清单无此键 → equals 恒 false → v1 协议循环永不命中、选版本窗恒空（仅 mod 仓库一支生效）。
+ * 本实装 = v1 意图 + 清单第 5 列数据源的修复性实装，非 v1 行为复刻。〕
+ * versionOutOfRange（BC v1 空白选版本窗的可见化改进）= 协议已知、清单有协议列可对照、
+ * compatible 全集空（matched 双落空）或矛盾闸（preferred 非空与协议全集互斥，协议段不可信）
+ * ——降级/旧缓存形态省略键，UI 维持手动形态。
  */
 export function parseServerList(
   html: string,
@@ -179,6 +200,11 @@ export function parseServerList(
 ): ServerListView[] {
   const officialIds = officialVersions.map((v) => v.id);
   const customIds = customVersions.map((v) => v.id);
+  // 范围外判定的对照协议集（降级护栏）：官方清单 protocol 列整体缺席（清单不可得/旧缓存形）
+  // = 无可对照集，全部服务器省略 versionOutOfRange，UI 维持手动选版本形态不误判「库外」。
+  const knownProtocols = new Set(
+    officialVersions.map((v) => v.protocol).filter((p): p is string => p !== undefined && p !== ''),
+  );
   const body = html.replace(/^\uFEFF/, '');
   // 分类分段：按 h2 出现序切段（上游模板恒五段 Classic→Release；未知段名条目剔除）。
   const headers: { category: ServerCategory | null; start: number }[] = [];
@@ -257,6 +283,13 @@ export function parseServerList(
           }
         }
         if (matched !== undefined && !compatible.includes(matched)) compatible.push(matched);
+        // 矛盾闸（上游脏数据防线，2026-11-03 4B4T 实锤）：`use/release_22/1.21.11` 类行
+        // preferred 与协议段互相矛盾——matched 落空 ∧ preferred 非空 ∧ 协议全集非空即矛盾
+        // （全集成员全是官方 id，preferred 若与任何成员有名字关系，官方轨同一匹配器在更大
+        // 集合上必先命中，matched 不会落空）。协议段不可信 → 省略全集键、改投范围外解释态：
+        // preferred 与协议同屏展示，上游矛盾对用户可见，不再给 1.0 时代候选的误导下拉。
+        const contradiction =
+          matched === undefined && join.preferredVersion.trim() !== '' && compatible.length > 0;
         const entry: ServerListView = {
           id: `${addr.address}:${addr.port}`,
           name,
@@ -273,7 +306,16 @@ export function parseServerList(
           ...(matched ? { matchedVersionId: matched } : {}),
           ...(matchedIsCustom ? { matchedVersionIsCustom: true } : {}),
           ...(matchedModInfoUrl ? { matchedModInfoUrl } : {}),
-          ...(compatible.length > 0 ? { compatibleVersionIds: compatible } : {}),
+          ...(compatible.length > 0 && !contradiction ? { compatibleVersionIds: compatible } : {}),
+          // 范围外 = 协议已知且清单有协议列可对照，且「双落空」（compatible 全集空，matched
+          // 在场必已追加进 compatible，空集即双落空）或「矛盾闸」（preferred 与协议段互斥，
+          // 协议段不可信）——库里没有任何可信同协议客户端，UI 弹窗出解释态。
+          ...(knownProtocols.size > 0 &&
+          join.protocol !== '' &&
+          join.protocol !== 'unknown' &&
+          (compatible.length === 0 || contradiction)
+            ? { versionOutOfRange: true }
+            : {}),
         };
         out.push(entry);
         pending = entry;

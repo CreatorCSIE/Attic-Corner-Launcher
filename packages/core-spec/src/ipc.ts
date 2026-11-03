@@ -154,11 +154,21 @@ export interface ServerListView {
    */
   matchedModInfoUrl?: string;
   /**
-   * 协议兼容版本全集（v1 区间语义）：官方清单中与 join:// protocol 同值的全部版本 id，
+   * 协议兼容版本全集（v1 区间语义；取证 2026-11-03：v1 协议过滤读 .info `protocolVersion` 键
+   * 而该键全清单缺席 = 坏档恒空窗，本实装系 v1 意图 + 清单第 5 列数据源的修复性实装）：
+   * 官方清单中与 join:// protocol 同值的全部版本 id，
    * 按清单序；matchedVersionId 不在其中（mod 兜底形）时追加末尾。UI 以此集合出下拉供改选；
    * 空集（协议无同值官方版本）= 省略本键，UI 回落单值/手动形态。
    */
   compatibleVersionIds?: string[];
+  /**
+   * 版本库范围外 = true：protocol 已知（非空非 unknown）、官方清单存在协议列可对照
+   * （清单不可得/protocol 全缺席的降级态省略本键）、且「compatible/matched 双落空」或
+   * 「矛盾闸」（preferred 非空却与协议全集互斥 = 上游两声明互相矛盾，协议段不可信，
+   * 2026-11-03 4B4T 实锤）——即库里没有任何可信同协议客户端，手动选版本也必握手失败。
+   * UI 弹窗据此出解释态（要求版本/协议 + 复制地址），无手动下拉与确认钮——自备客户端走启动页经典多人直连。
+   */
+  versionOutOfRange?: boolean;
 }
 
 /**

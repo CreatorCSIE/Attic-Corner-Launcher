@@ -19,13 +19,15 @@ import type { MsDeviceCode, MsLoginErrorCode } from '@attic/core-spec';
 import type { FetchImpl } from './betacraft';
 
 /**
- * 缺省 CLIENT_ID（**临时 = Betacraft 社区白名单 id**，v1 MicrosoftAuth.java L28 同源——Mojang 对
- * 第三方启动器实行 app 白名单制，未过审 id 在 login_with_xbox 被 403 "Invalid app registration"；
- * 借用面风险 = Mojang 可随时撤白（LiquidBounce 先例），仅作过审前过渡）。自有 id 15bc4a50
- * （Azure 应用注册，个人账户租户 + 公共客户端流）已提交 aka.ms/mce-reviewappid 白名单审批，
- * **过审即换**。生效值 = settings.microsoftClientId || DEFAULT_MS_CLIENT_ID（覆盖键供换绑/排障）。
+ * 缺省 CLIENT_ID = **自有 AppID**（Azure 应用注册，个人账户租户 + 公共客户端流；
+ * aka.ms/mce-reviewappid 白名单 **2026-11-03 获批**，Mojang Enforcement 邮件 = 案底）。
+ * 历史：0.0.9–0.0.12 借用 Betacraft 社区白名单 id `8075fa74-4091-4356-a0b8-a7c118ef121c`
+ * 作临时通道（v1 MicrosoftAuth.java L28 同源；借用风险 = 可被随时撤白，LiquidBounce 先例）——
+ * 已退役，仅留史注。**换绑后果**：Azure 的 refresh token 绑定发行时的 client_id，旧 id 下发
+ * 的存量账户在新缺省下刷新必被拒 → 需重新登录一次（0.0.13 发布说明已声明；离线账户无感；
+ * settings.microsoftClientId 覆盖键优先级不变）。生效值 = settings.microsoftClientId || DEFAULT_MS_CLIENT_ID。
  */
-export const DEFAULT_MS_CLIENT_ID = '8075fa74-4091-4356-a0b8-a7c118ef121c';
+export const DEFAULT_MS_CLIENT_ID = '15bc4a50-ecdd-4573-ad32-aa5114ed76ef';
 
 /** 端点白名单（五域；msFetch 硬闸，域外直接 internal）。 */
 export const MS_HOST_WHITELIST: ReadonlySet<string> = new Set([

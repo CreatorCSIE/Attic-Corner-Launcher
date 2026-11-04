@@ -10,7 +10,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import type { DownloadItem, DownloadProgressEvent, LibraryInfo, ModCategoryRaw, VersionEra, VersionJson, VersionRef } from '@attic/core-spec';
+import type { DownloadItem, DownloadProgressEvent, ModCategoryRaw, VersionEra, VersionJson, VersionRef } from '@attic/core-spec';
 
 import { resolveEndpoints, type Endpoints } from './endpoints';
 
@@ -474,7 +474,7 @@ export class BetacraftClient {
   /**
    * json.libraries → bin/<basename>（整目录上 classpath，缺失才下；force=true 覆盖已存在文件）。
    * **库池污染闸门**：bin 是跨版本共享 classpath 池，scanBinPool 字母序把原生 `lwjgl-2.9.0.jar`
-   * 排在 BC 魔改 `lwjgl.jar` 之前（`-` < `.`），一旦回填/Mojang 通道把同族原生库倒进池里
+   * 排在 BC 魔改 `lwjgl.jar` 之前（`-` < `.`），一旦外部通道把同族原生库倒进池里
    * 即劫持 org.lwjgl/net.java.jinput 类加载——原生 WindowsDisplay × Win11 × DeAWT 序列
    * 窗口坍缩 136x39（client 120x0）。
    * LWJGL/JInput 族唯一供给方是 depends 通道（libs/natives zip 的 patched 库集），
@@ -490,53 +490,6 @@ export class BetacraftClient {
       if (!opts.force && fs.existsSync(dest)) continue;
       await this.download(url, dest, 'library', lib.name, lib.client?.sha1 ? { algo: 'sha1', value: lib.client.sha1 } : undefined, opts.signal);
     }
-  }
-
-  /**
-   * Mojang 重发布库集 → LibraryInfo[]（BC `.info` 无 libraries 时的库池回填通道）。
-   * 形状转换在此完成，契约不动（LibraryInfo 只走 url/client）。
-   * rules 语义：无 rules → 收录；有 rules → 仅当存在匹配当前 os.name 的 allow。
-   * natives classifier（如 lwjgl-platform/jinput-platform 的 -natives-windows.jar）
-   * 也进 bin/ 池——LWJGL2/JInput 会自行从 classpath 解出原生库。
-   */
-  async fetchMojangLibraries(id: string, platform: NodeJS.Platform): Promise<LibraryInfo[]> {
-    const manifest = (await (await this.get(this.endpoints.mojangManifest)).json()) as {
-      versions?: { id: string; url: string }[];
-    };
-    const entry = manifest.versions?.find((v) => v.id === id);
-    if (!entry) throw new Error(`Mojang 清单无 ${id}`);
-    const doc = (await (await this.get(entry.url)).json()) as {
-      libraries?: {
-        name: string;
-        url?: string;
-        downloads?: {
-          artifact?: { url: string; sha1?: string };
-          classifiers?: Record<string, { url: string; sha1?: string }>;
-        };
-        natives?: Record<string, string>;
-        rules?: { action: 'allow' | 'disallow'; os?: { name?: string } }[];
-      }[];
-    };
-    const osName = platform === 'win32' ? 'windows' : platform === 'darwin' ? 'osx' : 'linux';
-    const out: LibraryInfo[] = [];
-    const seen = new Set<string>();
-    const push = (name: string, url: string, sha1?: string): void => {
-      if (seen.has(url)) return;
-      seen.add(url);
-      out.push({ name, url, client: sha1 ? { url, sha1 } : { url } });
-    };
-    for (const lib of doc.libraries ?? []) {
-      if (lib.rules) {
-        const allowed = lib.rules.some((r) => r.action === 'allow' && (!r.os || r.os.name === osName));
-        if (!allowed) continue;
-      }
-      const artifactUrl = lib.downloads?.artifact?.url ?? lib.url;
-      if (artifactUrl) push(lib.name, artifactUrl, lib.downloads?.artifact?.sha1);
-      const natKey = lib.natives?.[osName];
-      const nat = natKey ? lib.downloads?.classifiers?.[natKey] : undefined;
-      if (nat?.url) push(lib.name, nat.url, nat.sha1);
-    }
-    return out;
   }
 
   /**
@@ -576,6 +529,8 @@ export class BetacraftClient {
       this.emit({ item: 'legacyfix', id: file, phase: 'queued', bytesDone: 0, bytesTotal: size });
       if (await this.legacyfixIntact(dest)) {
         this.emit({ item: 'legacyfix', id: file, phase: 'done', bytesDone: size, bytesTotal: size });
+        // 完好早退也扫：清扫上线前的存量堆积（当前件早已落位 → 换代下载永不触发）靠这里补清。
+        this.sweepLegacyfixStale(path.dirname(dest), file, version);
         return dest;
       }
       // 残缺自愈：本体+锚点一并删除，走下方重下通道（download() 同键自带序列覆盖 queued）。
@@ -588,7 +543,50 @@ export class BetacraftClient {
     // jar 版本、与数据表钉版打架——直链天然把版本锁死在数据表。
     await this.download(`${this.endpoints.legacyfixRelease}/${version}/${file}`, dest, 'legacyfix', file, undefined, signal);
     await this.writeLegacyfixMeta(dest);
+    // 钉版换代 = 旧版本清仓（agent 换代/损坏重下后触发）。
+    this.sweepLegacyfixStale(path.dirname(dest), file, version);
     return dest;
+  }
+
+  /**
+   * 旧版本清扫（agent 目录按族、addon 目录按版本全扫）：
+   * family = 当前文件名剥去 `-<version>.jar` 后缀。
+   * - agent 族 `legacyfix`：清 `<dir>` 内 `legacyfix-*.jar` 非当前版本者（addon jar 在
+   *   另一目录，前缀排除纯属防同目录混放误删）；
+   * - addon 目录（family 以 `legacyfix-addon-` 开头）：清**所有** `legacyfix-addon-*.jar`
+   *   中非当前版本者——钉版全局唯一，任何 addon 的旧版本 jar 都永不复用；取消勾选/退役
+   *   addon 的族没有重下触发点，只按同名族扫会永久堆积。当前版本的其它 addon 可能被
+   *   别的实例勾选，保留；launcher/addons 里的 v1 手动 jar（无 addon 前缀）不可碰。
+   * 尽力而为：被运行中游戏锁定的旧 jar rm 失败 = 静默跳过，下次启动再试，永不阻断启动。
+   */
+  private sweepLegacyfixStale(dir: string, keepFile: string, version: string): void {
+    const suffix = `-${version}.jar`;
+    if (!keepFile.toLowerCase().endsWith(suffix.toLowerCase())) return;
+    const family = keepFile.slice(0, keepFile.length - suffix.length);
+    const addonWide = family.startsWith('legacyfix-addon-');
+    let entries: string[];
+    try {
+      entries = fs.readdirSync(dir);
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (entry === keepFile) continue;
+      if (!entry.toLowerCase().endsWith('.jar')) continue;
+      if (addonWide) {
+        if (!entry.startsWith('legacyfix-addon-') || entry.endsWith(suffix)) continue;
+      } else {
+        if (!entry.startsWith(`${family}-`)) continue;
+        // addon 族前缀已含 '-addon-'，agent 族 'legacyfix' 需排除 addon 件（防同目录混放时误删）
+        if (family === 'legacyfix' && entry.startsWith('legacyfix-addon-')) continue;
+      }
+      try {
+        fs.rmSync(path.join(dir, entry), { force: true });
+        fs.rmSync(path.join(dir, `${entry}.meta`), { force: true });
+      } catch {
+        // 被运行中游戏锁定的旧 jar（EBUSY/EPERM）= 跳过，下次启动再试
+      }
+    }
   }
 
   /** 三级完整性校验：size 对锚 → EOCD 截断探测 → sha256 全量比对。 */

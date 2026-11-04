@@ -52,9 +52,11 @@ function itemPct(e: DownloadProgressEvent): number {
   return Math.min(100, Math.round((e.bytesDone / e.bytesTotal) * 100));
 }
 
-/** 速率文本（MB/s，一位小数）。 */
-function mb(bytes: number): string {
-  return (bytes / 1048576).toFixed(1);
+/** 速率文本：自适应单位（<1KB 显 B/s 整数，KB/s 与 MB/s 一位小数）。 */
+function rateText(bytesPerSec: number): string {
+  if (bytesPerSec < 1024) return `${Math.round(bytesPerSec)} B/s`;
+  if (bytesPerSec < 1048576) return `${(bytesPerSec / 1024).toFixed(1)} KB/s`;
+  return `${(bytesPerSec / 1048576).toFixed(1)} MB/s`;
 }
 
 /** Esc/遮罩：busy = 取消启动（弹窗留到 launch 落定）；非 busy = 关窗。 */
@@ -98,7 +100,7 @@ function onShellClose(): void {
     <footer class="dlg-foot">
       <span class="dlg-foot-info">
         <span v-if="percent" class="dlg-pct">{{ percent }}%</span>
-        <span v-if="busy && rateBps" class="dlg-rate">{{ mb(rateBps) }} MB/s</span>
+        <span v-if="busy && rateBps" class="dlg-rate">{{ rateText(rateBps) }}</span>
       </span>
       <button class="dlg-btn" type="button" @click="onShellClose">
         {{ busy ? t('launch.dialog.cancel') : t('launch.dialog.close') }}

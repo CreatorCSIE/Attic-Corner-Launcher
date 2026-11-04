@@ -24,8 +24,6 @@ export interface Endpoints {
   legacyfixRelease: string;
   /** Azul Zulu 元数据 API。 */
   zuluMetadata: string;
-  /** Mojang 官方版本清单（v2）。用途：BC `.info` 无 libraries 字段时，按重发布 JSON 回填库池（bin/）。 */
-  mojangManifest: string;
   /** Betacraft mod 仓库列表（JSON `ModCategory[]`，v1 ModsRepository.java L41 同源端点）。 */
   modsList: string;
   /** Betacraft 社区服务器列表页（HTML，POST 取回；v1 WebsitePanel.getServers L120 同源端点）。 */
@@ -49,7 +47,6 @@ export const DEFAULT_ENDPOINTS: Endpoints = {
   assetIndex: (id: string) => `${FILES_BASE}/indexes/${encodeURIComponent(id)}.json`,
   legacyfixRelease: 'https://github.com/CreatorCSIE/legacyfix-attic/releases/download',
   zuluMetadata: 'https://api.azul.com/metadata/v1/zulu/packages/',
-  mojangManifest: 'https://piston-meta.mojang.com/mc/game/version_manifest_v2.json',
   modsList: 'http://api.betacraft.uk/getmods.jsp',
   serverList: 'http://api.betacraft.uk/v2/legacy_server_list',
   dependsVersion: `${FILES_BASE}/depends-version.txt`,
@@ -75,7 +72,6 @@ export function endpointsFromOverrides(overrides: EndpointOverrides = {}): Endpo
     assetIndex: (id: string) => `${base}/indexes/${encodeURIComponent(id)}.json`,
     legacyfixRelease: overrides.legacyfixRelease ?? DEFAULT_ENDPOINTS.legacyfixRelease,
     zuluMetadata: overrides.zuluMetadata ?? DEFAULT_ENDPOINTS.zuluMetadata,
-    mojangManifest: overrides.mojangManifest ?? DEFAULT_ENDPOINTS.mojangManifest,
     modsList: overrides.modsList ?? DEFAULT_ENDPOINTS.modsList,
     serverList: overrides.serverList ?? DEFAULT_ENDPOINTS.serverList,
     dependsVersion: `${base}/depends-version.txt`,

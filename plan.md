@@ -69,7 +69,7 @@
 ## 3. Phase 2 — TS 运行时（Electron 后端）
 
 - [x] Betacraft API 客户端：版本清单、版本 JSON（每次启动重下策略照抄 v2 的已知坑清单）、资产索引；**端点可配置**（风险 #1）。实测（2026-10）：清单 290 版；launch-method 全集 = `preclassic/classic12a/classic/ClassicWithSaving/Classic15aWithSaving/ClassicMpWithSaving/4k/indev/DL_12w18a_19a`——主类由数据表推导，`DL_`（超 v0 范围）不映射、拼装器显式报错（`4k` 后经 AppletLauncher + `--appletClass M` 通道落实映射）；**version_list.txt 行序非年代序**（乱序手工清单）
-- [x] 存储层：按上文「数据目录布局」实现 `.attic/` 根（三平台路径 + portable + rootDir 可配置）；v1 格式兼容读写 `launcher.settings` / `instances/*.txt`（Java properties 语义完整实现）；`bin/` 库池与 `bin/natives` 进 classpath/参数拼装（addons 仅建目录占位，不做机制）。**库池供给通道**：BC `.info` 无 libraries → 从 Mojang 重发布 JSON 回填（`mojangManifest` 端点）；`*-natives-<os>.jar` 用零依赖 unzip 解到 `bin/natives`（显式 `-Dorg.lwjgl.librarypath` 会短路 LWJGL2 自解压）
+- [x] 存储层：按上文「数据目录布局」实现 `.attic/` 根（三平台路径 + portable + rootDir 可配置）；v1 格式兼容读写 `launcher.settings` / `instances/*.txt`（Java properties 语义完整实现）；`bin/` 库池与 `bin/natives` 进 classpath/参数拼装（addons 仅建目录占位，不做机制）。**库池供给通道**：depends 三件套唯一供给（曾有的 Mojang 重发布回填通道 2026-11-04 退役：重发布库集 = wrapper boilerplate，launchwrapper 落共享池触发 fork agent 探测劫持，账见 contract.md 库池节）；`*-natives-<os>.jar` 用零依赖 unzip 解到 `bin/natives`（显式 `-Dorg.lwjgl.librarypath` 会短路 LWJGL2 自解压）
 - [x] Java 探测：移植 MCANextGen `java-discovery`（四级候选 + 真实 `-XshowSettings` 验证 + 64 位 Java 8 优先）；Win 注册表 / mac `java_home` / linux `/usr/lib/jvm`+alternatives。Win 实机验证：注册表候选 → Oracle 1.8.0_431 x86_64 选中
 - [~] 远古 Java 供给通道：Azul Zulu（6/7/8 x64+arm）自动下载 + 手动导入兜底（风险 #7）——代码与解压落位已实现；本机已有 Java 8 未触发自动供给路径，待无 Java 环境实机验证
 - [x] 启动参数拼装：JVM 参数组（照抄 MCA/Betacraft 已验证组：代理重定向、渲染修复、`useLegacyMergeSort`、内存上限）+ legacyfix 挂载决策表。agentMount 区间判定按**编译日期升序**（非清单行序）；决策表边界取清单实存 id（`1.4-pre`/`1.5.2`，`1.4`/`1.7.10` 不在清单）

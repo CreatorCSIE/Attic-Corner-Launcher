@@ -8,8 +8,9 @@
  * CtTransformer 重定义循环只 catch ClassNotFoundException（Agent.java L80），
  * NoClassDefFoundError 属 LinkageError 直接穿透 → `processing of -javaagent failed` 秒崩。
  *
- * 两通道并存：depends 铺 BC 基础库集（全版本恒定），Mojang 回填仍是
- * `.info` 缺 libraries 版本的增量通道（depends 先行、libraries 后补，清池不误伤）。
+ * 两通道关系（2026-11-04 更新）：depends 铺 BC 基础库集（全版本恒定）即库池唯一供给方；
+ * Mojang 回填通道已退役（重发布库集 = 1.6 时代 wrapper boilerplate，真依赖 lwjgl/jinput
+ * 本族被污染闸门跳过，其余 launchwrapper 族触发 fork agent 探测劫持，账见 plan.md）。
  *
  * 对 v1 的语义强化（原缺陷，逐条）：
  * - v1 先写 settings 版本号再解压 zip（L933-949）——中途失败留下"半套库集 + 假指纹"，

@@ -367,7 +367,7 @@ const TEST_ENDPOINTS = {
   versionList: VERSION_LIST_URL,
   versionJson: (id) => `http://x/jsons/${id}.info`,
   assetIndex: (id) => `http://x/indexes/${id}.json`,
-  mojangManifest: 'http://x/mojang_manifest.json',
+  zuluMetadata: 'http://x/zulu',
   modsList: 'http://x/getmods.jsp',
   serverList: SERVER_LIST_URL,
 };

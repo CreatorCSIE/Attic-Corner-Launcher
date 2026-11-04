@@ -12,7 +12,6 @@ const ENDPOINT_KEYS: (keyof EndpointOverrides)[] = [
   'filesBase',
   'legacyfixRelease',
   'zuluMetadata',
-  'mojangManifest',
 ];
 const THEMES: ThemeMode[] = ['dark', 'light', 'system'];
 const MEMORY_MODES: string[] = ['auto', 'manual'];

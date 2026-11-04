@@ -36,7 +36,6 @@ const ENDPOINT_KEYS: (keyof EndpointOverrides)[] = [
   'filesBase',
   'legacyfixRelease',
   'zuluMetadata',
-  'mojangManifest',
 ];
 
 /** 端点逐键防抖合并写（undefined 键 = 回落内置缺省；下次启动应用后生效）。 */

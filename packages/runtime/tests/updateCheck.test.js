@@ -248,6 +248,122 @@ test('checkLatestRelease：nightly 轨——网络炸/非 2xx/响应形状非法
   assert.match(notArray.message, /数组/);
 });
 
+// ---------- checkLatestRelease：updatePreview 预览开关（stable 构件 → 列表端点并集轨） ----------
+
+test('checkLatestRelease：stable+预览 → 走列表端点，nightly 轨候选提示', async () => {
+  const res = await checkLatestRelease({
+    releaseRepo: 'a/b',
+    currentVersion: '0.0.13',
+    preview: true,
+    fetchImpl: jsonFetch(NIGHTLY_LIST_URL, [
+      { tag_name: 'v0.0.13', prerelease: false, html_url: 'self' },
+      { tag_name: 'v0.1.0-nightly.20261104.1', prerelease: true, html_url: 'n1' },
+    ]),
+  });
+  assert.equal(res.status, 'update');
+  assert.equal(res.version, '0.1.0-nightly.20261104.1');
+});
+
+test('checkLatestRelease：stable+预览不丢 stable 轨（并集取最大；仅 stable 更新时等价 /latest）', async () => {
+  const both = await checkLatestRelease({
+    releaseRepo: 'a/b',
+    currentVersion: '0.0.13',
+    preview: true,
+    fetchImpl: jsonFetch(NIGHTLY_LIST_URL, [
+      { tag_name: 'v0.0.14', prerelease: false, html_url: 's14' },
+      { tag_name: 'v0.1.0-nightly.1', prerelease: true, html_url: 'n1' },
+    ]),
+  });
+  assert.equal(both.version, '0.1.0-nightly.1', '0.1.0-pre > 0.0.14 → 并集取最大');
+  const stableOnly = await checkLatestRelease({
+    releaseRepo: 'a/b',
+    currentVersion: '0.0.13',
+    preview: true,
+    fetchImpl: jsonFetch(NIGHTLY_LIST_URL, [{ tag_name: 'v0.0.14', prerelease: false, html_url: 's14' }]),
+  });
+  assert.equal(stableOnly.version, '0.0.14', '轨道未开/无 nightly 候选 → stable 提示照常，开关零副作用');
+});
+
+test('checkLatestRelease：stable+预览——其余预发布（rc 等）不入候选；tag 含 - 的伪 stable 防御照旧', async () => {
+  const res = await checkLatestRelease({
+    releaseRepo: 'a/b',
+    currentVersion: '0.0.13',
+    preview: true,
+    fetchImpl: jsonFetch(NIGHTLY_LIST_URL, [
+      { tag_name: 'v0.2.0-rc1', prerelease: true, html_url: 'rc' },
+      { tag_name: 'v0.1.0', prerelease: false, html_url: 's' },
+    ]),
+  });
+  assert.equal(res.version, '0.1.0', 'rc 系 prerelease 非 -nightly. 排除；取真 stable');
+});
+
+test('checkLatestRelease：nightly 构件 + preview=true 仍不混 stable（形态判据优先于开关判据）', async () => {
+  const res = await checkLatestRelease({
+    releaseRepo: 'a/b',
+    currentVersion: '0.1.0-nightly.1',
+    preview: true,
+    fetchImpl: jsonFetch(NIGHTLY_LIST_URL, [
+      { tag_name: 'v0.2.0', prerelease: false, html_url: 'stable-url' },
+      { tag_name: 'v0.1.0-nightly.2', prerelease: true, html_url: 'n2' },
+    ]),
+  });
+  assert.equal(res.version, '0.1.0-nightly.2', 'nightly 构件 includeStable=false，0.2.0 stable 不得混入');
+});
+
+test('checkLatestRelease：其余预发布构件开预览也不换源（预发布纪律优先，仍 /latest 且永不提示）', async () => {
+  const seen = [];
+  const spy = async (url) => {
+    seen.push(url);
+    return new Response(JSON.stringify({ tag_name: 'v9.9.9', html_url: 'u' }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  };
+  const res = await checkLatestRelease({ releaseRepo: 'a/b', currentVersion: '0.0.14-rc1', preview: true, fetchImpl: spy });
+  assert.deepEqual(seen, ['https://api.github.com/repos/a/b/releases/latest'], 'rc 构件不换源');
+  assert.equal(res.status, 'upToDate', 'current 含 - → 永不提示照旧');
+});
+
+test('checkLatestRelease：preview=false/undefined 的 stable 构件仍走 /latest（缺省行为零变化）', async () => {
+  const seen = [];
+  const spy = async (url) => {
+    seen.push(url);
+    return new Response(JSON.stringify({ tag_name: 'v0.0.14', html_url: 'u' }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  };
+  await checkLatestRelease({ releaseRepo: 'a/b', currentVersion: '0.0.13', preview: false, fetchImpl: spy });
+  await checkLatestRelease({ releaseRepo: 'a/b', currentVersion: '0.0.13', fetchImpl: spy });
+  assert.deepEqual(seen, [
+    'https://api.github.com/repos/a/b/releases/latest',
+    'https://api.github.com/repos/a/b/releases/latest',
+  ]);
+});
+
+test('AtticRuntime.checkUpdate：settings.updatePreview 每次现读透传（开=列表端点，关回 /latest）', async (t) => {
+  const seen = [];
+  const runtime = new AtticRuntime({
+    rootDir: tempRoot(t),
+    version: '0.0.13',
+    releaseRepo: 'a/b',
+    env: {},
+    fetchImpl: async (u) => {
+      seen.push(String(u));
+      return new Response(String(u).includes('per_page') ? JSON.stringify([{ tag_name: 'v0.1.0-nightly.1', prerelease: true, html_url: 'n' }]) : JSON.stringify({ tag_name: 'v0.0.13', html_url: 'self' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    },
+  });
+  assert.equal((await runtime.checkUpdate()).status, 'upToDate', '缺省关 = /latest 无更新');
+  runtime.setSettings({ updatePreview: true });
+  const res = await runtime.checkUpdate();
+  assert.equal(res.status, 'update');
+  assert.equal(res.version, '0.1.0-nightly.1', '开关即选即生效（无缓存态）');
+  assert.ok(seen[1].includes('per_page=30'));
+});
+
 test('checkLatestRelease：请求头带 GitHub 强制的 User-Agent = Attic/<version>', async () => {
   let seen = null;
   const fetchImpl = async (url, init) => {

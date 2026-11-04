@@ -4,7 +4,9 @@
  * - stable 构件（版本号无 `-`）= `https://api.github.com/repos/{owner}/{repo}/releases/latest`
  *   —— /latest 端点天然排除 draft/prerelease，不消费 latest.json（无自托管清单依赖）；
  * - nightly 构件（版本号含 `-nightly.`）= `.../releases?per_page=30` 列表轨中匹配
- *   —— 候选 = prerelease=true ∧ draft≠true ∧ tag 含 `-nightly.`（跨 base 允许、永不混 stable 轨）。
+ *   —— 候选 = prerelease=true ∧ draft≠true ∧ tag 含 `-nightly.`（跨 base 允许、永不混 stable 轨）；
+ * - stable 构件开 `updatePreview`（deps.preview）= 同列表端点，候选 = stable ∪ nightly 轨取最大
+ *   （plan「测试版通道与更新执行面」条②；静默通道 latest.json 不受影响）。
  * semver 比较自研（semver 2.0 完整预发布序）：主段数字逐位比较（缺段按 0：1.0 == 1.0.0）；
  * tag 去 v 前缀；预发布段：有预发布 < 无预发布（0.1.0-nightly.X < 0.1.0），
  * 标识符逐个比较（纯数字按数值、字母数字按 ASCII、数字恒小于字母数字、全等则短者小）。
@@ -32,6 +34,12 @@ export interface UpdateCheckDeps {
   currentVersion: string;
   /** 网络注入面（与 betacraft 同款：测试/离线可换 fake fetch）。 */
   fetchImpl: FetchImpl;
+  /**
+   * 提前体验测试版（settings.updatePreview 透传）：stable 构件开 = 改走列表端点，
+   * 候选集 = stable ∪ nightly 轨取最大（stable 更新提示不丢）；nightly 构件恒在轨、
+   * 本开关对其无效（形态判据 ∨ 开关判据并集）。其余预发布构件（rc/0.0.x）不受开关影响仍永不提示。
+   */
+  preview?: boolean;
 }
 
 /** Release 响应中消费的字段（/latest 单对象与 /releases 列表项同形状，其余原样忽略）。 */
@@ -116,12 +124,13 @@ function toUpdateResult(raw: ReleaseRaw, version: string): UpdateCheckResult {
 }
 
 /**
- * nightly 轨中匹配：从 /releases 列表（GitHub 序 = 创建时间新在前，per_page=30 窗口）取
- * prerelease=true ∧ draft≠true ∧ tag 含 `-nightly.` 的最大候选——跨 base 允许
- * （0.2.0-nightly.* 对 0.1.0-nightly.* 也是更新，仍锁 nightly 轨不混 stable）。
+ * 轨中匹配：从 /releases 列表（GitHub 序 = 创建时间新在前，per_page=30 窗口）取最大候选。
+ * 候选 = 非 draft ∧ [（prerelease ∧ tag 含 `-nightly.`）∨（includeStable ∧ 非 prerelease ∧ tag 无 `-`）]；
+ * includeStable 由入口决定：nightly 构件 = false（永不混 stable 轨，跨 base nightly 允许）、
+ * stable+预览 = true（stable ∪ nightly 并集，stable 更新提示不因开关丢失）。
  * 列表空/无候选/最大者不高于 current → upToDate；响应形状非法 → error（与 /latest 路径同口径）。
  */
-async function pickNightlyRelease(res: Response, current: string): Promise<UpdateCheckResult> {
+async function pickTrackRelease(res: Response, current: string, includeStable: boolean): Promise<UpdateCheckResult> {
   let list: unknown;
   try {
     list = await res.json();
@@ -134,9 +143,14 @@ async function pickNightlyRelease(res: Response, current: string): Promise<Updat
   for (const item of list as unknown[]) {
     if (!item || typeof item !== 'object') continue;
     const rel = item as ReleaseRaw;
-    if (rel.prerelease !== true || rel.draft === true) continue;
+    if (rel.draft === true) continue;
     const tag = typeof rel.tag_name === 'string' ? rel.tag_name.trim() : '';
-    if (!tag.includes('-nightly.')) continue;
+    if (rel.prerelease === true) {
+      // 其余预发布（rc/0.0.x 短命试装轨）恒不入候选（预发布纪律）
+      if (!tag.includes('-nightly.')) continue;
+    } else if (!includeStable || tag.includes('-')) {
+      continue;
+    }
     const version = tag.replace(/^v/i, '');
     if (!best || compareSemver(version, bestVersion) > 0) {
       best = rel;
@@ -160,10 +174,13 @@ export async function checkLatestRelease(deps: UpdateCheckDeps): Promise<UpdateC
   }
   const [owner, name] = parts as [string, string];
   const current = deps.currentVersion;
-  // 轨分流：nightly 构件走列表轨中匹配；stable 与其余预发布构件 = /latest 单请求。
+  // 轨分流（形态判据 ∨ 开关判据并集）：nightly 构件恒走列表轨中匹配；stable 开预览也走列表
+  // （候选并集含 stable）；stable 关预览与其余预发布构件 = /latest 单请求。
+  // 预发布纪律优先于开关判据：rc/0.0.x 短命试装轨构件开预览也不换源（永不提示照旧）。
   const nightlyTrack = current.includes('-nightly.');
+  const useList = nightlyTrack || (deps.preview === true && !current.includes('-'));
   const repoBase = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`;
-  const url = nightlyTrack ? `${repoBase}/releases?per_page=30` : `${repoBase}/releases/latest`;
+  const url = useList ? `${repoBase}/releases?per_page=30` : `${repoBase}/releases/latest`;
   let res: Response;
   try {
     res = await deps.fetchImpl(url, {
@@ -180,7 +197,7 @@ export async function checkLatestRelease(deps: UpdateCheckDeps): Promise<UpdateC
     const hint = res.status === 404 ? '（仓库不存在或尚无 Release）' : res.status === 403 ? '（限流或 UA 被拒）' : '';
     return { status: 'error', message: `GitHub API HTTP ${res.status}${hint}` };
   }
-  if (nightlyTrack) return pickNightlyRelease(res, current);
+  if (useList) return pickTrackRelease(res, current, !nightlyTrack);
   let raw: ReleaseRaw;
   try {
     raw = (await res.json()) as ReleaseRaw;

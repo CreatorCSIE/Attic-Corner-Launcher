@@ -89,6 +89,16 @@ test('updatePolicy/updateIgnoreVersion 回环（2026-10-25 更新 UI 设计两�
   assert.equal(legacy.updateIgnoreVersion, undefined);
 });
 
+test('updatePreview 回环（测试版通道预览开关）：true/false 落盘、缺键 = undefined、非法值不进视图、undefined 删键', () => {
+  assert.equal(settingsFromProps({}).updatePreview, undefined, '缺键 = 关（消费端 === true 兜底）');
+  assert.equal(settingsFromProps({ updatePreview: 'true' }).updatePreview, true);
+  assert.equal(settingsFromProps({ updatePreview: 'false' }).updatePreview, false);
+  assert.equal(settingsFromProps({ updatePreview: 'bogus' }).updatePreview, undefined, '非法值不进视图');
+  assert.equal(applySettingsToProps({}, { updatePreview: true })['updatePreview'], 'true');
+  assert.equal(applySettingsToProps({}, { updatePreview: false })['updatePreview'], 'false');
+  assert.equal('updatePreview' in applySettingsToProps({ updatePreview: 'true' }, { updatePreview: undefined }), false);
+});
+
 test('estimateMaxMemoryMb：40% 取 128 步长夹 [512,2048]，无宿主数据回落 1024', () => {
   assert.equal(estimateMaxMemoryMb(16384), 2048);
   assert.equal(estimateMaxMemoryMb(4096), 1664);

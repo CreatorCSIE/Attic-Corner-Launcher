@@ -71,6 +71,8 @@ export function settingsFromProps(props: Record<string, string>): AppSettings {
     out.updatePolicy = props['updatePolicy'] as 'startup' | 'off';
   }
   if (props['updateIgnoreVersion']) out.updateIgnoreVersion = props['updateIgnoreVersion'];
+  const updatePreview = boolFromProps(props['updatePreview']);
+  if (updatePreview !== undefined) out.updatePreview = updatePreview;
   if (props['accentColor']) out.accentColor = props['accentColor'];
   if (props['backgroundImage']) out.backgroundImage = props['backgroundImage'];
   if (props['microsoftClientId']) out.microsoftClientId = props['microsoftClientId'];
@@ -124,6 +126,7 @@ export function applySettingsToProps(
   put('levelServer', settings.levelServer);
   put('updatePolicy', settings.updatePolicy);
   put('updateIgnoreVersion', settings.updateIgnoreVersion);
+  put('updatePreview', settings.updatePreview === undefined ? undefined : String(settings.updatePreview));
   put('accentColor', settings.accentColor);
   put('backgroundImage', settings.backgroundImage);
   put('microsoftClientId', settings.microsoftClientId);

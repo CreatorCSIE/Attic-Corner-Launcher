@@ -559,10 +559,10 @@
         "startup": "启动时检查",
         "off": "从不检查"
       },
-      "updateChannel": "更新通道",
-      "updateSoon": "启动器自动更新系统尚未上线，通道暂不可选。",
-      "channelRelease": "正式版",
-      "channelBeta": "测试版",
+      "updatePreview": {
+        "label": "提前体验测试版",
+        "desc": "开启后「检查更新」同时匹配 nightly 测试版轨道（提示最新一枚，构件仍需从 Releases 页手动下载）；不影响静默自动更新，关闭即回正式版轨道。"
+      },
       "legalSection": "版权及法律声明",
       "copyrightTitle": "版权声明",
       "copyrightDesc": "Copyright © 2026 CreatorCSIE. 保留所有权利。",

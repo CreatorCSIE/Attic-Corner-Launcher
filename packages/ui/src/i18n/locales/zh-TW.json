@@ -559,10 +559,10 @@
         "startup": "啟動時檢查",
         "off": "從不檢查"
       },
-      "updateChannel": "更新通道",
-      "updateSoon": "啟動器自動更新系統尚未上線，通道暫不可選。",
-      "channelRelease": "正式版",
-      "channelBeta": "測試版",
+      "updatePreview": {
+        "label": "提前體驗測試版",
+        "desc": "開啟後「檢查更新」同時匹配 nightly 測試版軌道（提示最新一枚，構件仍需從 Releases 頁手動下載）；不影響靜默自動更新，關閉即回正式版軌道。"
+      },
       "legalSection": "版權及法律聲明",
       "copyrightTitle": "版權聲明",
       "copyrightDesc": "Copyright © 2026 CreatorCSIE. 保留所有權利。",

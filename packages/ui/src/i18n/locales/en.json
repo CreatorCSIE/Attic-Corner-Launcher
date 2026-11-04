@@ -570,10 +570,10 @@
         "startup": "Check at startup",
         "off": "Never check"
       },
-      "updateChannel": "Update channel",
-      "updateSoon": "The launcher auto-update system is not online yet; the channel is not selectable.",
-      "channelRelease": "Release",
-      "channelBeta": "Beta",
+      "updatePreview": {
+        "label": "Early preview builds",
+        "desc": "When on, update checks also match the nightly prerelease track (the newest nightly is suggested; builds are downloaded manually from the Releases page). Silent auto-updates are unaffected; turning it off returns to the stable track."
+      },
       "legalSection": "Copyright & Legal",
       "copyrightTitle": "Copyright notice",
       "copyrightDesc": "Copyright © 2026 CreatorCSIE. All rights reserved.",

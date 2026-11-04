@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * 设置页 · 关于栏：
- * 头区（名称 + v版本号 + GitHub/检查更新按钮）→ 启动器更新（策略单选组 + 通道占位）→
+ * 头区（名称 + v版本号 + GitHub/检查更新按钮）→ 启动器更新（策略单选组 + 测试版预览开关）→
  * 版权及法律声明（版权/开源协议/用户协议三行）→ 引用的项目列表。
  * 许可证均经实查不虚构：上游四项目 LICENSE 逐字为 GPL-3.0，Vue/Electron=MIT，Tauri=MIT/Apache-2.0，Lucide=ISC。
  * 外链走 openExternalUrl（宿主白名单校验；浏览器 mock 直放 window.open，demo 可用）；
@@ -17,7 +17,7 @@ import { useSettings } from '../composables/useSettings';
 import { useSysInfo } from '../composables/useSysInfo';
 import { useUpdateCheck } from '../composables/useUpdateCheck';
 import { isDemo } from '../dev/demo';
-import AppSelect from './AppSelect.vue';
+import SettingToggle from './SettingToggle.vue';
 import appIcon from '../assets/app-icon.png';
 
 const { t } = useI18n();
@@ -140,7 +140,7 @@ function openUrl(url: string): void {
       </div>
     </div>
 
-    <!-- 启动器更新：策略单选组（即选即存）+ 更新通道占位（未来更新系统挂载点） -->
+    <!-- 启动器更新：策略单选组（即选即存）+ 测试版预览开关（updatePreview，即选即存） -->
     <div class="card">
       <h4 class="group-title">{{ t('settings.about.updateSection') }}</h4>
       <div class="row">
@@ -162,22 +162,12 @@ function openUrl(url: string): void {
           </button>
         </div>
       </div>
-      <div class="row">
-        <div class="row-info">
-          <span class="row-name">{{ t('settings.about.updateChannel') }}</span>
-          <p class="row-desc">{{ t('settings.about.updateSoon') }}</p>
-        </div>
-        <AppSelect
-          class="select"
-          :model-value="'release'"
-          :options="[
-            { value: 'release', label: t('settings.about.channelRelease') },
-            { value: 'beta', label: t('settings.about.channelBeta') },
-          ]"
-          :aria-label="t('settings.about.updateChannel')"
-          disabled
-        />
-      </div>
+      <SettingToggle
+        :model-value="settings.updatePreview === true"
+        :label="t('settings.about.updatePreview.label')"
+        :desc="t('settings.about.updatePreview.desc')"
+        @update:model-value="(v: boolean) => void patch({ updatePreview: v })"
+      />
     </div>
 
     <!-- 版权及法律声明 -->

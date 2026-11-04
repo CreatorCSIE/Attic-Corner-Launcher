@@ -113,6 +113,14 @@ export interface AppSettings {
    * 手动检查无视此账恒显结果。缺省 undefined = 无忽略。
    */
   updateIgnoreVersion?: string;
+  /**
+   * 提前体验测试版（HMCL「提前预览」语义，plan「测试版通道与更新执行面」条②）：
+   * 开 = 交互检查链数据源切至 Releases 列表端点，候选集 = stable ∪ nightly 轨
+   * （prerelease ∧ 非 draft ∧ 含 `-nightly.`）取最大；关/缺省 = stable 单轨照旧。
+   * nightly 构件恒在轨中（形态判据 ∨ 开关判据并集，与本键无关）；
+   * 静默通道 latest.json 恒只收 stable，不受本键影响。
+   */
+  updatePreview?: boolean;
   /** 端点覆盖；改动在下次启动应用后生效（端点属构造级配置）。 */
   endpoints?: EndpointOverrides;
   /**

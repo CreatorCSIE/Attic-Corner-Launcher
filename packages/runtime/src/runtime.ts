@@ -1481,12 +1481,15 @@ export class AtticRuntime {
   }
 
   /**
-   * 检查更新（GitHub Releases latest，数据面见 updateCheck.ts）。
+   * 检查更新（GitHub Releases，数据面见 updateCheck.ts）。
+   * settings.updatePreview 每次现读（即选即生效，无缓存态）：stable 构件开预览 = 列表端点
+   * stable ∪ nightly 轨匹配；nightly 构件恒在轨与开关无关。
    * 全分支数据化返回（unconfigured/error 也在 value 内，不抛异常）——UI 弹窗可见呈现；
    * 动作 = 全壳统一「提示 + Releases 链接」（tauri updater plugin 闭环未接）。
    */
   checkUpdate(): Promise<UpdateCheckResult> {
-    return checkLatestRelease({ releaseRepo: this.releaseRepo, currentVersion: this.version, fetchImpl: this.fetchImpl });
+    const preview = loadSettings(this.root)['updatePreview'] === 'true';
+    return checkLatestRelease({ releaseRepo: this.releaseRepo, currentVersion: this.version, fetchImpl: this.fetchImpl, preview });
   }
 
   /** 清理 launcher/logs 下的 *.log（正在被占用的文件跳过），返回删除个数。 */

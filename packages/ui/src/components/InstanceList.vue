@@ -18,7 +18,7 @@ import { useBridge } from '../composables/useBridge';
 import ConfirmDialog from './ConfirmDialog.vue';
 
 const { t } = useI18n();
-const { instances, loading, error, save, remove, rename, openDir, activeName, setActive } = useInstances();
+const { instances, loading, error, save, remove, rename, setAddons, openDir, activeName, setActive } = useInstances();
 const { selectedId } = useSelection();
 const { hasBridge } = useBridge();
 
@@ -61,6 +61,10 @@ function toggleAddon(id: string): void {
   const i = addonsSel.value.indexOf(id);
   if (i >= 0) addonsSel.value.splice(i, 1);
   else addonsSel.value.push(id);
+  // 有变动即落盘：窄通道单字段写（其余表单现值不带走，与保存钮互不干扰）。
+  // 新建态例外——档案还不存在，勾选集随「保存」全档案首落；老档案无 addons 键时
+  // 本次落盘把当前展示集（默认开集±1）显式化，与保存钮首保语义一致。
+  if (!creating.value && selected.value) void setAddons(selectedName.value as string, [...addonsSel.value]);
 }
 
 /** 重名校验（仅新建态；编辑态名字锁定不会撞）。 */

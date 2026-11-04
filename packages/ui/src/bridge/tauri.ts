@@ -73,6 +73,7 @@ export function buildTauriBridge(t: TauriGlobal): RendererBridge {
     deleteInstance: (name, withFiles) => forward<void>(C.INSTANCES_DELETE, [name, withFiles]),
     renameInstance: (name, newName) => forward(C.INSTANCES_RENAME, [name, newName]),
     setInstanceVersion: (name, versionId) => forward(C.INSTANCES_SET_VERSION, [name, versionId]),
+    setInstanceAddons: (name, addons) => forward(C.INSTANCES_SET_ADDONS, [name, addons]),
     // —— 宿主面：Rust 专用命令 ——
     openInstanceDir: (name) => host<void>('open_instance_dir', { name }),
     windowControl: (action: WindowAction) => host<void>('window_control', { action }),

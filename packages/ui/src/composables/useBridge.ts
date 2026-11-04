@@ -92,6 +92,9 @@ const mockBridge: RendererBridge = {
   // 选中即写回：浏览器 mock 无 fs，就地回声入参形状（UI upsert 语义成立）。
   setInstanceVersion: async (_name: string | null, versionId: string) =>
     ok<InstanceView>({ name: _name || 'default instance', version: versionId }),
+  // addons 即落盘：同款回声（勾选集原样带回）。
+  setInstanceAddons: async (_name: string | null, addons: string[]) =>
+    ok<InstanceView>({ name: _name || 'default instance', version: '', addons }),
   openInstanceDir: async () => err<void>(NO_BRIDGE),
   windowControl: async () => ok<void>(undefined), // 浏览器无窗可控：no-op
   openConsoleWindow: async () => err<void>(NO_BRIDGE),

@@ -99,6 +99,20 @@ async function setVersion(name: string | null, versionId: string): Promise<void>
   if (!active.value) setActive(saved.name);
 }
 
+/** Addons 勾选即落盘（set-version 同款窄通道）：宿主单字段读-改-写，权威视图就地
+ * upsert。seq 守卫防快速连勾的过期回包拽回旧勾选集；失败静默（下次 load 或全档案 save 收敛）。 */
+let setAddonsSeq = 0;
+async function setAddons(name: string | null, addons: string[]): Promise<void> {
+  const seq = ++setAddonsSeq;
+  const res = await bridge.setInstanceAddons(name, addons);
+  if (!res.ok || seq !== setAddonsSeq) return;
+  const saved = res.value;
+  const idx = instances.value.findIndex((i) => i.name === saved.name);
+  if (idx >= 0) instances.value[idx] = saved;
+  else instances.value.push(saved);
+  if (!active.value) setActive(saved.name);
+}
+
 /** 打开实例目录：成功返回 null，失败返回错误文案（UI 内联可见）。 */
 async function openDir(name: string): Promise<string | null> {
   const res = await bridge.openInstanceDir(name);
@@ -122,6 +136,7 @@ export function useInstances() {
     remove,
     rename,
     setVersion,
+    setAddons,
     openDir,
     activeName,
     active,

@@ -135,6 +135,7 @@ import {
   scanInstalledJars,
   scanInstalledVersions,
   setInstanceVersionField,
+  setInstanceAddonsField,
   type InstanceConfig,
   versionListCacheFile,
   writePropertiesFile,
@@ -709,14 +710,9 @@ export class AtticRuntime {
       if (baseId && isModVersionJson(metaJson)) {
         throw new Error(`Mod ${json.id} 的基座 ${baseId} 本身也是 mod（v1 getReleaseByName 递归语义），一期不支持嵌套 mod`);
       }
-      // BC `.info` 无 libraries → 从 Mojang 重发布 JSON 回填库池（classic 等不在清单：BC jar 自捆绑依赖，静默跳过）。
-      if (!metaJson.libraries || metaJson.libraries.length === 0) {
-        try {
-          metaJson.libraries = await this.client.fetchMojangLibraries(metaJson.id, this.platform);
-        } catch {
-          /* 无重发布数据 */
-        }
-      }
+      // （已退役）Mojang 回填通道：重发布库集是 1.6 时代 wrapper boilerplate（b1.7.3→1.5.2
+      // 全体同文），真依赖 lwjgl/jinput 由 depends 供给、其余 launchwrapper 族会触发 fork
+      // agent 存在性探测劫持（26.11-attic.5 实机坐实）→ 整体拆除，账见 plan.md 回填退役条目。
       // 裸 jar custom 合成元数据无下载地址：jar 本体已在位，跳过下载（v1 downloadJson 豁免）。
       // mod 通道的 versions/<id>.jar 是合成产物，不走本下载（基座 jar 由 metaJson 走齐）。
       signal.throwIfAborted();
@@ -1665,6 +1661,16 @@ export class AtticRuntime {
     const config = this.resolveInstance(target);
     setInstanceVersionField(this.root, target, versionId);
     return instanceViewFromConfig({ ...config, version: versionId });
+  }
+
+  /** Addons 勾选有变动即落盘（与 setInstanceVersion 同款语义）：properties 级单字段读-改-写，
+   * 其余键与键序原样；空数组 = 显式全关（空串键，区别于无键的 legacyfix 缺省开集）。
+   * 空 name → 回落 default instance（与 set-version 同口径建档兜底）。返回宿主权威视图供 UI upsert。 */
+  setInstanceAddons(name: string | null, addons: string[]): InstanceView {
+    const target = name && name.trim() !== '' ? name : DEFAULT_INSTANCE_NAME;
+    const config = this.resolveInstance(target);
+    setInstanceAddonsField(this.root, target, addons);
+    return instanceViewFromConfig({ ...config, addons: addons.join(',') });
   }
 
   // ---------- 内部编排 ----------

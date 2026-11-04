@@ -322,6 +322,22 @@ export function setInstanceVersionField(root: string, name: string, version: str
   return true;
 }
 
+/** Addons 勾选有变动即写回（与 setInstanceVersionField 同构的 properties 级单字段读-改-写）：
+ * 只动 `addons` 键，其余键与既有键序原样；数组 → v1 逗号分隔串，空数组 = 显式全关（空串键，
+ * 区别于无键的 legacyfix 缺省开集）；同值不重写（返回 false）；档案不存在返回 false（不建档，
+ * 建档归 set-version 链——addons 落盘前实例必已存在，新建走全档案 save）。非法名同闸。 */
+export function setInstanceAddonsField(root: string, name: string, addons: string[]): boolean {
+  assertInstanceName(name);
+  const file = INSTANCE_FILE(root, name);
+  const props = readPropertiesFileForMerge(file);
+  if (Object.keys(props).length === 0) return false;
+  const csv = addons.join(',');
+  if (props['addons'] === csv) return false;
+  props['addons'] = csv;
+  writePropertiesFile(file, props);
+  return true;
+}
+
 /** 整档案保存 = properties 级合并写回（setSettings 同款纪律，setInstanceVersionField 同构）：
  * 托管键集内 defined → 原位写入、undefined → 删键（视图字段"清空"语义）；托管集之外的键
  * （未来发现的 v1 遗留键、用户手加的未知键）原样保留、键序不动。

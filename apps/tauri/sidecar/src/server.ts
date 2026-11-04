@@ -210,6 +210,8 @@ async function dispatch(method: string, params: Params): Promise<unknown> {
       return runtime.renameInstance(s(0), s(1));
     case C.INSTANCES_SET_VERSION:
       return runtime.setInstanceVersion(s(0), s(1));
+    case C.INSTANCES_SET_ADDONS:
+      return runtime.setInstanceAddons(s(0), s(1));
     case C.GAME_BACKLOG:
       return backlogOf(s(0) as number);
     case C.CUSTOM_LIST:

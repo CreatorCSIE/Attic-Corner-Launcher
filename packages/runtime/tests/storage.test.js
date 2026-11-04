@@ -30,6 +30,7 @@ const {
   loadAccounts,
   saveAccounts,
   setInstanceVersionField,
+  setInstanceAddonsField,
   instanceViewFromConfig,
   isPathWithin,
   hasUserData,
@@ -227,6 +228,30 @@ test('setInstanceVersionField：单字段读-改-写保留其余全部键（v1 �
   assert.throws(() => setInstanceVersionField(root, 'a/b', 'c0.30'), /不合法/);
 });
 
+test('setInstanceAddonsField：单字段写回（csv 序列化/空数组=显式全关/幂等/不建档/非法名同闸）', (t) => {
+  const root = tempRoot(t);
+  ensureLayout(root);
+  const file = path.join(instancesDir(root), 'ad.txt');
+  fs.writeFileSync(file, 'name=ad\nversion=b1.7.3\nproxy=true\nunknownKey=keepme\n', 'utf8');
+  assert.equal(setInstanceAddonsField(root, 'ad', ['fullscreen', 'quitgame']), true);
+  let props = readPropertiesFile(file);
+  assert.equal(props.addons, 'fullscreen,quitgame');
+  assert.equal(props.proxy, 'true', 'addons 单字段写不得丢 v1 遗留键');
+  assert.equal(props.unknownKey, 'keepme', '未知键不得被动');
+  // 空数组 = 显式全关：写空串键（区别于无键的 legacyfix 缺省开集）
+  assert.equal(setInstanceAddonsField(root, 'ad', []), true);
+  props = readPropertiesFile(file);
+  assert.equal(props.addons, '');
+  // 幂等：同值 = false 且零重写
+  const before = fs.readFileSync(file, 'utf8');
+  assert.equal(setInstanceAddonsField(root, 'ad', []), false);
+  assert.equal(fs.readFileSync(file, 'utf8'), before);
+  // 档案不存在 = false 且不建档；非法名同闸
+  assert.equal(setInstanceAddonsField(root, 'ghost', ['x']), false);
+  assert.equal(fs.existsSync(path.join(instancesDir(root), 'ghost.txt')), false);
+  assert.throws(() => setInstanceAddonsField(root, 'a/b', ['x']), /不合法/);
+});
+
 test('saveInstance：properties 级合并写回（未知键保留、undefined 删键、既有键原位不重排）', (t) => {
   const root = tempRoot(t);
   ensureLayout(root);
@@ -301,6 +326,31 @@ test('runtime.setInstanceVersion：选中即落盘，name 空回落默认实例�
   assert.equal(raw.unknownKey, 'keepme');
   // 幂等：重选同版 = 视图不变、档案不重写
   assert.deepEqual(rt.setInstanceVersion('keep', 'c0.30_04'), view);
+});
+
+test('runtime.setInstanceAddons：勾选即落盘，name 空回落默认实例，只动 addons 键', (t) => {
+  const root = tempRoot(t);
+  ensureLayout(root);
+  const rt = new AtticRuntime({ rootDir: root, fetchImpl: () => Promise.reject(new Error('offline')) });
+  // 无档案场景：null → 默认实例建档 + 勾选集落键；返回视图携带权威 addons
+  const created = rt.setInstanceAddons(null, ['fullscreen']);
+  assert.equal(created.name, 'default instance');
+  assert.deepEqual(created.addons, ['fullscreen']);
+  assert.equal(loadInstance(root, 'default instance').addons, 'fullscreen');
+  // 既有实例：只动 addons——version/width/遗留键零触碰；空集回环 = []（显式全关不被吞）
+  rt.saveInstance({ name: 'keep2', version: 'b1.7.3', width: 800, addons: ['fullscreen'] });
+  const f2 = path.join(instancesDir(root), 'keep2.txt');
+  fs.appendFileSync(f2, 'proxy=true\n', 'utf8');
+  const view = rt.setInstanceAddons('keep2', []);
+  assert.deepEqual(view.addons, []);
+  assert.equal(view.width, 800);
+  const raw = readPropertiesFile(f2);
+  assert.equal(raw.addons, '');
+  assert.equal(raw.version, 'b1.7.3');
+  assert.equal(raw.width, '800');
+  assert.equal(raw.proxy, 'true');
+  // 幂等：同集重勾 = 视图不变、档案不重写
+  assert.deepEqual(rt.setInstanceAddons('keep2', []), view);
 });
 
 test('实例解耦（v1 语义）：gameDir=root/<实例名>，首启自动建 default instance，切版本目录不变', async (t) => {

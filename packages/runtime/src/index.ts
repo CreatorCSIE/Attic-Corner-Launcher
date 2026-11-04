@@ -57,6 +57,7 @@ export {
   saveAccounts,
   offlineUuid,
   setInstanceVersionField,
+  setInstanceAddonsField,
   type ResolveDataRootOptions,
   type InstanceConfig,
 } from './storage';

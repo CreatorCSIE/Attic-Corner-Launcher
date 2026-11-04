@@ -69,6 +69,10 @@ export const IPC_CHANNELS = {
   /** 版本选中即写回实例（v1 SelectVersion.saveVersion 语义）：宿主 properties 级单字段
    * 读-改-写，保留档案其余全部键；name 空 → 回落默认实例（不存在则建档）。 */
   INSTANCES_SET_VERSION: 'attic:instances:set-version',
+  /** Addons 勾选有变动即落盘（set-version 同款窄通道）：宿主 properties 级单字段读-改-写，
+   * 档案其余键一字不动；空数组 = 显式全关（空串键，区别于无键的 legacyfix 缺省开集）；
+   * name 空 → 回落 default instance。 */
+  INSTANCES_SET_ADDONS: 'attic:instances:set-addons',
   /** 无边距窗控制（顶栏三键；动作见 WindowAction）。 */
   WINDOW_CONTROL: 'attic:window:control',
   /** 打开/聚焦独立控制台窗口（v1 语义：MC 日志独立窗，与主页解耦）。 */
@@ -505,6 +509,9 @@ export interface RendererBridge {
   openInstanceDir(name: string): Promise<IpcResult<void>>;
   /** 版本选中即写回实例：单字段读-改-写（其余键不动），name 空 → 默认实例；返回宿主权威视图。 */
   setInstanceVersion(name: string | null, versionId: string): Promise<IpcResult<InstanceView>>;
+  /** Addons 勾选即写回实例：单字段读-改-写（其余键不动），name 空 → 默认实例；
+   * 空数组 = 显式全关；返回宿主权威视图（UI 就地 upsert）。 */
+  setInstanceAddons(name: string | null, addons: string[]): Promise<IpcResult<InstanceView>>;
   windowControl(action: WindowAction): Promise<IpcResult<void>>;
   openConsoleWindow(): Promise<IpcResult<void>>;
   /** 拉取指定会话的积压输出与退出事件（控制台窗订阅后补拉；宿主未实现时返回错误、UI 静默降级）。 */

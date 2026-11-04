@@ -38,6 +38,7 @@ const bridge: RendererBridge = {
   deleteInstance: (name, withFiles) => invoke(IPC_CHANNELS.INSTANCES_DELETE, name, withFiles),
   renameInstance: (name, newName) => invoke(IPC_CHANNELS.INSTANCES_RENAME, name, newName),
   setInstanceVersion: (name, versionId) => invoke(IPC_CHANNELS.INSTANCES_SET_VERSION, name, versionId),
+  setInstanceAddons: (name, addons) => invoke(IPC_CHANNELS.INSTANCES_SET_ADDONS, name, addons),
   openInstanceDir: (name) => invoke(IPC_CHANNELS.INSTANCES_OPEN_DIR, name),
   windowControl: (action) => invoke(IPC_CHANNELS.WINDOW_CONTROL, action),
   openConsoleWindow: () => invoke(IPC_CHANNELS.WINDOW_CONSOLE),

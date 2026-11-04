@@ -406,6 +406,9 @@ app.whenReady().then(() => {
   handle(IPC_CHANNELS.INSTANCES_SET_VERSION, (name: string | null, versionId: string) =>
     runtime.setInstanceVersion(name, versionId),
   );
+  handle(IPC_CHANNELS.INSTANCES_SET_ADDONS, (name: string | null, addons: string[]) =>
+    runtime.setInstanceAddons(name, addons),
+  );
   // 打开实例目录：先 mkdir 保证可见（首启未落盘的场景不失败），再交系统文件管理器。
   // openPath 失败语义 = 返回非空错误字符串（成功 = ''），回抛给渲染侧可见。
   handle(IPC_CHANNELS.INSTANCES_OPEN_DIR, async (name: string) => {

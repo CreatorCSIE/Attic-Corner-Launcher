@@ -334,7 +334,7 @@
       },
       "fullscreen": {
         "name": "全螢幕啟動",
-        "desc": "以全螢幕模式啟動遊戲（legacyfix-attic addon）。"
+        "desc": "以全螢幕模式啟動遊戲（legacyfix-attic addon）。已知限制：目前僅在停用 DeAWT 時有效，DeAWT 下表現不佳（fork 修復中）。"
       },
       "game-mode-switch": {
         "name": "遊戲模式切換",

@@ -31,8 +31,6 @@ export interface EndpointOverrides {
   legacyfixRelease?: string;
   /** Azul Zulu 元数据 API。 */
   zuluMetadata?: string;
-  /** Mojang 版本清单（库池回填）。 */
-  mojangManifest?: string;
   /** Betacraft mod 仓库列表（getmods.jsp JSON）；缺省 = `http://api.betacraft.uk/getmods.jsp`。 */
   modsList?: string;
   /** Betacraft 社区服务器列表页（HTML，POST）；缺省 = `http://api.betacraft.uk/v2/legacy_server_list`。 */
@@ -275,6 +273,8 @@ export const INSTANCE_ADDONS: AddonDef[] = [
   { id: 'intel', prop: 'intel', mode: 'enable' },
   // v1 addons 转正（fork legacyfix-attic 外部 addon jar，AddonLoader 经 -Dlf.addons= 装载；
   // 上游矩阵确认无对应 Patch = 真缺口，fork 任务 B 首批三枚）
+  // fullscreen 实机结论（2026-11-04，attic.4）：仅 -Dlf.deawt.disable=true 下有效，
+  // DeAWT 路径表现差 = addon×DeAWT 冲突，fork 侧迭代修复中（attic.6 续）
   { id: 'fullscreen', prop: '', mode: 'enable', addonAsset: 'legacyfix-addon-fullscreen' },
   { id: 'game-mode-switch', prop: '', mode: 'enable', addonAsset: 'legacyfix-addon-gamemodeswitch' },
   { id: 'quit-game', prop: '', mode: 'enable', addonAsset: 'legacyfix-addon-quitgame' },

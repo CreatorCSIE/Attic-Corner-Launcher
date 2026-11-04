@@ -345,7 +345,7 @@
       },
       "fullscreen": {
         "name": "Fullscreen launch",
-        "desc": "Start the game in fullscreen mode (legacyfix-attic addon)."
+        "desc": "Start the game in fullscreen mode (legacyfix-attic addon). Known limitation: currently only effective with DeAWT disabled; behaves poorly under DeAWT (fix in progress in the fork)."
       },
       "game-mode-switch": {
         "name": "Game mode switch",

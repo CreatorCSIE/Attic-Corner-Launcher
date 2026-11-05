@@ -1,10 +1,10 @@
-# Attic Minecraft Launcher - 远古 Minecraft 桌面启动器 (Legacy Minecraft Desktop Launcher)
+# Attic Corner Launcher - 远古 Minecraft 桌面启动器 (Legacy Minecraft Desktop Launcher)
 
-`Attic Minecraft Launcher` 是一个**面向 Minecraft 早期历史版本（Pre-Classic、Classic、Indev、Infdev、Alpha、Beta 直至 b1.8 / 1.5.2）的轻量桌面启动器**——那些官方启动器不再提供、Betacraft Launcher v1 被其 UI 技术锁死、v2 重写中途停更的领域。
+`Attic Corner Launcher` 是一个**面向 Minecraft 早期历史版本（Pre-Classic、Classic、Indev、Infdev、Alpha、Beta 直至 b1.8 / 1.5.2）的轻量桌面启动器**——那些官方启动器不再提供、Betacraft Launcher v1 被其 UI 技术锁死、v2 重写中途停更的领域。
 
 名字取自"阁楼"：家里放旧宝贝的地方，落满灰但都还活着。
 
-<p align="center"><img src="docs/banner.png" alt="Attic Minecraft Launcher banner" width="100%"/></p>
+<p align="center"><img src="docs/banner.png" alt="Attic Corner Launcher banner" width="100%"/></p>
 
 > **免责声明**：本项目是独立开发的第三方开源启动器，并非 Minecraft 官方产品，未获 Microsoft、Mojang Studios 或任何第三方平台的赞助、认可或背书。
 > *Independently developed third-party open-source launcher. Not an official Minecraft product; not approved or endorsed by Microsoft or Mojang Studios.*
@@ -93,8 +93,8 @@ Betacraft 版本 API              legacyfix javaagent
 
 ```bash
 # 克隆仓库
-git clone https://github.com/CreatorCSIE/Attic-Minecraft-Launcher.git
-cd Attic-Minecraft-Launcher
+git clone https://github.com/CreatorCSIE/Attic-Corner-Launcher.git
+cd Attic-Corner-Launcher
 
 # 安装 workspace 依赖（apps/* + packages/*）
 pnpm install
@@ -125,7 +125,7 @@ cargo test --manifest-path apps/tauri/src-tauri/Cargo.toml
 ### 2. 仓库结构 (Repository Layout)
 
 ```text
-Attic-Minecraft-Launcher
+Attic-Corner-Launcher
 ├── plan.md                 分阶段开发计划与风险登记
 ├── scripts/                dev.mjs 开发编排 / emit-contract-fixtures.mjs 契约 fixture / node16-api-gate.mjs API 锁
 ├── .github/workflows/      ci.yml（静态闸门 + Rust 契约测试）/ release.yml（全平台矩阵 + legacy）
@@ -152,19 +152,19 @@ Attic-Minecraft-Launcher
 不想搭构建环境的话，推送到任意分支都会由 release CI 产出全平台**测试构件**——仅供尝鲜与验证，不是正式发布；正式构件以 GitHub Releases 的 `v*` tag 发版为准。GitHub Actions 构件默认保留 90 天且下载需登录，**[nightly.link](https://nightly.link) 提供免登录的"永远指向最新成功构建"直链**，形态：
 
 ```text
-https://nightly.link/CreatorCSIE/Attic-Minecraft-Launcher/workflows/release/main/<构件名>
+https://nightly.link/CreatorCSIE/Attic-Corner-Launcher/workflows/release/main/<构件名>
 ```
 
 构件名按平台取：
 
 | 发行形态 | 构件名 |
 |---|---|
-| Windows · Tauri 主壳 x64 | `amcl-tauri-windows-x64` |
-| Windows · Tauri 主壳 arm64 | `amcl-tauri-windows-arm64` |
-| Windows · Electron 壳 x64 | `amcl-electron-windows-x64` |
-| Windows · Electron 22 兜底壳（Win7/8，x64+ia32） | `amcl-electron-legacy-windows` |
-| macOS · arm64 DMG | `amcl-tauri-macos-arm64` |
-| Linux · x64 deb + AppImage | `amcl-tauri-linux-x64` |
+| Windows · Tauri 主壳 x64 | `attic-tauri-windows-x64` |
+| Windows · Tauri 主壳 arm64 | `attic-tauri-windows-arm64` |
+| Windows · Electron 壳 x64 | `attic-electron-windows-x64` |
+| Windows · Electron 22 兜底壳（Win7/8，x64+ia32） | `attic-electron-legacy-windows` |
+| macOS · arm64 DMG | `attic-tauri-macos-arm64` |
+| Linux · x64 deb + AppImage | `attic-tauri-linux-x64` |
 
 下载得到的是 Actions 构件 zip，解压即得安装包/目录构件。
 
@@ -199,7 +199,7 @@ https://nightly.link/CreatorCSIE/Attic-Minecraft-Launcher/workflows/release/main
 
 ### Q5：老系统（Win7 / Win8）能装吗？
 
-主发布线基于 Tauri + WebView2，要求 Windows 10 及以上（安装器会检测并指路）。Win10+ 用户若偏好自带 Chromium 的 Electron 壳（或对 WebView2 有障碍），可选装 Electron 安装包（`amcl-electron-windows-x64-*`，与主壳同机共存、数据同轨），更新方式为检查+提示+手动下载。Win7 SP1 – 8.1 用户使用专门的兜底安装包（Electron 22 壳），功能对齐主线但**不提供自动更新**。
+主发布线基于 Tauri + WebView2，要求 Windows 10 及以上（安装器会检测并指路）。Win10+ 用户若偏好自带 Chromium 的 Electron 壳（或对 WebView2 有障碍），可选装 Electron 安装包（`attic-electron-windows-x64-*`，与主壳同机共存、数据同轨），更新方式为检查+提示+手动下载。Win7 SP1 – 8.1 用户使用专门的兜底安装包（Electron 22 壳），功能对齐主线但**不提供自动更新**。
 
 ### Q5.5：M1/M2/M3 Mac 或 arm64 Linux 能跑吗？
 

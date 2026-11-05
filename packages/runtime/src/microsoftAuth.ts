@@ -19,15 +19,18 @@ import type { MsDeviceCode, MsLoginErrorCode } from '@attic/core-spec';
 import type { FetchImpl } from './betacraft';
 
 /**
- * 缺省 CLIENT_ID = **自有 AppID**（Azure 应用注册，个人账户租户 + 公共客户端流；
- * aka.ms/mce-reviewappid 白名单 **2026-11-03 获批**，Mojang Enforcement 邮件 = 案底）。
- * 历史：0.0.9–0.0.12 借用 Betacraft 社区白名单 id `8075fa74-4091-4356-a0b8-a7c118ef121c`
- * 作临时通道（v1 MicrosoftAuth.java L28 同源；借用风险 = 可被随时撤白，LiquidBounce 先例）——
- * 已退役，仅留史注。**换绑后果**：Azure 的 refresh token 绑定发行时的 client_id，旧 id 下发
- * 的存量账户在新缺省下刷新必被拒 → 需重新登录一次（0.0.13 发布说明已声明；离线账户无感；
- * settings.microsoftClientId 覆盖键优先级不变）。生效值 = settings.microsoftClientId || DEFAULT_MS_CLIENT_ID。
+ * 缺省 CLIENT_ID = **自有 AppID**（Azure 应用注册「Attic Corner Launcher」，个人账户租户 +
+ * 公共客户端流；aka.ms/mce-reviewappid 已重新提交，**待 Mojang 白名单审批**，周审节奏）。
+ * 历史：① 0.0.9–0.0.12 借用 Betacraft 社区白名单 id `8075fa74-…` 作临时通道（借用风险 =
+ * 可被随时撤白，LiquidBounce 先例）——已退役；② 首枚自有 id `15bc4a50-…`（旧品牌名
+ * "Attic Minecraft Launcher" 提交）被拒——表单前言明令应用名禁含 Minecraft 等字样，
+ * 且批尾「blocking actions」疑进黑名单 → 注册已销毁，本枚换新 id + 合规名重交。
+ * **换绑后果**：Azure 的 refresh token 绑定发行时的 client_id，旧 id 下发的存量账户在新
+ * 缺省下刷新必被拒 → 需重新登录一次（离线账户无感；settings.microsoftClientId 覆盖键
+ * 优先级不变）。生效值 = settings.microsoftClientId || DEFAULT_MS_CLIENT_ID。
+ * 审批落地前 MS 登录在 device code 之后的 XSTS 段报 403（allowlist 未含本 id）。
  */
-export const DEFAULT_MS_CLIENT_ID = '15bc4a50-ecdd-4573-ad32-aa5114ed76ef';
+export const DEFAULT_MS_CLIENT_ID = '2499cf90-0f00-4bc7-b3b4-26a3a843dce0';
 
 /** 端点白名单（五域；msFetch 硬闸，域外直接 internal）。 */
 export const MS_HOST_WHITELIST: ReadonlySet<string> = new Set([

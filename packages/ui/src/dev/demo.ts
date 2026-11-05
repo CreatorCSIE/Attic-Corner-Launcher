@@ -137,7 +137,7 @@ export const demoSysInfo: SystemInfo = {
 export const demoUpdateCheck: UpdateCheckResult = {
   status: 'update',
   version: '0.1.0',
-  url: 'https://github.com/CreatorCSIE/Attic-Minecraft-Launcher/releases/latest',
+  url: 'https://github.com/CreatorCSIE/Attic-Corner-Launcher/releases/latest',
   notes: [
     '# Attic 0.1.0 演示发布',
     '',
@@ -146,7 +146,7 @@ export const demoUpdateCheck: UpdateCheckResult = {
     '## 新增',
     '- 更新策略设置：启动时检查 / 从不检查',
     '- 三钮更新弹窗 + 单槽忽略版本账',
-    '- 详见 [发布页](https://github.com/CreatorCSIE/Attic-Minecraft-Launcher/releases)',
+    '- 详见 [发布页](https://github.com/CreatorCSIE/Attic-Corner-Launcher/releases)',
     '',
     '## 修复',
     '移除 24h 轮询：启动时按策略自动检查一次即可。',
@@ -180,8 +180,8 @@ export function isDemoPortable(): boolean {
  */
 export const demoSysInfoPortable: SystemInfo = {
   ...demoSysInfo,
-  dataRoot: 'D:\\Games\\amcl-electron-windows-x64-0.0.0\\.attic',
-  logsDir: 'D:\\Games\\amcl-electron-windows-x64-0.0.0\\.attic\\launcher\\logs',
+  dataRoot: 'D:\\Games\\attic-electron-windows-x64-0.0.0\\.attic',
+  logsDir: 'D:\\Games\\attic-electron-windows-x64-0.0.0\\.attic\\launcher\\logs',
   defaultRootPopulated: true,
   portable: { active: true, fallback: false, rootPopulated: false },
 };

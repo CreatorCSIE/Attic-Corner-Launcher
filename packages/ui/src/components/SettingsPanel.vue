@@ -169,8 +169,8 @@ async function clearBackground(): Promise<void> {
 // —— 反馈弹屏（功能建议 → Discussions 的 ideas 分区；Bug → Issues 空白新建页。
 // 两侧均不钉模板：仓库无 ISSUE_TEMPLATE/） ——
 const feedbackOpen = ref(false);
-const FEATURE_URL = 'https://github.com/CreatorCSIE/Attic-Minecraft-Launcher/discussions/new?category=ideas';
-const BUG_URL = 'https://github.com/CreatorCSIE/Attic-Minecraft-Launcher/issues/new';
+const FEATURE_URL = 'https://github.com/CreatorCSIE/Attic-Corner-Launcher/discussions/new?category=ideas';
+const BUG_URL = 'https://github.com/CreatorCSIE/Attic-Corner-Launcher/issues/new';
 
 function feedback(url: string): void {
   feedbackOpen.value = false;

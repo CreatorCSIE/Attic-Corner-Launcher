@@ -64,7 +64,7 @@ onMounted(() => {
 onBeforeUnmount(() => segResize?.disconnect());
 watch(activePolicy, () => void nextTick(locateThumb));
 
-const REPO_URL = 'https://github.com/CreatorCSIE/Attic-Minecraft-Launcher';
+const REPO_URL = 'https://github.com/CreatorCSIE/Attic-Corner-Launcher';
 const LICENSE_URL = `${REPO_URL}/blob/HEAD/LICENSE`;
 const AGREEMENT_URL = `${REPO_URL}/blob/HEAD/USER_AGREEMENT.md`;
 

@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Attic Minecraft Launcher"
+    "title": "Attic Corner Launcher"
   },
   "nav": {
     "menu": "菜单",
@@ -61,7 +61,7 @@
   },
   "account": {
     "title": "账户",
-    "welcome": "欢迎使用 Attic Minecraft Launcher",
+    "welcome": "欢迎使用 Attic Corner Launcher",
     "none": "未选择账户",
     "hint": "选择账户以浏览或修改设置。",
     "add": "添加账户",
@@ -534,7 +534,7 @@
       }
     },
     "about": {
-      "copyright": "Copyright © 2026 Attic Minecraft Launcher · 开发者 CreatorCSIE",
+      "copyright": "Copyright © 2026 Attic Corner Launcher · 开发者 CreatorCSIE",
       "ghRepo": "查看 GitHub 仓库",
       "checkUpdate": "检查更新",
       "checking": "检查中…",

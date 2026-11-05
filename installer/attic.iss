@@ -1,5 +1,5 @@
 ; ============================================================================
-; Attic Minecraft Launcher —— Inno Setup 6 共享安装脚本（双壳一个 .iss，flavor 参数化）。
+; Attic Corner Launcher —— Inno Setup 6 共享安装脚本（双壳一个 .iss，flavor 参数化）。
 ;
 ; 路线拍板（2026-10-24）：双壳安装器由 NSIS 切 Inno —— NSIS 默认观感老旧、宏/插件
 ; 层晦涩（builder 模板 customInstallMode×UAC 插件 0xc0000005 崩溃史见 plan.md），
@@ -14,9 +14,10 @@
 ; CI/本地调用（ISCC 命令行 /D 一律带引号；VERSION 传去 v 前缀的 tag）：
 ;   ISCC /DATTIC_FLAVOR="legacy" /DATTIC_PAYLOAD="<win-unpacked>" \
 ;        /DATTIC_VERSION="0.0.0" /DATTIC_ARCH="x64" attic.iss
-;   → amcl-<shell>-windows-<arch>-<version>-setup.exe
-;   构件命名统一范式（2026-10-24 用户拍板；amcl = Attic Minecraft Launcher 简称）：
-;   amcl-<shell>-<os>-<arch>-<ver>，shell = tauri | electron | electron-legacy（分发名走
+;   → attic-<shell>-windows-<arch>-<version>-setup.exe
+;   构件命名统一范式（2026-10-24 用户拍板；2026-11-05 品牌更名，前缀 amcl→attic，
+;   attic = Attic Corner Launcher 简称）：
+;   attic-<shell>-<os>-<arch>-<ver>，shell = tauri | electron | electron-legacy（分发名走
 ;   ATTIC_NAME_SHELL：flavor 内部 ID 仍是 legacy，2026-10-25 用户反馈裸 legacy 看不出壳属，
 ;   分发名补 electron- 前缀）；
 ;   安装器后缀 = -setup（本 iss 产出）；portable 目录构件后缀 = -portable（CI 压缩步骤产出）。
@@ -68,9 +69,9 @@
 
 #if   ATTIC_FLAVOR == "legacy"
   #define ATTIC_APPID  "uk.attic.launcher.legacy"
-  #define ATTIC_NAME   "Attic Minecraft Launcher Legacy"
+  #define ATTIC_NAME   "Attic Corner Launcher Legacy"
   ; 与 electron-builder.yml productName 派生的 exe 名严格一致（改名两处同动）
-  #define ATTIC_EXE    "Attic Minecraft Launcher Legacy.exe"
+  #define ATTIC_EXE    "Attic Corner Launcher Legacy.exe"
   ; 分发名壳段（用户反馈 2026-10-25）：裸 "legacy" 看不出是 Electron 22 兜底壳，补 electron- 前缀；
   ; flavor 内部 ID（AppId/注册表/portable marker）仍为 legacy 不动——只改用户可见的构件名。
   #define ATTIC_NAME_SHELL "electron-legacy"
@@ -78,15 +79,15 @@
   ; 双壳并进（2026-10-24 用户拍板）：Tauri 主壳优先推荐，Electron 壳为可选发行形态。
   ; AppId/目录/快捷方式三者与主壳分离可同机共存；数据根两壳同走 .attic（壳只是窗层）
   #define ATTIC_APPID  "uk.attic.launcher.electron"
-  #define ATTIC_NAME   "Attic Minecraft Launcher (Electron)"
-  #define ATTIC_EXE    "Attic Minecraft Launcher (Electron).exe"
+  #define ATTIC_NAME   "Attic Corner Launcher (Electron)"
+  #define ATTIC_EXE    "Attic Corner Launcher (Electron).exe"
   #define ATTIC_NAME_SHELL "electron"
 #elif ATTIC_FLAVOR == "tauri"
   #define ATTIC_APPID  "uk.attic.launcher"
-  #define ATTIC_NAME   "Attic Minecraft Launcher"
+  #define ATTIC_NAME   "Attic Corner Launcher"
   ; exe 名统一（2026-10-26 用户拍板）：crate 名孤例 attic-launcher.exe → productName 派生系
   ; （与两 electron 壳同轨），改名点 = tauri.conf.json mainBinaryName；见 [InstallDelete] 残留清理
-  #define ATTIC_EXE    "Attic Minecraft Launcher.exe"
+  #define ATTIC_EXE    "Attic Corner Launcher.exe"
   #define ATTIC_NAME_SHELL "tauri"
 #else
   #error ATTIC_FLAVOR 未知取值：tauri | electron | legacy
@@ -111,7 +112,7 @@ AppVersion={#ATTIC_VERSION}
 AppVerName={#ATTIC_NAME} {#ATTIC_VERSION}
 ; 开发者口径 = README 署名（CreatorCSIE，GPLv3 Copyright (c) 2026）——控制面板发布者/安装器 exe 属性均同源
 AppPublisher=CreatorCSIE
-AppPublisherURL=https://github.com/CreatorCSIE/Attic-Minecraft-Launcher
+AppPublisherURL=https://github.com/CreatorCSIE/Attic-Corner-Launcher
 VersionInfoCopyright=Copyright (c) 2026 CreatorCSIE
 ; 许可协议页（2026-11-01 用户拍板）：GPLv3 全文（仓库根 LICENSE，与 README License 节同源）
 LicenseFile=..\LICENSE
@@ -126,7 +127,7 @@ DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 ArchitecturesInstallIn64BitMode={#ATTIC_64MODE}
 OutputDir={#ATTIC_OUTDIR}
-OutputBaseFilename=amcl-{#ATTIC_NAME_SHELL}-windows-{#ATTIC_ARCH}-{#ATTIC_VERSION}-setup
+OutputBaseFilename=attic-{#ATTIC_NAME_SHELL}-windows-{#ATTIC_ARCH}-{#ATTIC_VERSION}-setup
 ; SetupIconFile 有意不设：安装器图标维持 Inno 缺省（两壳统一，终拍见头注）
 UninstallDisplayName={#ATTIC_NAME}
 UninstallDisplayIcon={app}\{#ATTIC_EXE}
@@ -178,7 +179,7 @@ Type: filesandordirs; Name: "{app}"
 // 为权威；老系统回退 '6.1 SP1' 式 Version+CSDVersion 解析）。Inno 6 脚本 API 没有
 // GetWindowsVersion —— 别照抄 Inno 7 文档。
 const
-  LegacyDownloadUrl = 'https://github.com/CreatorCSIE/Attic-Minecraft-Launcher/releases';
+  LegacyDownloadUrl = 'https://github.com/CreatorCSIE/Attic-Corner-Launcher/releases';
 
 function GetWinMajorSP(out Major, SP: Integer): Boolean;
 var
@@ -227,7 +228,7 @@ begin
   if (Major < 6) or ((Major = 6) and (SP < 1)) then
   begin
     RegQueryStringValue(HKLM, 'SOFTWARE\Microsoft\Windows NT\CurrentVersion', 'ProductName', VS);
-    Msg := 'Attic Minecraft Launcher Legacy 需要 Windows 7 SP1 或更新系统（当前：' + VS + '）。';
+    Msg := 'Attic Corner Launcher Legacy 需要 Windows 7 SP1 或更新系统（当前：' + VS + '）。';
     MsgBox(Msg, mbCriticalError, MB_OK);
     Result := False;
     Exit;

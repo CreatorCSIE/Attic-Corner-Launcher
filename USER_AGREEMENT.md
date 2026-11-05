@@ -1,8 +1,8 @@
-# Attic Minecraft Launcher 用户协议
+# Attic Corner Launcher 用户协议
 
 **协议版本 1.0 · 生效日期 2026-10-30**
 
-本协议是您与 Attic Minecraft Launcher 开发者（GitHub：`CreatorCSIE`，下称「开发者」）之间，就下载、安装、运行本软件达成的约定。下载、安装或使用本软件即表示您接受本协议；不同意请停止使用并删除相关文件。
+本协议是您与 Attic Corner Launcher 开发者（GitHub：`CreatorCSIE`，下称「开发者」）之间，就下载、安装、运行本软件达成的约定。下载、安装或使用本软件即表示您接受本协议；不同意请停止使用并删除相关文件。
 
 ## 项目性质与开源许可证
 
@@ -40,4 +40,4 @@
 
 开发者可在新版本发布或规则实质变化时修订本协议，修订版自公布于本仓库起生效，版本号与生效日期同步更新；重大变更将在对应版本的发布说明中提示。不同意修订请停止使用。
 
-问题反馈与安全披露：<https://github.com/CreatorCSIE/Attic-Minecraft-Launcher/issues>（请勿在公开 Issue 中包含密码、访问令牌或其他凭据）。
+问题反馈与安全披露：<https://github.com/CreatorCSIE/Attic-Corner-Launcher/issues>（请勿在公开 Issue 中包含密码、访问令牌或其他凭据）。

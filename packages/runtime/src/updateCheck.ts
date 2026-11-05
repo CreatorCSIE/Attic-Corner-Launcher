@@ -23,7 +23,7 @@ import type { FetchImpl } from './betacraft';
  * 天然排除 prerelease/draft（nightly/0.0.x/台账不污染通道）；同仓 = Actions GITHUB_TOKEN
  * 零跨仓 PAT。env ATTIC_RELEASE_REPO / 构造选项 = 测试仓彩排逃生舱；显式空串 = 强制关通道（unconfigured）。
  */
-export const DEFAULT_RELEASE_REPO = 'CreatorCSIE/Attic-Minecraft-Launcher';
+export const DEFAULT_RELEASE_REPO = 'CreatorCSIE/Attic-Corner-Launcher';
 
 export interface UpdateCheckDeps {
   /** 发布仓库 "owner/repo"（构造选项 releaseRepo > env ATTIC_RELEASE_REPO > DEFAULT_RELEASE_REPO；显式空串 = unconfigured）。 */

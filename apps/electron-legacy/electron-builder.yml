@@ -3,7 +3,7 @@
 # 2026-10-24 路线拍板：nsis target 退场（观感老旧 + builder 模板宏层崩溃史），
 # `--dir` 出 win-unpacked 目录 → ISCC 编译 installer/attic.iss（/DATTIC_FLAVOR="legacy"）。
 appId: uk.attic.launcher.legacy
-productName: Attic Minecraft Launcher Legacy
+productName: Attic Corner Launcher Legacy
 directories:
   output: release
   buildResources: build

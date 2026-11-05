@@ -177,7 +177,7 @@ function demoBridge(): RendererBridge {
         if (hit) {
           return err<AppSettings>(
             '游戏数据不能放进安装目录——卸载时会连同整个安装目录删除，存档不可恢复。' +
-              '请选安装目录之外的位置；想要「一切随一个文件夹」请用便携版构件（amcl-*-portable.zip）。',
+              '请选安装目录之外的位置；想要「一切随一个文件夹」请用便携版构件（attic-*-portable.zip）。',
           );
         }
       }

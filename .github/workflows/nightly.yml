@@ -13,6 +13,7 @@ name: Nightly（push 触发的试装构件轨道）
 #  · notes = CI 自动极简模板四行封顶（测试版通道定位行 + run 链接 + short/full SHA + HEAD 标题），
 #    零语义归纳（详细 changelog 只属 stable tag，见「发布说明供给设计」条）。
 #  · 保留最近 14 个，清理 job 整删 release+tag；删除前 tag→主仓 full SHA→run URL 追加台账
+#    〔2026-11-05 暂停：cleanup if:false，验收期无上限堆积；重启见该 job 注记〕
 #    （落点 = 常驻 draft release `nightly-history`，body 即 jsonl；draft 是硬约束——
 #    published 非 prerelease 的 release 会抢占 releases/latest 通道位，污染 updater endpoint）。
 #  · 成本收敛（B 案⑥）：concurrency 组内 cancel-in-progress——连推时旧 run 中间态无保留价值。
@@ -151,7 +152,8 @@ jobs:
   cleanup:
     name: 保留最近 14 个 nightly（整删 release+tag + 台账追加）
     needs: [plan, publish]
-    if: always() # 发布失败也保清理节律（不依赖 plan 输出，纯按现存 release 数收敛）
+    if: false # 〔暂停清理 2026-11-05：验收期堆积无所谓，无保留上限；台账链随之停摆（不删=无需记）。重启 = 恢复下行 if: always()〕
+    # if: always() # 发布失败也保清理节律（不依赖 plan 输出，纯按现存 release 数收敛）
     runs-on: ubuntu-latest
     permissions:
       contents: write

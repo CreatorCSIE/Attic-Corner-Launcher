@@ -1,7 +1,7 @@
 [package]
 name = "attic-launcher"
 version = "0.0.0"
-description = "Attic Minecraft Launcher — Tauri 主发布壳（Windows NSIS）"
+description = "Attic Corner Launcher — Tauri 主发布壳（Windows NSIS）"
 edition = "2021"
 # 构建面 MSRV（plan.md Phase 5 拍板：Rust MSRV 1.90；CI windows-latest 自带 stable 满足）
 rust-version = "1.90"

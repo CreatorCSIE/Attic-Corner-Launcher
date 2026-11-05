@@ -206,7 +206,7 @@ fn resolve_sidecar_launch(app: &AppHandle) -> Result<(PathBuf, PathBuf), String>
 }
 
 /// Releases 页（temp 守卫指路位；与 UI 关于页 REPO_URL 同源）。
-const RELEASES_URL: &str = "https://github.com/CreatorCSIE/Attic-Minecraft-Launcher/releases";
+const RELEASES_URL: &str = "https://github.com/CreatorCSIE/Attic-Corner-Launcher/releases";
 
 /// portable 双指纹（判定单点在 runtime，本函数只负责宿主显式传参）：
 /// 程序目录 marker（`sidecar/portable.ini`）在场 ∨（exe 旁 `.attic` ∧ 其内 `launcher/portable.anchor`）
@@ -454,7 +454,7 @@ async fn open_console(app: AppHandle) -> Value {
         Some(p) => (format!("index.html?window=console&pid={p}"), format!("Attic Console — pid {p}")),
         None => (
             "index.html?window=console".to_string(),
-            "Attic Minecraft Launcher — Console".to_string(),
+            "Attic Corner Launcher — Console".to_string(),
         ),
     };
     // .icon() 返回 Result（解码失败可拒），and_then 串进 build()

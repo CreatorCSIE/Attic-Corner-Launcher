@@ -6,7 +6,7 @@
 # 与 apps/electron-legacy 的差异：Electron 33（Win10+ 地板）、主进程走 tsc 直出
 # dist/（不做 esbuild 单文件化——那是 legacy 迁就 Electron22/Node16 的形态）。
 appId: uk.attic.launcher.electron
-productName: Attic Minecraft Launcher (Electron)
+productName: Attic Corner Launcher (Electron)
 directories:
   output: release
   buildResources: build

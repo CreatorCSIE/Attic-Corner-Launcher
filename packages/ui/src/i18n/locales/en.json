@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Attic Minecraft Launcher"
+    "title": "Attic Corner Launcher"
   },
   "nav": {
     "menu": "Menu",
@@ -61,7 +61,7 @@
   },
   "account": {
     "title": "Accounts",
-    "welcome": "Welcome to Attic Minecraft Launcher",
+    "welcome": "Welcome to Attic Corner Launcher",
     "none": "No account selected",
     "hint": "Select an account to view or edit its settings.",
     "add": "Add account",
@@ -545,7 +545,7 @@
       }
     },
     "about": {
-      "copyright": "Copyright © 2026 Attic Minecraft Launcher · Developed by CreatorCSIE",
+      "copyright": "Copyright © 2026 Attic Corner Launcher · Developed by CreatorCSIE",
       "ghRepo": "View GitHub repository",
       "checkUpdate": "Check for updates",
       "checking": "Checking…",

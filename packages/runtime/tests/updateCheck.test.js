@@ -22,7 +22,7 @@ function jsonFetch(url, body, status = 200) {
       : new Response('not found', { status: 404 });
 }
 
-const REPO_URL = 'https://api.github.com/repos/CreatorCSIE/Attic-Minecraft-Launcher/releases/latest';
+const REPO_URL = 'https://api.github.com/repos/CreatorCSIE/Attic-Corner-Launcher/releases/latest';
 const NIGHTLY_LIST_URL = 'https://api.github.com/repos/a/b/releases?per_page=30';
 
 // ---------- compareSemver：数字段边界 + semver 2.0 预发布序 ----------
@@ -72,18 +72,18 @@ test('compareSemver：主段先行——跨 base nightly 排序（0.2.0-nightly.
 
 test('checkLatestRelease：200 有新版 → update 分支字段全带出（tag 去 v 前缀）', async () => {
   const res = await checkLatestRelease({
-    releaseRepo: 'CreatorCSIE/Attic-Minecraft-Launcher',
+    releaseRepo: 'CreatorCSIE/Attic-Corner-Launcher',
     currentVersion: '0.0.0',
     fetchImpl: jsonFetch(REPO_URL, {
       tag_name: 'v0.1.0',
-      html_url: 'https://github.com/CreatorCSIE/Attic-Minecraft-Launcher/releases/tag/v0.1.0',
+      html_url: 'https://github.com/CreatorCSIE/Attic-Corner-Launcher/releases/tag/v0.1.0',
       body: '## 更新内容\n- 检查更新链上线',
       published_at: '2026-10-20T12:00:00Z',
     }),
   });
   assert.equal(res.status, 'update');
   assert.equal(res.version, '0.1.0');
-  assert.equal(res.url, 'https://github.com/CreatorCSIE/Attic-Minecraft-Launcher/releases/tag/v0.1.0');
+  assert.equal(res.url, 'https://github.com/CreatorCSIE/Attic-Corner-Launcher/releases/tag/v0.1.0');
   assert.equal(res.notes, '## 更新内容\n- 检查更新链上线');
   assert.equal(res.publishedAt, '2026-10-20T12:00:00Z');
 });
@@ -468,7 +468,7 @@ test('AtticRuntime.checkUpdate：构造选项 releaseRepo 走通全链', async (
   const runtime = new AtticRuntime({
     rootDir: tempRoot(t),
     version: '0.0.0',
-    releaseRepo: 'CreatorCSIE/Attic-Minecraft-Launcher',
+    releaseRepo: 'CreatorCSIE/Attic-Corner-Launcher',
     fetchImpl: jsonFetch(REPO_URL, { tag_name: 'v0.1.0', html_url: 'u', body: 'n', published_at: 'p' }),
   });
   const res = await runtime.checkUpdate();
@@ -480,7 +480,7 @@ test('AtticRuntime.checkUpdate：env ATTIC_RELEASE_REPO 兜底（构造选项缺
   const runtime = new AtticRuntime({
     rootDir: tempRoot(t),
     version: '0.0.0',
-    env: { ATTIC_RELEASE_REPO: 'CreatorCSIE/Attic-Minecraft-Launcher' },
+    env: { ATTIC_RELEASE_REPO: 'CreatorCSIE/Attic-Corner-Launcher' },
     fetchImpl: jsonFetch(REPO_URL, { tag_name: 'v0.1.0', html_url: 'u' }),
   });
   assert.equal((await runtime.checkUpdate()).status, 'update');
@@ -502,7 +502,7 @@ test('AtticRuntime.checkUpdate：两缺 = 回落默认同仓（开发仓即发�
   });
   const res = await runtime.checkUpdate();
   assert.equal(res.status, 'update');
-  assert.equal(url, REPO_URL, '默认发布仓库 = CreatorCSIE/Attic-Minecraft-Launcher');
+  assert.equal(url, REPO_URL, '默认发布仓库 = CreatorCSIE/Attic-Corner-Launcher');
 });
 
 test('AtticRuntime.checkUpdate：显式空串 = unconfigured 关通道逃生舱（不发网络）', async (t) => {

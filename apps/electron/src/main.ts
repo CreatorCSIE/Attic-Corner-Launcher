@@ -39,7 +39,7 @@ const INSTALL_DIR = path.dirname(process.execPath);
 const PORTABLE_MARKER = 'resources/portable.ini';
 
 /** Releases 页（temp 守卫指路位；与关于页 REPO_URL 同源）。 */
-const RELEASES_URL = 'https://github.com/CreatorCSIE/Attic-Minecraft-Launcher/releases';
+const RELEASES_URL = 'https://github.com/CreatorCSIE/Attic-Corner-Launcher/releases';
 
 /**
  * temp 守卫：防压缩包内直接双击——只抽 exe 到 temp → marker 没跟出来判成安装态写 %APPDATA%；
@@ -328,7 +328,7 @@ function createConsoleWindow(): void {
     minHeight: 360,
     frame: false,
     show: false,
-    title: session ? `Attic Console — ${session.versionId} (${session.pid})` : 'Attic Minecraft Launcher — Console',
+    title: session ? `Attic Console — ${session.versionId} (${session.pid})` : 'Attic Corner Launcher — Console',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -364,7 +364,7 @@ app.whenReady().then(() => {
       detail:
         '检测到启动器正从临时目录运行——游戏数据会随临时目录清理而丢失。' +
         '请关闭压缩软件窗口，把 zip 里的整个文件夹解压到固定位置（如 D:\\Attic）后再双击启动。' +
-        '免安装构件请从项目 Releases 页下载（amcl-*-portable.zip）。',
+        '免安装构件请从项目 Releases 页下载（attic-*-portable.zip）。',
       buttons: ['打开 Releases 页', '退出'],
       noLink: true,
     });

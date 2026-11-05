@@ -33,7 +33,7 @@ function tempRoot(t) {
 }
 
 /** 便携夹具：exeDir（程序目录）+ 隔离默认根（env 注入，不碰真实 %APPDATA%/HOME）。 */
-function portableFixture(t, exeName = 'amcl-portable') {
+function portableFixture(t, exeName = 'attic-portable') {
   const base = tempRoot(t);
   const exeDir = path.join(base, exeName);
   fs.mkdirSync(exeDir, { recursive: true });
@@ -156,7 +156,7 @@ test('looksLikeTempExtraction：TEMP/TMP 前缀与压缩软件特征段命中，
     true,
   );
   assert.equal(looksLikeTempExtraction('C:\\Program Files\\7z$abcdef\\attic', { TEMP: 'C:\\Windows\\Temp' }), true);
-  assert.equal(looksLikeTempExtraction('D:\\Attic\\amcl', { TEMP: 'C:\\Windows\\Temp', TMP: 'C:\\Windows\\Temp' }), false);
+  assert.equal(looksLikeTempExtraction('D:\\Attic\\app', { TEMP: 'C:\\Windows\\Temp', TMP: 'C:\\Windows\\Temp' }), false);
 });
 
 // ---------- 指针面 / 落锚 / 登记簿 ----------

@@ -8,7 +8,7 @@ name: Release（全平台矩阵）
 # 见 depends.ts 闸门）；Linux 优先 Debian 系（deb，arch/redhat 有需求再说），linux arm64 不分发
 # （LWJGL2 无 arm64 原生库且无系统级模拟）。
 # portable 目录构件 = Windows 五腿（tauri x64/arm64、electron x64、legacy x64/ia32；B 期 2026-10-25 终拍①：
-# 与安装器同载荷、零预带 .attic、顶层收进 amcl-<shell>-windows-<arch>-<ver>/ 文件夹、程序目录 marker 位
+# 与安装器同载荷、零预带 .attic、顶层收进 attic-<shell>-windows-<arch>-<ver>/ 文件夹、程序目录 marker 位
 # 写出厂 portable.ini、根附「先解压再运行.txt」防呆）；linux tar.xz 与 MSI 双轨 = 后续条目（plan.md）。
 #
 # 触发与三种形态（2026-10 开放 artifacts 通道；2026-10-25 补 workflow_call 供 nightly 复用）：
@@ -176,10 +176,10 @@ jobs:
         include:
           - arch: x64
             build_args: ""
-            exe: apps/tauri/src-tauri/target/release/Attic Minecraft Launcher.exe
+            exe: apps/tauri/src-tauri/target/release/Attic Corner Launcher.exe
           - arch: arm64
             build_args: "--target aarch64-pc-windows-msvc"
-            exe: apps/tauri/src-tauri/target/aarch64-pc-windows-msvc/release/Attic Minecraft Launcher.exe
+            exe: apps/tauri/src-tauri/target/aarch64-pc-windows-msvc/release/Attic Corner Launcher.exe
     env:
       # updater minisign 私钥只在发版 CI 注入（公钥已入 tauri.conf.json，plan 发版 SOP）
       TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_UPDATER_PRIVATE_KEY }}
@@ -252,7 +252,7 @@ jobs:
         shell: pwsh
         run: |
           $ver = $env:ATTIC_VERSION
-          $folder = "amcl-tauri-windows-${{ matrix.arch }}-$ver"
+          $folder = "attic-tauri-windows-${{ matrix.arch }}-$ver"
           $zip = "portable-dist\$folder-portable.zip"
           # 守卫①：安装器载荷必须干净——portable.ini 只许出现在便携 staging 副本里
           # （安装器载荷混入 marker = 安装版被双指纹误判成便携）
@@ -275,7 +275,7 @@ jobs:
           2. 不要在 WinRAR/7-Zip 里直接双击 exe：那会解压到临时目录运行，程序检测到后拒绝启动，
              数据也会丢在临时目录里。
           3. 游戏数据默认放在 exe 旁的 .attic 文件夹——整个文件夹拷到哪，数据就跟到哪。
-          4. 新版本下载：https://github.com/CreatorCSIE/Attic-Minecraft-Launcher/releases
+          4. 新版本下载：https://github.com/CreatorCSIE/Attic-Corner-Launcher/releases
 
           "@
           [System.IO.File]::WriteAllText("$PWD\portable\先解压再运行.txt", $txt, (New-Object System.Text.UTF8Encoding($true)))
@@ -315,15 +315,15 @@ jobs:
         # --app-version：签名绑定版本（updater 配 requireSignedVersion 后无版本签名会被拒）。
         run: |
           ver="${ATTIC_VERSION}"
-          pnpm --filter @attic/tauri exec tauri signer sign --app-version "$ver" "$GITHUB_WORKSPACE/installer/dist/amcl-tauri-windows-${{ matrix.arch }}-${ver}-setup.exe"
+          pnpm --filter @attic/tauri exec tauri signer sign --app-version "$ver" "$GITHUB_WORKSPACE/installer/dist/attic-tauri-windows-${{ matrix.arch }}-${ver}-setup.exe"
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: amcl-tauri-windows-${{ matrix.arch }}
+          name: attic-tauri-windows-${{ matrix.arch }}
           path: |
-            installer/dist/amcl-tauri-windows-${{ matrix.arch }}-*-setup.exe
-            installer/dist/amcl-tauri-windows-${{ matrix.arch }}-*-setup.exe.sig
-            portable-dist/amcl-tauri-windows-${{ matrix.arch }}-*-portable.zip
+            installer/dist/attic-tauri-windows-${{ matrix.arch }}-*-setup.exe
+            installer/dist/attic-tauri-windows-${{ matrix.arch }}-*-setup.exe.sig
+            portable-dist/attic-tauri-windows-${{ matrix.arch }}-*-portable.zip
 
   # 双壳并进（2026-10-24 用户拍板）：Electron 壳 = Tauri 主壳之外的可选发行形态，
   # 仅 Windows（mac/linux 有社区需求再开）。更新策略 = 检查+提示+手动下载
@@ -360,7 +360,7 @@ jobs:
         shell: pwsh
         run: |
           $ver = $env:ATTIC_VERSION
-          $folder = "amcl-electron-windows-x64-$ver"
+          $folder = "attic-electron-windows-x64-$ver"
           $zip = "portable-dist\$folder-portable.zip"
           $payload = 'apps\electron\release\win-unpacked'
           # 守卫①：安装器载荷必须干净（portable.ini 只许在便携 staging 副本里）
@@ -382,7 +382,7 @@ jobs:
           2. 不要在 WinRAR/7-Zip 里直接双击 exe：那会解压到临时目录运行，程序检测到后拒绝启动，
              数据也会丢在临时目录里。
           3. 游戏数据默认放在 exe 旁的 .attic 文件夹——整个文件夹拷到哪，数据就跟到哪。
-          4. 新版本下载：https://github.com/CreatorCSIE/Attic-Minecraft-Launcher/releases
+          4. 新版本下载：https://github.com/CreatorCSIE/Attic-Corner-Launcher/releases
 
           "@
           [System.IO.File]::WriteAllText("$PWD\portable\先解压再运行.txt", $txt, (New-Object System.Text.UTF8Encoding($true)))
@@ -409,10 +409,10 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: amcl-electron-windows-x64
+          name: attic-electron-windows-x64
           path: |
-            installer/dist/amcl-electron-windows-x64-*-setup.exe
-            portable-dist/amcl-electron-windows-x64-*-portable.zip
+            installer/dist/attic-electron-windows-x64-*-setup.exe
+            portable-dist/attic-electron-windows-x64-*-portable.zip
 
   tauri-macos-arm64:
     name: Tauri DMG · macOS arm64（持续线，Apple Silicon）
@@ -449,24 +449,24 @@ jobs:
       - name: Tauri build (arm64, no updater artifacts)
         if: env.TAURI_SIGNING_PRIVATE_KEY == ''
         run: pnpm --filter @attic/tauri exec tauri build --target aarch64-apple-darwin --bundles dmg --config '{"bundle":{"createUpdaterArtifacts":false}}'
-      # bundler 产物名随 productName（含空格），统一归到 amcl 范式（2026-10-24 拍板）：
-      # amcl-tauri-macos-arm64-<ver>.dmg / .app.tar.gz(.sig)
-      - name: Normalize artifact names (amcl)
+      # bundler 产物名随 productName（含空格），统一归到 attic 范式（2026-10-24 拍板；2026-11-05 前缀 amcl→attic）：
+      # attic-tauri-macos-arm64-<ver>.dmg / .app.tar.gz(.sig)
+      - name: Normalize artifact names (attic)
         shell: bash
         run: |
           shopt -s nullglob
           ver="${ATTIC_VERSION}"
           cd apps/tauri/src-tauri/target/aarch64-apple-darwin/release/bundle
-          for f in dmg/*.dmg; do mv "$f" "dmg/amcl-tauri-macos-arm64-${ver}.dmg"; done
-          for f in macos/*.app.tar.gz; do mv "$f" "macos/amcl-tauri-macos-arm64-${ver}.app.tar.gz"; done
-          for f in macos/*.app.tar.gz.sig; do mv "$f" "macos/amcl-tauri-macos-arm64-${ver}.app.tar.gz.sig"; done
+          for f in dmg/*.dmg; do mv "$f" "dmg/attic-tauri-macos-arm64-${ver}.dmg"; done
+          for f in macos/*.app.tar.gz; do mv "$f" "macos/attic-tauri-macos-arm64-${ver}.app.tar.gz"; done
+          for f in macos/*.app.tar.gz.sig; do mv "$f" "macos/attic-tauri-macos-arm64-${ver}.app.tar.gz.sig"; done
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: amcl-tauri-macos-arm64
+          name: attic-tauri-macos-arm64
           path: |
-            apps/tauri/src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/amcl-tauri-macos-arm64-*.dmg
-            apps/tauri/src-tauri/target/aarch64-apple-darwin/release/bundle/macos/amcl-tauri-macos-arm64-*.app.tar.gz*
+            apps/tauri/src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/attic-tauri-macos-arm64-*.dmg
+            apps/tauri/src-tauri/target/aarch64-apple-darwin/release/bundle/macos/attic-tauri-macos-arm64-*.app.tar.gz*
 
   tauri-linux-x64:
     name: Tauri DEB · linux-x64（持续线，Debian 系优先）
@@ -509,24 +509,24 @@ jobs:
       - name: Tauri build (deb + appimage, no updater artifacts)
         if: env.TAURI_SIGNING_PRIVATE_KEY == ''
         run: pnpm --filter @attic/tauri exec tauri build --bundles deb,appimage --config '{"bundle":{"createUpdaterArtifacts":false}}'
-      # bundler 产物名随 productName（含空格），统一归到 amcl 范式（同 mac 腿注记）
-      - name: Normalize artifact names (amcl)
+      # bundler 产物名随 productName（含空格），统一归到 attic 范式（同 mac 腿注记）
+      - name: Normalize artifact names (attic)
         shell: bash
         run: |
           shopt -s nullglob
           ver="${ATTIC_VERSION}"
           cd apps/tauri/src-tauri/target/release/bundle
-          for f in deb/*.deb; do mv "$f" "deb/amcl-tauri-linux-x64-${ver}.deb"; done
-          for f in appimage/*.AppImage; do mv "$f" "appimage/amcl-tauri-linux-x64-${ver}.AppImage"; done
-          for f in appimage/*.AppImage.sig; do mv "$f" "appimage/amcl-tauri-linux-x64-${ver}.AppImage.sig"; done
+          for f in deb/*.deb; do mv "$f" "deb/attic-tauri-linux-x64-${ver}.deb"; done
+          for f in appimage/*.AppImage; do mv "$f" "appimage/attic-tauri-linux-x64-${ver}.AppImage"; done
+          for f in appimage/*.AppImage.sig; do mv "$f" "appimage/attic-tauri-linux-x64-${ver}.AppImage.sig"; done
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: amcl-tauri-linux-x64
+          name: attic-tauri-linux-x64
           path: |
-            apps/tauri/src-tauri/target/release/bundle/deb/amcl-tauri-linux-x64-*.deb
-            apps/tauri/src-tauri/target/release/bundle/appimage/amcl-tauri-linux-x64-*.AppImage
-            apps/tauri/src-tauri/target/release/bundle/appimage/amcl-tauri-linux-x64-*.AppImage.sig
+            apps/tauri/src-tauri/target/release/bundle/deb/attic-tauri-linux-x64-*.deb
+            apps/tauri/src-tauri/target/release/bundle/appimage/attic-tauri-linux-x64-*.AppImage
+            apps/tauri/src-tauri/target/release/bundle/appimage/attic-tauri-linux-x64-*.AppImage.sig
 
   electron-legacy-windows:
     name: Electron 22 兜底 Inno · x64+ia32
@@ -575,7 +575,7 @@ jobs:
           $ver = $env:ATTIC_VERSION
           foreach ($pair in @('x64|win-unpacked', 'ia32|win-ia32-unpacked')) {
             $arch, $dir = $pair -split '\|'
-            $folder = "amcl-electron-legacy-windows-$arch-$ver"
+            $folder = "attic-electron-legacy-windows-$arch-$ver"
             $zip = "portable-dist\$folder-portable.zip"
             $payload = "apps\electron-legacy\release\$dir"
             # 守卫①：安装器载荷必须干净（portable.ini 只许在便携 staging 副本里）
@@ -598,7 +598,7 @@ jobs:
           2. 不要在 WinRAR/7-Zip 里直接双击 exe：那会解压到临时目录运行，程序检测到后拒绝启动，
              数据也会丢在临时目录里。
           3. 游戏数据默认放在 exe 旁的 .attic 文件夹——整个文件夹拷到哪，数据就跟到哪。
-          4. 新版本下载：https://github.com/CreatorCSIE/Attic-Minecraft-Launcher/releases
+          4. 新版本下载：https://github.com/CreatorCSIE/Attic-Corner-Launcher/releases
 
           "@
             [System.IO.File]::WriteAllText("$PWD\portable\先解压再运行.txt", $txt, (New-Object System.Text.UTF8Encoding($true)))
@@ -614,11 +614,11 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: amcl-electron-legacy-windows
+          name: attic-electron-legacy-windows
           path: |
-            installer/dist/amcl-electron-legacy-windows-*-setup.exe
-            portable-dist/amcl-electron-legacy-windows-x64-*-portable.zip
-            portable-dist/amcl-electron-legacy-windows-ia32-*-portable.zip
+            installer/dist/attic-electron-legacy-windows-*-setup.exe
+            portable-dist/attic-electron-legacy-windows-x64-*-portable.zip
+            portable-dist/attic-electron-legacy-windows-ia32-*-portable.zip
 
   # Release 创建 + latest.json 通道（plan「更新通道设计」版本轨语义条 + 「Nightly 分发轨道」条
   # changelog 分工条落实；原文件尾 TODO 收口）。触发条件 = meta.mode ≠ none：
@@ -661,14 +661,14 @@ jobs:
       - name: 下载全部构件
         uses: actions/download-artifact@v4
         with:
-          pattern: 'amcl-*'
+          pattern: 'attic-*'
           path: dist
       - name: 创建 Release（notes = 人写稿/占位 + 试装声明 + 构件清单）
         shell: bash
         run: |
           set -euo pipefail
           mapfile -t files < <(find dist -type f | sort)
-          if [[ "${#files[@]}" -eq 0 ]]; then echo "::error::无任何 amcl-* 构件可挂"; exit 1; fi
+          if [[ "${#files[@]}" -eq 0 ]]; then echo "::error::无任何 attic-* 构件可挂"; exit 1; fi
           url_base="https://github.com/${REPO}/releases/download/${TAG}"
           : > notes.md
           # 首发特例（plan「Changelog 供给设计」）：release-notes/<tag>.md 在场 = 人写稿顶替占位段
@@ -714,10 +714,10 @@ jobs:
           const path = require('path');
           const { VER, TAG, REPO, DIST } = process.env;
           const specs = [
-            ['windows-x86_64', `amcl-tauri-windows-x64-${VER}-setup.exe`],
-            ['windows-aarch64', `amcl-tauri-windows-arm64-${VER}-setup.exe`],
-            ['darwin-aarch64', `amcl-tauri-macos-arm64-${VER}.app.tar.gz`],
-            ['linux-x86_64', `amcl-tauri-linux-x64-${VER}.AppImage`],
+            ['windows-x86_64', `attic-tauri-windows-x64-${VER}-setup.exe`],
+            ['windows-aarch64', `attic-tauri-windows-arm64-${VER}-setup.exe`],
+            ['darwin-aarch64', `attic-tauri-macos-arm64-${VER}.app.tar.gz`],
+            ['linux-x86_64', `attic-tauri-linux-x64-${VER}.AppImage`],
           ];
           const find = (dir, name) => {
             for (const e of fs.readdirSync(dir, { withFileTypes: true })) {

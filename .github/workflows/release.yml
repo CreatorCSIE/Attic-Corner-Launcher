@@ -83,10 +83,13 @@ jobs:
           if [[ "$event" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
             ver="${GITHUB_REF_NAME#v}"
             tag="${GITHUB_REF_NAME}"
-          elif [[ "$event" == "workflow_call" ]]; then
+          elif [[ -n "${{ inputs.version }}" ]]; then
+            # workflow_call 判别修正（2026-11-07 首轮 nightly 实跑教训）：被复用工作流里
+            # github.event_name 继承调用方事件（push）、ref_type=branch——原 event=="workflow_call"
+            # 分支永不命中 → 落 else 钉 0.0.0，构件名与内嵌版本全错。
+            # version 输入非空 = 唯一可靠信号（dispatch/tag 语境该输入恒为空串）。
             ver="${{ inputs.version }}"
             tag="v${ver}"
-            if [[ -z "$ver" ]]; then echo "::error::workflow_call 语境 version 输入为空"; exit 1; fi
           else
             # workflow_dispatch = 测试形态：版本钉 0.0.0、不建 Release
             #（branch push 触发已删 2026-10-29，见头注「触发收窄」）
@@ -107,7 +110,7 @@ jobs:
             # tag 语境 mode 由 semver 推导：stable = draft（changelog 人审 Publish，CI 只占坑）；
             # prerelease（0.0.x / -rc / -nightly 直推 tag）= auto 直发
             if [[ "$verdict" == "stable" ]]; then mode="draft"; else mode="auto"; fi
-          elif [[ "$event" == "workflow_call" ]]; then
+          elif [[ -n "${{ inputs.version }}" ]]; then
             mode="${{ inputs.release_mode }}"
             # stable ∧ auto 互斥（通道污染防线①）：stable 直发必须走 draft 占坑 + 人审 Publish——
             # 调用方递 stable 版本号 + auto 想绕审直发 = 强制降 draft，防 HEAD 构件发布即成

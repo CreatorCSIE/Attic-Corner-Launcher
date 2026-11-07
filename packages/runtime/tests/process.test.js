@@ -29,6 +29,8 @@ test('OutOfMemoryError → out-of-memory，headline 取首个匹配行', () => {
   const crash = classifyCrash(out, 1);
   assert.equal(crash.category, 'out-of-memory');
   assert.match(crash.headline, /OutOfMemoryError/);
+  // 规则命中无死因块 → 弹窗栈缺省
+  assert.equal(crash.stack, undefined);
 });
 
 test('UnsatisfiedLinkError → unsatisfied-link', () => {
@@ -81,6 +83,8 @@ test('Stopping! 前有 Java 堆栈 → unknown，headline 并拢到堆栈块顶�
   const crash = classifyCrash(out, 1);
   assert.equal(crash.category, 'unknown');
   assert.equal(crash.headline, 'Exception in thread "Client main loop" java.lang.RuntimeException: Failed to start game');
+  // 紧邻块全文（含 Caused by 嵌套行），Stopping! 行本身不入块
+  assert.equal(crash.stack, out.split('\n').slice(1, 6).join('\n'));
 });
 
 test('Stopping! 但其前无堆栈 → 不拿无关行当死因，落退出码行', () => {
@@ -132,6 +136,8 @@ test('a1.2.3 形态①：0 码（legacyfix 注入 exit(0)）+ 无 Stopping! + �
   const crash = classifyCrash(SO_TAIL.join('\n'), 0);
   assert.equal(crash.category, 'stack-overflow');
   assert.equal(crash.headline, 'java.lang.StackOverflowError');
+  // 弹窗栈全文 = 死因块 header+body；非栈行（No player…）不入块
+  assert.equal(crash.stack, SO_TAIL.slice(0, 5).join('\n'));
 });
 
 test('a1.2.3 形态②：JVM fatal 码（0xCFFFFFFF）→ 堆栈块优先于退出码行', () => {
@@ -181,6 +187,8 @@ test('infdev Error 崩溃：栈在 Stopping! 之后（uncaught handler 晚于 fi
   const crash = classifyStopped(out);
   assert.equal(crash.category, 'stack-overflow');
   assert.equal(crash.headline, 'Exception in thread "Thread-2" java.lang.StackOverflowError');
+  // 弹窗栈 = Stopping! 之后尾段块全文（收尾前的杂散行不入块）
+  assert.equal(crash.stack, out.split('\n').slice(2).join('\n'));
 });
 
 test('正常退出：陈旧堆栈压在 Stopping! 之前、收尾后无栈 → 不报（尾段扫描保护）', () => {
@@ -246,6 +254,7 @@ test('专类：TimSort 契约消息特判 → tim-sort；同型 IAE 其他消息
     '\tat net.minecraft.client.renderer.RenderGlobal.a(RenderGlobal.java:123)',
   ].join('\n');
   assert.equal(classifyCrash(tim, 1).category, 'tim-sort');
+  assert.match(classifyCrash(tim, 1).stack, /TimSort\.mergeHi/);
   const other = [
     'java.lang.IllegalArgumentException: width is 0',
     '\tat net.minecraft.client.X.a(X.java:1)',

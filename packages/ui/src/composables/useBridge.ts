@@ -7,31 +7,34 @@
  */
 
 import { computed, type ComputedRef } from 'vue';
-import type {
-  AccountView,
-  AppSettings,
-  CrashBundleResult,
-  CustomInfoView,
-  CustomVersionView,
-  GameBacklog,
-  GameExit,
-  GameSession,
-  GameStatus,
-  InstanceView,
-  IpcResult,
-  JavaDetectionReport,
-  LaunchConfig,
-  ModCategoryView,
-  ModInstallRequest,
-  LaunchCancelResult,
-  MsDeviceCode,
-  RendererBridge,
-  ServerListView,
-  SystemInfo,
-  UpdateCheckResult,
-  VersionJson,
+import {
+  IPC_EVENTS,
+  type AccountView,
+  type AppSettings,
+  type AtticEventPayloads,
+  type CrashBundleResult,
+  type CustomInfoView,
+  type CustomVersionView,
+  type GameBacklog,
+  type GameExit,
+  type GameExitEvent,
+  type GameSession,
+  type GameStatus,
+  type InstanceView,
+  type IpcResult,
+  type JavaDetectionReport,
+  type LaunchConfig,
+  type LaunchCancelResult,
+  type ModCategoryView,
+  type ModInstallRequest,
+  type MsDeviceCode,
+  type RendererBridge,
+  type ServerListView,
+  type SystemInfo,
+  type UpdateCheckResult,
+  type VersionJson,
 } from '@attic/core-spec';
-import { demoInstances, demoJavaInstall, demoJavaReport, demoModCategories, demoServers, demoSettings, demoSysInfo, demoSysInfoPortable, demoUpdateCheck, demoVersions, isDemo, isDemoPortable, isDemoUpdate } from '../dev/demo';
+import { demoCrashExit, demoCrashMode, demoInstances, demoJavaInstall, demoJavaReport, demoModCategories, demoServers, demoSettings, demoSoCrashExit, demoSysInfo, demoSysInfoPortable, demoUpdateCheck, demoVersions, isDemo, isDemoPortable, isDemoUpdate } from '../dev/demo';
 import { buildTauriBridge } from '../bridge/tauri';
 
 const NO_BRIDGE = 'no-bridge';
@@ -188,6 +191,20 @@ function demoBridge(): RendererBridge {
     },
     pickDirectory: async () => ok<string | null>(DEMO_PICK_PATHS[pickCount++ % DEMO_PICK_PATHS.length] ?? null),
     pickJavaExecutable: async () => ok<string | null>(demoJavaInstall.executable),
+    // 事件面：默认沿用 mock 的恒不发射；唯一例外 = 崩溃演练（?demo=1&crash=1|2），
+    // GAME_EXIT 订阅后 1.2s 发对应假退出，让崩溃弹窗排版可看（退订即撤销）。
+    on: <E extends keyof AtticEventPayloads>(event: E, cb: (payload: AtticEventPayloads[E]) => void): (() => void) => {
+      const mode = event === IPC_EVENTS.GAME_EXIT ? demoCrashMode() : null;
+      if (mode) {
+        const payload = mode === 'a123' ? demoSoCrashExit : demoCrashExit;
+        const timer = window.setTimeout(
+          () => (cb as (payload: GameExitEvent) => void)(payload),
+          1200,
+        );
+        return () => window.clearTimeout(timer);
+      }
+      return () => {};
+    },
     // 背景图演练面：选择器回假路径，读取回 1px 透明 PNG（链路可通；遮罩+暗上下文覆写真实生效）。
     pickImageFile: async () => ok<string | null>('D:\\Pictures\\background.png'),
     readImageAsDataUrl: async () =>

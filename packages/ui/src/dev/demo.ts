@@ -8,6 +8,7 @@
 
 import type {
   AppSettings,
+  GameExitEvent,
   InstanceView,
   JavaDetectionReport,
   JavaInstall,
@@ -184,6 +185,67 @@ export const demoSysInfoPortable: SystemInfo = {
   logsDir: 'D:\\Games\\attic-electron-windows-x64-0.0.0\\.attic\\launcher\\logs',
   defaultRootPopulated: true,
   portable: { active: true, fallback: false, rootPopulated: false },
+};
+
+/**
+ * 游戏崩溃弹窗演练面：?demo=1 之上再带 crash=1 → tim-sort（b1.6.6，实机截图形态）；
+ * crash=2 → a1.2.3 stack-overflow（树叶枯萎特化文案排版，a1.2.3 实测裸头形态）。
+ * demo 桥在 GAME_EXIT 订阅后 1.2s 发对应假退出。不带 crash = 恒不发（同 update=1 纪律）。
+ */
+export function demoCrashMode(): 'tim-sort' | 'a123' | null {
+  if (!isDemo()) return null;
+  const v = new URLSearchParams(window.location.search).get('crash');
+  return v === '1' ? 'tim-sort' : v === '2' ? 'a123' : null;
+}
+
+export const demoCrashExit: GameExitEvent = {
+  pid: 4164,
+  versionId: 'b1.6.6',
+  code: 0,
+  signal: null,
+  stoppedByUser: false,
+  crash: {
+    category: 'tim-sort',
+    headline: 'java.lang.IllegalArgumentException: Comparison method violates its general contract!',
+    stack: [
+      'java.lang.IllegalArgumentException: Comparison method violates its general contract!',
+      '\tat java.util.TimSort.mergeHi(TimSort.java:886)',
+      '\tat java.util.TimSort.mergeAt(TimSort.java:497)',
+      '\tat java.util.TimSort.mergeCollapse(TimSort.java:422)',
+      '\tat java.util.TimSort.sort(TimSort.java:223)',
+      '\tat java.util.Arrays.sort(Arrays.java:1512)',
+      '\tat net.minecraft.client.a.b.d.b(SourceFile:88)',
+      '\tat net.minecraft.client.a.b.a(SourceFile:145)',
+      '\tat net.minecraft.client.Minecraft.a(Minecraft.java:412)',
+      '\tat net.minecraft.client.Minecraft.run(Minecraft.java:808)',
+      '\tat java.lang.Thread.run(Thread.java:750)',
+    ].join('\n'),
+  },
+};
+
+/** a1.2.3 实测形态（2026-11-07 日志）：0 码 + 裸头 StackOverflowError + 树叶递归环混淆帧。 */
+export const demoSoCrashExit: GameExitEvent = {
+  pid: 4242,
+  versionId: 'a1.2.3',
+  code: 0,
+  signal: null,
+  stoppedByUser: false,
+  crash: {
+    category: 'stack-overflow',
+    headline: 'java.lang.StackOverflowError',
+    stack: [
+      'java.lang.StackOverflowError',
+      '\tat cx.c(SourceFile:380)',
+      '\tat cx.a(SourceFile:346)',
+      '\tat cx.l(SourceFile:508)',
+      '\tat cx.g(SourceFile:502)',
+      '\tat cx.e(SourceFile:466)',
+      '\tat cx.b(SourceFile:423)',
+      '\tat kl.h(SourceFile:49)',
+      '\tat kl.a(SourceFile:29)',
+      '\tat cx.l(SourceFile:509)',
+    ].join('\n'),
+  },
 };
 
 /** 假 Mods 仓库（形状对齐 ModCategoryView；getmods.jsp 生态的示意排布：分类→条目、installed 两态）。 */

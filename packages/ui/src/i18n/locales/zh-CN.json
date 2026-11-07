@@ -419,6 +419,15 @@
     "stack-overflow": "栈溢出错误",
     "unknown": "未知错误"
   },
+  "gameCrash": {
+    "title": "游戏崩溃",
+    "hint": "解决方案",
+    "close": "关闭"
+  },
+  "crashHint": {
+    "tim-sort": "老版本游戏内的排序比较器不满足 JDK 7+ 默认 TimSort 的契约校验（已知问题）。\n解决办法：在实例的「JVM 参数」一栏（或设置页「全局 JVM 参数」）添加 -Djava.util.Arrays.useLegacyMergeSort=true，保存后重新启动，即可恢复旧版归并排序、绕过该崩溃。",
+    "stack-overflow-a123": "Alpha 1.2.3 的树叶枯萎逻辑存在官方已知缺陷：递归深度守卫被世界通知链反复归零，进入含树木的区块即无限递归栈溢出（100% 触发，JVM 参数无法规避）。\n解决办法 = 换版本：Alpha 1.2.3_01（官方已禁用枯萎，不再崩溃）或 Beta 1.1 及以上（官方结构性重写，树叶可正常枯萎）。"
+  },
   "launcherCrash": {
     "liveTitle": "渲染层错误（已记入启动器日志）",
     "lastTitle": "上次启动异常退出",

@@ -104,33 +104,42 @@ function splitLines(output: string): string[] {
   return output.split(/\r?\n/).filter((line) => line.trim().length > 0);
 }
 
-/** 自最后一个 Stopping! 向上取紧邻堆栈块的块首行；无紧邻堆栈 → null（不拿无关行当死因）。 */
-function findStoppingStack(lines: string[]): string | null {
+/** 签名 = 死因块顶层 header（headline/归类用）+ 块全文（崩溃弹窗展示用）。 */
+interface StackSignature {
+  header: string;
+  stack: string;
+}
+
+/** 自最后一个 Stopping! 向上取紧邻堆栈块；无紧邻堆栈 → null（不拿无关行当死因）。 */
+function findStoppingStack(lines: string[]): StackSignature | null {
   for (let i = lines.length - 1; i >= 0; i--) {
     if (!STOPPING_LINE.test(lines[i]!)) continue;
     let header: string | null = null;
     const bodies: string[] = [];
-    for (let j = i - 1; j >= 0 && isStackLine(lines[j]!); j--) {
+    let j = i - 1;
+    for (; j >= 0 && isStackLine(lines[j]!); j--) {
       if (STACK_HEADER.test(lines[j]!)) header = lines[j]!;
       else bodies.push(lines[j]!);
     }
     if (!header) return null;
     const top = header.trim();
-    return NON_FATAL_STACK.test(top) || isNoiseThreadStack(bodies) ? null : top;
+    if (NON_FATAL_STACK.test(top) || isNoiseThreadStack(bodies)) return null;
+    return { header: top, stack: lines.slice(j + 1, i).join('\n') };
   }
   return null;
 }
 
 /** 尾部堆栈块：块底须在日志末 ≤8 行内（崩溃后零星残留日志不遮签名），向上并拢到块顶；
  *  须 header+body 俱备——裸 header 单行（日志里偶提一句异常名）不算完整栈签名。 */
-function findTrailingStack(lines: string[]): string | null {
+function findTrailingStack(lines: string[]): StackSignature | null {
   const floor = lines.length - STACK_GAP_TOLERANCE;
   let m = lines.length - 1;
   while (m >= floor && !isStackLine(lines[m]!)) m--;
   if (m < floor) return null;
   let header: string | null = null;
   const bodies: string[] = [];
-  for (let j = m; j >= 0; j--) {
+  let j = m;
+  for (; j >= 0; j--) {
     const line = lines[j]!;
     if (STACK_BODY.test(line)) {
       bodies.push(line);
@@ -144,13 +153,14 @@ function findTrailingStack(lines: string[]): string | null {
   }
   if (!header || bodies.length === 0) return null;
   const top = header.trim();
-  return NON_FATAL_STACK.test(top) || isNoiseThreadStack(bodies) ? null : top;
+  if (NON_FATAL_STACK.test(top) || isNoiseThreadStack(bodies)) return null;
+  return { header: top, stack: lines.slice(j + 1, m + 1).join('\n') };
 }
 
 /** 签名合成：Stopping! 紧邻优先；尾部块在 Stopping! 在场时只看最后一个 Stopping! 之后的尾段
  *  （infdev Error 崩溃 = finally 先打 Stopping!、JDK uncaught handler 事后打栈——栈在收尾后
  *  = 真签名；收尾前压着的陈旧栈 = 正常退出噪音不报。classic/indev/alpha 无 Stopping! 全尾扫）。 */
-function findStackSignature(lines: string[]): string | null {
+function findStackSignature(lines: string[]): StackSignature | null {
   const adjacent = findStoppingStack(lines);
   if (adjacent) return adjacent;
   let lastStopping = -1;
@@ -169,12 +179,12 @@ export function classifyCrash(output: string, code: number | null, signal?: stri
   // 退出码 0 ≠ 恒正常（2026-11-07 用户拍板 + a1.2.3 实证）：legacyfix run() 尾注入的
   // System.exit(0) 让崩溃以 0 码收场——命中签名仍报 unknown。规则不在 0 码上跑——
   // 正常退出日志里的陈旧 OOM/ENOENT 行会误报，0 码只认堆栈签名。
-  if (code === 0) return signature ? { category: categorizeSignature(signature), headline: signature } : null;
+  if (code === 0) return signature ? { category: categorizeSignature(signature.header), headline: signature.header, stack: signature.stack } : null;
   for (const rule of CRASH_RULES) {
     const hit = lines.find((line) => rule.pattern.test(line));
     if (hit) return { category: rule.category, headline: hit.trim() };
   }
-  if (signature) return { category: categorizeSignature(signature), headline: signature };
+  if (signature) return { category: categorizeSignature(signature.header), headline: signature.header, stack: signature.stack };
   return {
     category: 'unknown',
     headline: code !== null ? `exit code ${code}` : `signal ${signal ?? 'unknown'}`,
@@ -189,7 +199,9 @@ export function classifyCrash(output: string, code: number | null, signal?: stri
 export function classifyStopped(output: string): CrashSummary | null {
   const lines = splitLines(output);
   const signature = findStackSignature(lines);
-  return signature ? { category: categorizeSignature(signature), headline: signature } : null;
+  return signature
+    ? { category: categorizeSignature(signature.header), headline: signature.header, stack: signature.stack }
+    : null;
 }
 
 /** 输出缓冲上限（分类只用尾部，内存有界）。 */

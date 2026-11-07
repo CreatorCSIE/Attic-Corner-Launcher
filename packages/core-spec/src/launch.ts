@@ -46,6 +46,8 @@ export interface CrashSummary {
   category: CrashCategory;
   /** 单行摘要：规则命中 = 首个匹配行；堆栈签名 = 死因块顶层 header；兜底 = 退出码行。 */
   headline: string;
+  /** 死因块全文（header+body 逐行）：仅堆栈签名命中时填充，崩溃弹窗展示用；规则命中/兜底 = undefined。 */
+  stack?: string;
 }
 
 export interface GameExit {

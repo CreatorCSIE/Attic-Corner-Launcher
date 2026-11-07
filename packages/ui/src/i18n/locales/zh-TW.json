@@ -419,6 +419,15 @@
     "stack-overflow": "棧溢位錯誤",
     "unknown": "未知錯誤"
   },
+  "gameCrash": {
+    "title": "遊戲崩潰",
+    "hint": "解決方案",
+    "close": "關閉"
+  },
+  "crashHint": {
+    "tim-sort": "老版本遊戲內的排序比較器不滿足 JDK 7+ 預設 TimSort 的契約校驗（已知問題）。\n解決方法：在實例的「JVM 參數」一欄（或設定頁「全域 JVM 參數」）新增 -Djava.util.Arrays.useLegacyMergeSort=true，儲存後重新啟動，即可恢復舊版歸併排序、繞過該崩潰。",
+    "stack-overflow-a123": "Alpha 1.2.3 的樹葉枯萎邏輯存在官方已知缺陷：遞迴深度守衛被世界通知鏈反覆歸零，進入含樹木的區塊即無限遞迴棧溢位（100% 觸發，JVM 參數無法規避）。\n解決方法＝換版本：Alpha 1.2.3_01（官方已停用枯萎，不再崩潰）或 Beta 1.1 及以上（官方結構性重寫，樹葉可正常枯萎）。"
+  },
   "launcherCrash": {
     "liveTitle": "渲染層錯誤（已記入啟動器日誌）",
     "lastTitle": "上次啟動異常退出",

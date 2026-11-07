@@ -21,6 +21,7 @@ import ModsPanel from './components/ModsPanel.vue';
 import ServersPanel from './components/ServersPanel.vue';
 import SettingsPanel from './components/SettingsPanel.vue';
 import CrashPanel from './components/CrashPanel.vue';
+import GameCrashDialog from './components/GameCrashDialog.vue';
 import ExternalLinkErrorDialog from './components/ExternalLinkErrorDialog.vue';
 import UpdateDialog from './components/UpdateDialog.vue';
 import WelcomeWizard from './components/WelcomeWizard.vue';
@@ -364,6 +365,9 @@ onMounted(() => {
 
     <!-- 崩溃呈现模态弹窗（现场错误 + 上次崩溃；栈先行 + 三按钮，win32 原生框同构，AppDialog 同款形态） -->
     <CrashPanel />
+
+    <!-- 游戏崩溃弹窗（GAME_EXIT 带 crash 即弹；栈 + 解决方案提示；与控制台开闭无关，状态源 useGameCrash） -->
+    <GameCrashDialog />
 
     <!-- 外链打开失败全局弹窗（useExternalLink 单例状态；Mods 页与关于页共用） -->
     <ExternalLinkErrorDialog />

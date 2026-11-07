@@ -430,6 +430,15 @@
     "stack-overflow": "Stack overflow",
     "unknown": "Unknown error"
   },
+  "gameCrash": {
+    "title": "Game crashed",
+    "hint": "Solution",
+    "close": "Close"
+  },
+  "crashHint": {
+    "tim-sort": "The game's sort comparator violates the contract enforced by TimSort (default since JDK 7) — a known issue on legacy versions.\nFix: add -Djava.util.Arrays.useLegacyMergeSort=true to the instance's JVM arguments (or Global JVM arguments in Settings), save, and relaunch to restore the legacy merge sort and work around this crash.",
+    "stack-overflow-a123": "Alpha 1.2.3 ships a known official bug in its leaf-decay logic: the recursion depth guard is reset to zero by the world notification chain, so entering a chunk with trees causes unbounded recursion and a stack overflow (100% reproducible; no JVM flag can work around it).\nFix = switch versions: Alpha 1.2.3_01 (decay disabled officially, no crash) or Beta 1.1+ (structurally rewritten; leaves decay correctly)."
+  },
   "launcherCrash": {
     "liveTitle": "Renderer error (logged to launcher log)",
     "lastTitle": "Launcher exited abnormally last run",

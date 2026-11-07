@@ -63,7 +63,6 @@ import { infoToVersionJson, LAUNCH_METHOD_MAIN_CLASS } from './info';
 import { checkLwjgl2Arch, dependsOsFor, ensureDepends, type DependsIO } from './depends';
 import { detectJavaRuntime } from './java/detect';
 import { probeJavaExecutable } from './java/probe';
-import { hasLegacyResourceProbes, materializeLegacyResources } from './legacyResources';
 import { APPLET_LAUNCHER_CLASS, assembleLaunchConfig, legacyfixReleaseVersion, type LaunchContext } from './launch';
 import {
   composeModJars,
@@ -105,7 +104,6 @@ import {
 } from './portable';
 import { DEFAULT_AGENT_MOUNTS } from './quirks';
 import {
-  assetIndexFile,
   assetsDir,
   binDir,
   clientJarFile,
@@ -643,28 +641,6 @@ export class AtticRuntime {
     return probePreclassicEntry(clientJarFile(this.root, json.id)) ?? undefined;
   }
 
-  /**
-   * c0.24 家族死链声音预置（判定 → 计划 → 落位；任何一步失败 = 维持现状，绝不阻断启动）。
-   * 必须在 `downloadAssetObjects` 之后调用——本地对象缺席即跳过该键（补下是既有资产流程的职责，
-   * 机制与闸门见 legacyResources.ts 头注）。
-   */
-  private applyLegacyResources(json: VersionJson, gameDir: string, assetIndexId: string | null): void {
-    if (!assetIndexId) return;
-    if (!hasLegacyResourceProbes(clientJarFile(this.root, json.id))) return;
-    let indexJson: unknown;
-    try {
-      indexJson = JSON.parse(fs.readFileSync(assetIndexFile(this.root, assetIndexId), 'utf8')) as unknown;
-    } catch {
-      return; // 索引缺席 → 无从预置，游戏行为不变
-    }
-    materializeLegacyResources({
-      indexJson,
-      assetsRoot: assetsDir(this.root),
-      gameDir,
-      onDiagnostic: (message) => console.log(message),
-    });
-  }
-
   /** 真实 betacraft .info 不含 agentMount——并入 Attic 自带决策表（数据，非代码）。 */
   private withAgentMounts(json: VersionJson): VersionJson {
     if (json.betacraft?.agentMount) return json;
@@ -767,8 +743,8 @@ export class AtticRuntime {
       const context = await this.buildContext(request, signal, launchAccount);
       this.client.emitProgress({ item: 'java-runtime', id: request.versionId, phase: 'done', bytesDone: 0 });
       context.appletClass = this.resolvePreclassicAppletClass(json);
-      // 死链声音预置（gameDir 侧写数据，不动 JVM 参数；dryRun 不预置——纯检视不留副作用）。
-      this.applyLegacyResources(json, context.gameDir, assetIndexId);
+      // c0.24 死链声音预置（F1）已退役（2026-11-07 实机矩阵绿）：fork agent 6835f41 双协议
+      // 补丁在加载期改写死链，gameDir 侧预置不再发生（历史预置残留无害）。
       const config = assembleLaunchConfig(json, context, {
         extraJvmArgs: request.extraJvmArgs,
         gameParams: request.gameParams,
@@ -826,16 +802,17 @@ export class AtticRuntime {
       if (joinWarning) {
         this.emitEvent(IPC_EVENTS.GAME_OUTPUT, { stream: 'stderr', chunk: joinWarning, pid: session.pid });
       }
-      // 日志落盘：testLaunch 恒写；普通启动受「诊断日志」开关（diagnosticLog=true 全量落盘）
-      if (request.testLaunch || settings['diagnosticLog'] === 'true') {
-        this.attachLaunchLog(
-          request.versionId,
-          config,
-          session,
-          request.testLaunch ? 'test-launch' : 'launch',
-          context.accessToken,
-        );
-      }
+      // 日志落盘：恒调用（固定 output-client.log 每次启动必写 ≡ v1「恒为最近一次启动」语义；
+      // 2026-11-07 实机修复——曾整体挂在诊断闸门下，普通启动不生成固定日志）。
+      // 时间戳文件仍受闸门：testLaunch 恒写；普通启动 diagnosticLog=true 才写。
+      this.attachLaunchLog(
+        request.versionId,
+        config,
+        session,
+        request.testLaunch ? 'test-launch' : 'launch',
+        context.accessToken,
+        request.testLaunch || settings['diagnosticLog'] === 'true',
+      );
       this.lastLaunchError = null;
       return session;
     } catch (error) {
@@ -1701,12 +1678,11 @@ export class AtticRuntime {
   }
 
   /**
-   * 启动日志（testLaunch ≡ 菜单语义 + diagnosticLog 开关的普通启动共用）：启动器侧头行
-   * （时间戳/版本/命令行——token 已脱敏）+ 游戏 stdout/stderr 全量 + 退出行，
-   * 逐行落盘 `<root>/launcher/logs/<prefix>-<ISO>.log`。
-   * 同点双写固定文件 `logs/output-client.log`（Betacraft v1 Logger.output-client.log 语义：
-   * 恒等于**最近一次启动**的完整日志——本次启动开头截断旧文件，等价 v1 启动前
-   * clearClientLog；逐行 append 即时开关句柄，无占用锁，clearLogs 的 *.log 清扫自然覆盖）。
+   * 启动日志：启动器侧头行（时间戳/版本/命令行——token 已脱敏）+ 游戏 stdout/stderr
+   * 全量 + 退出行，**恒双写固定文件 `logs/output-client.log`**（Betacraft v1 语义：恒等于
+   * 最近一次启动——开头截断旧文件等价 clearClientLog；逐行 append 即时开关句柄无占用锁，
+   * clearLogs 的 *.log 清扫自然覆盖）；`timestamped=true`（testLaunch ≡ 菜单语义 /
+   * diagnosticLog 开关的普通启动）时另落 `<prefix>-<ISO>.log` 时间戳文件。
    * 控制台窗口唤起归 UI 侧（WINDOW_CONSOLE），runtime 不触窗；落盘失败静默（不阻断启动）。
    */
   private attachLaunchLog(
@@ -1715,6 +1691,7 @@ export class AtticRuntime {
     session: GameSession,
     prefix: 'test-launch' | 'launch',
     accessToken?: string,
+    timestamped = true,
   ): void {
     const logsDir = path.join(launcherDir(this.root), 'logs');
     fs.mkdirSync(logsDir, { recursive: true });
@@ -1728,12 +1705,13 @@ export class AtticRuntime {
     }
     const write = (line: string): void => {
       try {
-        fs.appendFileSync(file, `${line}\n`, 'utf8');
+        fs.appendFileSync(clientLog, `${line}\n`, 'utf8');
       } catch {
         /* 磁盘异常不影响游戏进程 */
       }
+      if (!timestamped) return;
       try {
-        fs.appendFileSync(clientLog, `${line}\n`, 'utf8');
+        fs.appendFileSync(file, `${line}\n`, 'utf8');
       } catch {
         /* 同上 */
       }

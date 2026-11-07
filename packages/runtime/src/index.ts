@@ -148,17 +148,6 @@ export {
   type AssetObjectPlan,
 } from './legacyAssets';
 export {
-  LEGACY_RESOURCE_PROBE_BASE,
-  LEGACY_RESOURCES_DIR,
-  hasLegacyResourceProbes,
-  legacyResourceRows,
-  legacyTargetFile,
-  planLegacyResources,
-  materializeLegacyResources,
-  type LegacyResourceEntry,
-  type LegacyResourceOutcome,
-} from './legacyResources';
-export {
   parseModCategories,
   readModRegistry,
   upsertModRegistry,

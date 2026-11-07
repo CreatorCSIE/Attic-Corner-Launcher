@@ -33,11 +33,11 @@ Betacraft 版本 API              legacyfix javaagent
 
 - **远古版本全谱系**：Pre-Classic → 1.5.2 官方历史版本，版本清单、版本 JSON、预 patch 客户端 jar（sha1 校验）、资产索引、皮肤与 legacy 验证代理全部走 Betacraft 数据链路供给——客户端零版本数据，新增历史版本无需发版。
 - **Java 运行时自动探测**：注册表 → 常见安装目录 → `JAVA_HOME` → `PATH` 收集候选，逐候选**实测执行**读取真实版本 / 架构 / `java.home`；优先 64 位 Java 8、无 64 位才回退 32 位，设置页可手动覆盖，并附全量探测报告（候选、拒绝原因、耗时）。
-- **legacyfix 自动集成**：从 GitHub Release 自动更新落位；javaagent / coremod / mod 三种形态按版本区间过滤挂载（判定失败 fail-open + 诊断）；纯 Applet 容器版本自动剔除 classpath 中的 launchwrapper 并保持 deawt 开启。
+- **legacyfix 自动集成（fork 供给）**：从自有 fork `legacyfix-attic` 的 GitHub Release 自动更新落位（钉版哈希校验，agent + addons 同源）；javaagent / coremod / mod 三种形态按版本区间过滤挂载（判定失败 fail-open + 诊断）；纯 Applet 容器版本自动剔除 classpath 中的 launchwrapper 并保持 deawt 开启。
 - **BC 基础库集（depends 通道，v1 移植）**：`libs-<os>.zip`（**Betacraft patched** LWJGL/JInput jar——鼠标抓取等修复编进 jar 本体）+ `natives-<os>.zip` 由 `depends-version.txt` 版本号驱动整体刷新，与 `.info` libraries / Mojang 回填构成双通道库池；arm 宿主启动前过 LWJGL2 架构闸门（见 FAQ）。
 - **Mods 仓库（一期 = Betacraft 单源）**：分类列表、按版本安装登记、启动期刷新与基座合成；对比 v1 做了结构性修复（原子写、sha1 必验、离线不误路由、陈旧合成重算）。
 - **v1 语义实例系统**：`gameDir` 按实例（而非版本）派生，切版本存档不变；实例级 JVM 参数 / 窗口尺寸（默认 854×480）覆盖全局；首启自动创建 `default instance`。
-- **启动管线可观测**：参数组序契约化拼装，干跑通道返回完整 LaunchConfig；独立控制台窗逐行日志 + 崩溃自动分类（out-of-memory / gl-init / lwjgl-native / unsatisfied-link / java-missing）；Applet 版本附 Windows 窗口看门狗，关窗即回收空转进程。
+- **启动管线可观测**：参数组序契约化拼装，干跑通道返回完整 LaunchConfig；独立控制台窗逐行日志 + 崩溃自动分类（11 专类：内存不足 / GL 初始化 / LWJGL 原生库 / 链接失败 / Java 缺失 / 空指针 / TimSort / 数组越界 / 状态冲突 / 栈溢出 / 未知）——崩溃弹窗展示死因堆栈全文，已知版本缺陷（如 TimSort 比较器契约、Indev Huge 建世越界、Classic 生存测试死亡屏）附解决方案提示；正常退出码 0 也识别崩溃签名，非致命线程噪音不误报；Applet 版本附 Windows 窗口看门狗，关窗即回收空转进程。
 - **社区服务器列表（Betacraft Server List）**：服务器列表页（v1 WebsitePanel 语义），按协议区间筛选兼容版本；进服前置双轨 mod 匹配（官方轨 + Mods 仓库轨，含远端 `getmods.jsp` 仓库全名三级匹配），确认进服时命中项自动入库。
 - **账户与数据**：离线账户（确定性 UUID，MC 离线格式）+ Microsoft 账户登录（设备码流程，v0.0.9 起；支持 online-mode 正版服进服，令牌 DPAPI 加密落盘）；设置与实例以 Java `.properties` 落盘；自定义版本 jar 导入与版本 JSON 编辑；数据根三平台解析 + portable 模式 + 可迁移老 `.betacraft`。
 
@@ -67,7 +67,7 @@ Betacraft 版本 API              legacyfix javaagent
 | Phase 3 | UI v0 + 设置页重写 + Mods/自定义版本 | ✅ 完成 |
 | Phase 4 | Tauri 壳 + sidecar + Electron 22 兜底壳 | ✅ 完成：真窗端到端全通（窗控/拖拽/图标/视觉收口、契约双绿），桌面手动验收通过——真窗点 Play MC 可正常启动（2026-10-24） |
 | Phase 5 | Inno Setup 安装包分发 + release CI + updater | ✅ 主通道在产：v0.0.1~v0.0.9 连续发布，全平台矩阵（Tauri/Electron/兜底 + mac arm64 + Linux deb/AppImage）+ portable + updater 签名在产；文档面已收口（Linux 已知问题清单 = FAQ Q7.5、macOS「右键打开」教程 = Q5.6） |
-| Phase 6 | addons、MC 工具接入、Java 深搜（deepScan）、Discord RPC 等 | 📋 愿望池（不承诺时间）；addons 的 javaagent 分叉路线（fork vs 自写）评估中；工具接入两通路已定案（attach 类走 `-javaagent` 预挂载、种子类外置进程联动实例世界 seed）；Java 深搜方案已归档（配方与契约成本细则见 plan.md） |
+| Phase 6 | addons、MC 工具接入、Java 深搜（deepScan）、Discord RPC 等 | 📋 愿望池（不承诺时间）；addons 的 fork 路线已落地（`legacyfix-attic` 供给 + 本仓接线完成，实机回归矩阵进行中）；工具接入两通路已定案并补**本地化定档**（工具实现语言 Java → 启动器自身栈、现有工具 UI 全弃改启动器内重建，自 0.2.0-nightly 起开工）；Java 深搜方案已归档（配方与契约成本细则见 plan.md） |
 
 ---
 
@@ -215,7 +215,7 @@ Windows 为 `%APPDATA%/.attic`，macOS / Linux 为 `~/.attic`（版本、资产�
 
 ### Q7：双击启动没窗口 / 秒退，怎么排查？
 
-先看独立控制台窗的逐行日志——启动器会自动分类退出原因（内存不足 / GL 初始化 / LWJGL 原生库 / 链接失败 / Java 缺失），按对应提示处理即可。改内存、JVM 参数、窗口尺寸都在实例编辑页（点击实例卡片进入），实例参数覆盖全局设置。
+先看独立控制台窗的逐行日志——崩溃时启动器会弹窗给出原因分类、死因堆栈全文和解决方案提示（已知版本缺陷如 TimSort 比较器错误会直接告诉你加哪个 JVM 参数、换哪个版本能绕过），按对应提示处理即可；未识别的崩溃以退出码兜底，堆栈可整段复制用于反馈。改内存、JVM 参数、窗口尺寸都在实例编辑页（点击实例卡片进入），实例参数覆盖全局设置。
 
 ### Q7.5：Linux 支持怎么样？WSL 里能跑吗？
 

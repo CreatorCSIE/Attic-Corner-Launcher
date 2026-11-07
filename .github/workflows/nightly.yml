@@ -147,7 +147,9 @@ jobs:
           mapfile -t files < <(find dist -type f | sort)
           if [[ "${#files[@]}" -eq 0 ]]; then echo "::error::无 attic-* 构件可挂"; exit 1; fi
           # 不可变纪律：禁 --clobber；tag 已由 plan job 推上，Release 已存在（重跑）= 此处炸，人工核对
-          gh release create "$TAG" --prerelease --title "$TAG" --notes-file notes.md "${files[@]}"
+          # --repo 必带：本 job 无 checkout，gh 在无 .git 目录里推断不了仓库上下文
+          #（2026-11-07 首轮 nightly 即炸于此：gh release create → fatal: not a git repository）
+          gh release create "$TAG" --repo "${GITHUB_REPOSITORY}" --prerelease --title "$TAG" --notes-file notes.md "${files[@]}"
 
   cleanup:
     name: 保留最近 14 个 nightly（整删 release+tag + 台账追加）
@@ -173,20 +175,20 @@ jobs:
           if [[ "${#tags[@]}" -le "$KEEP" ]]; then echo "无需清理"; exit 0; fi
           # 台账 = 常驻 draft release（tag nightly-history，body 即 jsonl 台账；不存在则创建）。
           # draft 硬约束：published 非 prerelease 会抢占 releases/latest 通道位（updater endpoint 污染源）
-          if ! gh release view nightly-history >/dev/null 2>&1; then
+          if ! gh release view nightly-history --repo "${REPO}" >/dev/null 2>&1; then
             : > ledger.jsonl
-            gh release create nightly-history --draft \
+            gh release create nightly-history --repo "${REPO}" --draft \
               --title 'Nightly 台账（清理 job 自动维护，勿手改）' --notes-file ledger.jsonl
           fi
           gh api "repos/${REPO}/releases/tags/nightly-history" --jq '.body // ""' > ledger.jsonl
           for t in "${tags[@]:$KEEP}"; do
             # 删除前记账：tag → 主仓 full SHA → run URL（run URL 从 release body 的 run: 行提取）
             sha="$(gh api "repos/${REPO}/releases/tags/$t" --jq '.target_commitish')"
-            run_url="$(gh release view "$t" --json body --jq '.body' \
+            run_url="$(gh release view "$t" --repo "${REPO}" --json body --jq '.body' \
               | grep -o 'https://[^ )]*actions/runs/[0-9]*' | head -n1 || true)"
             printf '{"tag":"%s","sha":"%s","run":"%s"}\n' "$t" "$sha" "$run_url" >> ledger.jsonl
-            gh release edit nightly-history --notes-file ledger.jsonl
+            gh release edit nightly-history --repo "${REPO}" --notes-file ledger.jsonl
             # 整删 release + tag（--cleanup-tag；tag 永不复用，社区取信基线"同 tag 必得同包"）
-            gh release delete "$t" --yes --cleanup-tag
+            gh release delete "$t" --repo "${REPO}" --yes --cleanup-tag
             echo "已删 $t（台账已记）"
           done

@@ -59,6 +59,7 @@ export type {
 } from './java';
 export type {
   CrashCategory,
+  CrashFingerprint,
   CrashSummary,
   GameExit,
   GameSession,

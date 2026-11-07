@@ -42,12 +42,19 @@ export type CrashCategory =
   | 'stack-overflow'
   | 'unknown';
 
+/** 已知崩溃指纹（判定在 runtime KNOWN_CRASH_FINGERPRINTS：只认死因块顶层 header 的
+ *  消息文本 + 可选帧锚、不做版本闸；每条入表须有源码级案卷钉死唯一性——消息本身唯一，
+ *  或消息为 JDK 通用格式时用帧锚合钉）。决定弹窗解决方案提示取键。 */
+export type CrashFingerprint = 'indev-huge-worldgen' | 'classic-death-screen-ioob';
+
 export interface CrashSummary {
   category: CrashCategory;
   /** 单行摘要：规则命中 = 首个匹配行；堆栈签名 = 死因块顶层 header；兜底 = 退出码行。 */
   headline: string;
   /** 死因块全文（header+body 逐行）：仅堆栈签名命中时填充，崩溃弹窗展示用；规则命中/兜底 = undefined。 */
   stack?: string;
+  /** 消息指纹命中时填充（类别归属不变，仅决定解决方案提示文案）。 */
+  fingerprint?: CrashFingerprint;
 }
 
 export interface GameExit {

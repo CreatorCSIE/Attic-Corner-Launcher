@@ -287,3 +287,71 @@ test('paulscode 音频引擎线程 NPE 压尾（全帧无游戏代码）→ 非�
   assert.equal(classifyCrash(out, 0), null);
   assert.equal(classifyStopped(out), null);
 });
+
+// —— 已知崩溃消息指纹（2026-11-07 用户拍板：只认消息、不做版本闸；类别归属不变，
+//    指纹只决定弹窗提示。案卷 = minecraft-indev-0.31-huge-crash-analysis.md：
+//    295936 = 天光队列长度 = 越界下标本身，全源码唯一）——
+const HUGE_295936 = [
+  'java.lang.ArrayIndexOutOfBoundsException: 295936',
+  '\tat net.minecraft.game.level.World.updateLight(World.java:231)',
+  '\tat net.minecraft.game.level.World.setLevel(World.java:93)',
+  '\tat net.minecraft.client.Minecraft.a(Minecraft.java:626)',
+];
+
+test('指纹：AIOOBE: 295936（Indev 0.31 Huge 建世天光队列写穿）→ 类别照旧越界 + fingerprint 挂载（双出口）', () => {
+  const crash = classifyCrash(HUGE_295936.join('\n'), 0);
+  assert.equal(crash.category, 'index-out-of-bounds');
+  assert.equal(crash.fingerprint, 'indev-huge-worldgen');
+  assert.equal(classifyStopped(HUGE_295936.join('\n')).fingerprint, 'indev-huge-worldgen');
+});
+
+test('指纹精确到数字：295937/2959360 不钉（只归通用越界类别，无 fingerprint）', () => {
+  for (const n of ['295937', '2959360']) {
+    const out = HUGE_295936.join('\n').replace('295936', n);
+    const crash = classifyCrash(out, 0);
+    assert.equal(crash.category, 'index-out-of-bounds');
+    assert.equal(crash.fingerprint, undefined);
+  }
+});
+
+// —— 形态②指纹（消息 JDK 通用格式 → 消息+帧锚合钉）：Classic 0.26 ST 死亡屏化石行
+//    （案卷 = minecraft-classic-0.26-st-death-screen-ioob-analysis.md；实机栈对榫
+//    c.p.a(p.java:12)，游戏线程死透 → 僵尸收尸形态）——
+const DEATH_SCREEN = [
+  'java.lang.IndexOutOfBoundsException: Index: 2, Size: 2',
+  '\tat c.p.a(p.java:12)',
+  '\tat c.n.a(SourceFile:38)',
+  '\tat l.a(l.java:173)',
+  '\tat l.e(l.java:1232)',
+  '\tat l.run(l.java:434)',
+];
+
+test('指纹（消息+帧锚）：0.26 ST 死亡屏 Index:2,Size:2 + c.p.a(p.java:12) → classic-death-screen-ioob（双出口）', () => {
+  const crash = classifyCrash(DEATH_SCREEN.join('\n'), 0);
+  assert.equal(crash.category, 'index-out-of-bounds');
+  assert.equal(crash.fingerprint, 'classic-death-screen-ioob');
+  assert.equal(classifyStopped(DEATH_SCREEN.join('\n')).fingerprint, 'classic-death-screen-ioob');
+});
+
+test('帧锚家族面：0.27 c.p.a / 0.30 e.r.a（原始 jar Unknown Source 形态）同钉', () => {
+  for (const frame of ['\tat c.p.a(Unknown Source)', '\tat e.r.a(Unknown Source)']) {
+    const out = ['java.lang.IndexOutOfBoundsException: Index: 2, Size: 2', frame].join('\n');
+    assert.equal(classifyCrash(out, 0).fingerprint, 'classic-death-screen-ioob');
+  }
+});
+
+test('帧锚把关：同消息无死亡屏帧（其他 get(2) 越界）→ 不钉指纹，只归越界类别', () => {
+  const out = [
+    'java.lang.IndexOutOfBoundsException: Index: 2, Size: 2',
+    '\tat net.minecraft.src.SomeScreen.init(SomeScreen.java:44)',
+    '\tat net.minecraft.client.Minecraft.run(Minecraft.java:100)',
+  ].join('\n');
+  const crash = classifyCrash(out, 0);
+  assert.equal(crash.category, 'index-out-of-bounds');
+  assert.equal(crash.fingerprint, undefined);
+});
+
+test('帧锚不误伤数字精确性：Index: 2, Size: 25 + 死亡屏帧 → 不钉（消息闸在前）', () => {
+  const out = DEATH_SCREEN.join('\n').replace('Size: 2', 'Size: 25');
+  assert.equal(classifyCrash(out, 0).fingerprint, undefined);
+});

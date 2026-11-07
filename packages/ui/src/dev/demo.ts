@@ -189,13 +189,18 @@ export const demoSysInfoPortable: SystemInfo = {
 
 /**
  * 游戏崩溃弹窗演练面：?demo=1 之上再带 crash=1 → tim-sort（b1.6.6，实机截图形态）；
- * crash=2 → a1.2.3 stack-overflow（树叶枯萎特化文案排版，a1.2.3 实测裸头形态）。
+ * crash=2 → a1.2.3 stack-overflow（树叶枯萎特化文案排版，a1.2.3 实测裸头形态）；
+ * crash=3 → Indev 0.31 Huge 建世越界（消息指纹 indev-huge-worldgen 排版）；
+ * crash=4 → Classic 0.26 ST 死亡屏越界（消息+帧锚指纹 classic-death-screen-ioob）。
  * demo 桥在 GAME_EXIT 订阅后 1.2s 发对应假退出。不带 crash = 恒不发（同 update=1 纪律）。
  */
-export function demoCrashMode(): 'tim-sort' | 'a123' | null {
+export function demoCrashMode(): 'tim-sort' | 'a123' | 'huge' | 'death' | null {
   if (!isDemo()) return null;
   const v = new URLSearchParams(window.location.search).get('crash');
-  return v === '1' ? 'tim-sort' : v === '2' ? 'a123' : null;
+  if (v === '1') return 'tim-sort';
+  if (v === '2') return 'a123';
+  if (v === '3') return 'huge';
+  return v === '4' ? 'death' : null;
 }
 
 export const demoCrashExit: GameExitEvent = {
@@ -244,6 +249,54 @@ export const demoSoCrashExit: GameExitEvent = {
       '\tat kl.h(SourceFile:49)',
       '\tat kl.a(SourceFile:29)',
       '\tat cx.l(SourceFile:509)',
+    ].join('\n'),
+  },
+};
+
+/** Indev 0.31 Huge 建世形态（案卷 = indev-0.31-huge-crash-analysis）：tick catch 打栈后
+ *  游戏挂错误屏不死 → 用户点停止收尸；消息数字 295936 = 队列长度即指纹。 */
+export const demoHugeCrashExit: GameExitEvent = {
+  pid: 4321,
+  versionId: 'in-20100104',
+  code: null,
+  signal: 'SIGTERM',
+  stoppedByUser: true,
+  crash: {
+    category: 'index-out-of-bounds',
+    headline: 'java.lang.ArrayIndexOutOfBoundsException: 295936',
+    fingerprint: 'indev-huge-worldgen',
+    stack: [
+      'java.lang.ArrayIndexOutOfBoundsException: 295936',
+      '\tat net.minecraft.game.level.World.updateLight(World.java:231)',
+      '\tat net.minecraft.game.level.World.func_556_c(World.java:101)',
+      '\tat net.minecraft.game.level.World.setLevel(World.java:93)',
+      '\tat net.minecraft.client.Minecraft.a(Minecraft.java:626)',
+      '\tat net.minecraft.client.Minecraft.run(Minecraft.java:317)',
+      '\tat java.lang.Thread.run(Thread.java:750)',
+    ].join('\n'),
+  },
+};
+
+/** Classic 0.26 ST 死亡屏形态（案卷 = classic-0.26-st-death-screen-ioob-analysis）：
+ *  死亡 → DeathScreen.init 化石行越界 → 游戏线程死透、窗口僵死 → 用户点停止收尸；
+ *  消息为 JDK 通用格式，帧锚 c.p.a(p.java:12) 合钉（还原 jar 实机栈对榫）。 */
+export const demoDeathCrashExit: GameExitEvent = {
+  pid: 4404,
+  versionId: 'c0.26_st',
+  code: null,
+  signal: 'SIGTERM',
+  stoppedByUser: true,
+  crash: {
+    category: 'index-out-of-bounds',
+    headline: 'java.lang.IndexOutOfBoundsException: Index: 2, Size: 2',
+    fingerprint: 'classic-death-screen-ioob',
+    stack: [
+      'java.lang.IndexOutOfBoundsException: Index: 2, Size: 2',
+      '\tat c.p.a(p.java:12)',
+      '\tat c.n.a(SourceFile:38)',
+      '\tat l.a(l.java:173)',
+      '\tat l.e(l.java:1232)',
+      '\tat l.run(l.java:434)',
     ].join('\n'),
   },
 };

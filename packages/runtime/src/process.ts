@@ -11,6 +11,7 @@ import { APPLET_LAUNCHER_CLASS } from './launch.js';
 
 import type {
   CrashCategory,
+  CrashFingerprint,
   CrashSummary,
   GameExit,
   GameExitEvent,
@@ -69,8 +70,12 @@ const isStackLine = (line: string): boolean => STACK_BODY.test(line) || STACK_HE
 const NON_FATAL_STACK = /^(?:java\.net\.(?:SocketException|ConnectException|SocketTimeoutException|UnknownHostException|NoRouteToHostException|BindException|MalformedURLException|ProtocolException|UnknownServiceException|HttpRetryException)|javax\.net\.ssl\.SSL\w+|java\.io\.(?:IOException|EOFException|FileNotFoundException|InterruptedIOException|UnsupportedEncodingException)|java\.util\.zip\.(?:ZipException|DataFormatException)|javax\.imageio\.IIOException)(?::|$)/;
 
 /**
- * 音频引擎线程噪音栈（2026-11-07 用户点名 indev-20100223 paulscode 案例）：paulscode
- * SoundSystem 自家 CommandThread/TimerThread catch(Throwable)→printStackTrace——声卡/库
+ * 音频引擎线程噪音栈（2026-11-07 用户点名 indev-20100223 paulscode 案例；根因考古 =
+ * 与本闸上方 NON_FATAL_STACK 是**同一死链根因的上下游两张脸**：ThreadDownloadResources
+ * 拉 resources/ 死链全灭（上游 SocketException 栈）→ 音效一个没落地 → SoundManager
+ * 无可选择音效 → paulscode 引擎线程后续调用 NPE（下游即本闸所拦）。LWJGL buffer check
+ * 致初始化失败是另一码事，本启动器环境不触发，不入档。拦法不变：paulscode
+ * SoundSystem 自家 CommandThread/TimerThread catch(Throwable)→printStackTrace——音频
  * 挂了游戏循环照常。判据 = 块内**全部**帧都是引擎/JDK 框架（无任何游戏代码帧）；对照
  * 同版 Minecraft.java L363-366：tick 异常 catch = GuiErrorScreen "The game broke!" +
  * return（致命），其栈必含 net.minecraft 帧，不受本闸影响。
@@ -98,6 +103,57 @@ const FATAL_CAUSE_RULES: ReadonlyArray<{ category: CrashCategory; pattern: RegEx
 function categorizeSignature(header: string): CrashCategory {
   const rule = FATAL_CAUSE_RULES.find((r) => r.pattern.test(header));
   return rule ? rule.category : 'unknown';
+}
+
+/**
+ * 已知崩溃指纹（2026-11-07 用户拍板：**只认指纹、不做版本闸**）——签名死因块顶层 header
+ * 命中（+可选帧锚）即给 CrashSummary 挂 fingerprint，UI 解决方案提示首查指纹。类别归属
+ * 不变（两例均 index-out-of-bounds），指纹只决定提示文案。准入纪律：宁缺毋滥，每条须
+ * 源码级案卷钉死唯一性，盲猜禁止入表。唯一性两形态：
+ * ① 消息本身唯一（全源码无第二处能造出该消息）→ 只测 header；
+ * ② 消息是 JDK 通用格式（`Index: x, Size: y` 任何越界都这么打）→ 消息+帧锚合钉，
+ *   帧锚 = 本启动器分发 jar 的稳定类.行号（实机栈对榫）。
+ * indev-huge-worldgen = `IndexOutOfBoundsException: 295936`（形态①；Indev 0.31 系天光
+ * flood-fill 队列硬编码容量 295936、Huge 建世首次天光初始化即写穿；数字 = 队列长度 =
+ * 越界下标本身，案卷排除法证全源码唯一。见 minecraft-indev-0.31-huge-crash-analysis.md）。
+ * classic-death-screen-ioob = `IndexOutOfBoundsException: Index: 2, Size: 2` + 帧锚（形态②；
+ * Classic 生存测试死亡屏化石行：DeathScreen 从 PauseScreen 裁剪、get(2) 未随 2 按钮列表
+ * 重编号，0.26–0.30 八只原始 jar 逐字节相同、从未修复，Indev 起 GUI 重写无此屏。
+ * 帧锚覆盖已实证的三形态（0.26 还原件 `c.p.a(p.java:12)`；0.27 `c.p.a(Unknown Source)`、
+ * 0.30 `e.r.a(Unknown Source)`——原始 jar javap 扫描 + 实机栈对榫双背书）；0.28/0.29 同雷
+ * 但混淆类名未取证（本地无 jar、实机被创造模式遮蔽），待复现后并锚。触发面：0.26 还原件
+ * 无守卫死亡必崩；0.27–0.30 包在 `if(user==null)` 内、仅无会话态崩（本启动器恒注入 user
+ * 参数、常规不触发——异常面按家族扩宽，环境变了弹得出）。
+ * 见 minecraft-classic-0.26-st-death-screen-ioob-analysis.md）。
+ */
+const KNOWN_CRASH_FINGERPRINTS: ReadonlyArray<{
+  fingerprint: CrashFingerprint;
+  pattern: RegExp;
+  frames?: RegExp;
+}> = [
+  { fingerprint: 'indev-huge-worldgen', pattern: /IndexOutOfBoundsException:\s*295936(?!\d)/ },
+  {
+    fingerprint: 'classic-death-screen-ioob',
+    pattern: /IndexOutOfBoundsException: Index: 2, Size: 2(?!\d)/,
+    frames: /at\s+(?:c\.p\.a\((?:p\.java:12|Unknown Source)\)|e\.r\.a\(Unknown Source\))/,
+  },
+];
+
+function matchFingerprint(header: string, stack: string): CrashFingerprint | undefined {
+  return KNOWN_CRASH_FINGERPRINTS.find(
+    (f) => f.pattern.test(header) && (!f.frames || f.frames.test(stack)),
+  )?.fingerprint;
+}
+
+/** 签名命中出口的统一构造（classifyCrash 0 码/非 0 码两分支 + classifyStopped 共用）。 */
+function signatureCrash(signature: StackSignature): CrashSummary {
+  const fingerprint = matchFingerprint(signature.header, signature.stack);
+  return {
+    category: categorizeSignature(signature.header),
+    headline: signature.header,
+    stack: signature.stack,
+    ...(fingerprint ? { fingerprint } : {}),
+  };
 }
 
 function splitLines(output: string): string[] {
@@ -179,12 +235,12 @@ export function classifyCrash(output: string, code: number | null, signal?: stri
   // 退出码 0 ≠ 恒正常（2026-11-07 用户拍板 + a1.2.3 实证）：legacyfix run() 尾注入的
   // System.exit(0) 让崩溃以 0 码收场——命中签名仍报 unknown。规则不在 0 码上跑——
   // 正常退出日志里的陈旧 OOM/ENOENT 行会误报，0 码只认堆栈签名。
-  if (code === 0) return signature ? { category: categorizeSignature(signature.header), headline: signature.header, stack: signature.stack } : null;
+  if (code === 0) return signature ? signatureCrash(signature) : null;
   for (const rule of CRASH_RULES) {
     const hit = lines.find((line) => rule.pattern.test(line));
     if (hit) return { category: rule.category, headline: hit.trim() };
   }
-  if (signature) return { category: categorizeSignature(signature.header), headline: signature.header, stack: signature.stack };
+  if (signature) return signatureCrash(signature);
   return {
     category: 'unknown',
     headline: code !== null ? `exit code ${code}` : `signal ${signal ?? 'unknown'}`,
@@ -199,9 +255,7 @@ export function classifyCrash(output: string, code: number | null, signal?: stri
 export function classifyStopped(output: string): CrashSummary | null {
   const lines = splitLines(output);
   const signature = findStackSignature(lines);
-  return signature
-    ? { category: categorizeSignature(signature.header), headline: signature.header, stack: signature.stack }
-    : null;
+  return signature ? signatureCrash(signature) : null;
 }
 
 /** 输出缓冲上限（分类只用尾部，内存有界）。 */

@@ -18,10 +18,12 @@ const { t } = useI18n();
 const { crash, dismiss } = useGameCrash();
 
 function resolveHintKey(e: GameExitEvent | null): string | null {
-  const cat = e?.crash?.category;
-  if (!cat) return null;
-  if (cat === 'tim-sort') return 'crashHint.tim-sort';
-  if (cat === 'stack-overflow' && e?.versionId === 'a1.2.3') return 'crashHint.stack-overflow-a123';
+  const crashInfo = e?.crash;
+  if (!crashInfo) return null;
+  // 指纹优先（runtime 消息指纹表命中即挂 fingerprint，唯一性有源码案卷背书）。
+  if (crashInfo.fingerprint) return `crashHint.${crashInfo.fingerprint}`;
+  if (crashInfo.category === 'tim-sort') return 'crashHint.tim-sort';
+  if (crashInfo.category === 'stack-overflow' && e?.versionId === 'a1.2.3') return 'crashHint.stack-overflow-a123';
   return null;
 }
 

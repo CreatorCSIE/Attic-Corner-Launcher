@@ -34,7 +34,7 @@ import {
   type UpdateCheckResult,
   type VersionJson,
 } from '@attic/core-spec';
-import { demoCrashExit, demoCrashMode, demoInstances, demoJavaInstall, demoJavaReport, demoModCategories, demoServers, demoSettings, demoSoCrashExit, demoSysInfo, demoSysInfoPortable, demoUpdateCheck, demoVersions, isDemo, isDemoPortable, isDemoUpdate } from '../dev/demo';
+import { demoCrashExit, demoCrashMode, demoDeathCrashExit, demoHugeCrashExit, demoInstances, demoJavaInstall, demoJavaReport, demoModCategories, demoServers, demoSettings, demoSoCrashExit, demoSysInfo, demoSysInfoPortable, demoUpdateCheck, demoVersions, isDemo, isDemoPortable, isDemoUpdate } from '../dev/demo';
 import { buildTauriBridge } from '../bridge/tauri';
 
 const NO_BRIDGE = 'no-bridge';
@@ -196,7 +196,14 @@ function demoBridge(): RendererBridge {
     on: <E extends keyof AtticEventPayloads>(event: E, cb: (payload: AtticEventPayloads[E]) => void): (() => void) => {
       const mode = event === IPC_EVENTS.GAME_EXIT ? demoCrashMode() : null;
       if (mode) {
-        const payload = mode === 'a123' ? demoSoCrashExit : demoCrashExit;
+        const payload =
+          mode === 'a123'
+            ? demoSoCrashExit
+            : mode === 'huge'
+              ? demoHugeCrashExit
+              : mode === 'death'
+                ? demoDeathCrashExit
+                : demoCrashExit;
         const timer = window.setTimeout(
           () => (cb as (payload: GameExitEvent) => void)(payload),
           1200,

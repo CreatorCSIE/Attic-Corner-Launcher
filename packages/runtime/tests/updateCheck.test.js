@@ -149,15 +149,15 @@ test('checkLatestRelease：其余预发布构件（0.0.x 短命轨 / -rc）恒�
   }
 });
 
-// ---------- checkLatestRelease：nightly 轨中匹配 ----------
+// ---------- checkLatestRelease：并集轨（preview 开 = 列表端点，nightly/stable 构件同规则） ----------
 
-test('checkLatestRelease：nightly 构件走 /releases 列表端点（UA 同、空列表 → upToDate）', async () => {
+test('checkLatestRelease：nightly 构件开预览走 /releases 列表端点（UA 同、空列表 → upToDate）', async () => {
   let seen = null;
   const fetchImpl = async (url, init) => {
     seen = { url, init };
     return new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } });
   };
-  const res = await checkLatestRelease({ releaseRepo: 'a/b', currentVersion: '0.1.0-nightly.5', fetchImpl });
+  const res = await checkLatestRelease({ releaseRepo: 'a/b', currentVersion: '0.1.0-nightly.5', preview: true, fetchImpl });
   assert.equal(seen.url, NIGHTLY_LIST_URL);
   assert.equal(seen.init.headers['User-Agent'], 'Attic/0.1.0-nightly.5');
   assert.equal(seen.init.headers.Accept, 'application/vnd.github+json');
@@ -165,27 +165,40 @@ test('checkLatestRelease：nightly 构件走 /releases 列表端点（UA 同、�
   assert.equal(res.current, '0.1.0-nightly.5');
 });
 
-test('checkLatestRelease：stable 构件仍走 /latest 单请求路径（与 nightly 轨 URL 分流）', async () => {
+test('checkLatestRelease：关预览（含缺省）一律 /latest——nightly 构件关 = 回正式版通道', async () => {
   const seen = [];
   const spy = async (url, init) => {
     seen.push(url);
-    return new Response(url.includes('per_page') ? '[]' : JSON.stringify({ tag_name: 'v9.9.9', html_url: 'u' }), {
+    return new Response(JSON.stringify({ tag_name: 'v9.9.9', html_url: 'u' }), {
       status: 200,
       headers: { 'content-type': 'application/json' },
     });
   };
   await checkLatestRelease({ releaseRepo: 'a/b', currentVersion: '0.1.0', fetchImpl: spy });
   await checkLatestRelease({ releaseRepo: 'a/b', currentVersion: '0.1.0-nightly.1', fetchImpl: spy });
+  await checkLatestRelease({ releaseRepo: 'a/b', currentVersion: '0.1.0-nightly.1', preview: false, fetchImpl: spy });
   assert.deepEqual(seen, [
     'https://api.github.com/repos/a/b/releases/latest',
-    'https://api.github.com/repos/a/b/releases?per_page=30',
+    'https://api.github.com/repos/a/b/releases/latest',
+    'https://api.github.com/repos/a/b/releases/latest',
   ]);
 });
 
-test('checkLatestRelease：nightly 轨——更高 stable（prerelease:false）不被选，只认同轨', async () => {
+test('checkLatestRelease：nightly 构件关预览 + stable 已转正 → 提示升级（回正式版出口核心用例）', async () => {
+  const res = await checkLatestRelease({
+    releaseRepo: 'a/b',
+    currentVersion: '0.1.0-nightly.20261107.2',
+    fetchImpl: jsonFetch('https://api.github.com/repos/a/b/releases/latest', { tag_name: 'v0.1.0', html_url: 's' }),
+  });
+  assert.equal(res.status, 'update');
+  assert.equal(res.version, '0.1.0', '0.1.0 > 0.1.0-nightly.X = 转正升级非降级，须提示');
+});
+
+test('checkLatestRelease：并集轨——更高 stable 被选（nightly 构件开预览转正提示）', async () => {
   const res = await checkLatestRelease({
     releaseRepo: 'a/b',
     currentVersion: '0.1.0-nightly.3',
+    preview: true,
     fetchImpl: jsonFetch(NIGHTLY_LIST_URL, [
       { tag_name: 'v0.2.0', prerelease: false, draft: false, html_url: 'stable-url' },
       {
@@ -199,16 +212,15 @@ test('checkLatestRelease：nightly 轨——更高 stable（prerelease:false）�
     ]),
   });
   assert.equal(res.status, 'update');
-  assert.equal(res.version, '0.1.5-nightly.7', 'stable 0.2.0 数字更大但轨不同，不得混入');
-  assert.equal(res.url, 'nightly-url');
-  assert.equal(res.notes, 'n');
-  assert.equal(res.publishedAt, 'p');
+  assert.equal(res.version, '0.2.0', '并集取最大：stable 0.2.0 > 0.1.5-nightly.7，转正即提示');
+  assert.equal(res.url, 'stable-url');
 });
 
-test('checkLatestRelease：nightly 轨——跨 base 更高 nightly 提示且取最大者', async () => {
+test('checkLatestRelease：并集轨——跨 base 更高 nightly 提示且取最大者', async () => {
   const res = await checkLatestRelease({
     releaseRepo: 'a/b',
     currentVersion: '0.1.0-nightly.20261020',
+    preview: true,
     fetchImpl: jsonFetch(NIGHTLY_LIST_URL, [
       { tag_name: 'v0.1.0-nightly.20261026', prerelease: true, html_url: 'u-same-base' },
       { tag_name: 'v0.2.0-nightly.20261024', prerelease: true, html_url: 'u-cross-base' },
@@ -218,10 +230,11 @@ test('checkLatestRelease：nightly 轨——跨 base 更高 nightly 提示且取
   assert.equal(res.version, '0.2.0-nightly.20261024', '按 compareSemver 取最大（主段先行），非列表首位');
 });
 
-test('checkLatestRelease：nightly 轨——draft 排除 + 数值序选 nightly.10 非 nightly.9', async () => {
+test('checkLatestRelease：并集轨——draft 排除 + 数值序选 nightly.10 非 nightly.9', async () => {
   const res = await checkLatestRelease({
     releaseRepo: 'a/b',
     currentVersion: '0.1.0-nightly.1',
+    preview: true,
     fetchImpl: jsonFetch(NIGHTLY_LIST_URL, [
       { tag_name: 'v0.1.0-nightly.99', prerelease: true, draft: true, html_url: 'draft-url' },
       { tag_name: 'v0.1.0-nightly.9', prerelease: true, draft: false, html_url: 'u9' },
@@ -232,23 +245,25 @@ test('checkLatestRelease：nightly 轨——draft 排除 + 数值序选 nightly.
   assert.equal(res.version, '0.1.0-nightly.10', 'draft 的 99 排除；10>9 按数值序');
 });
 
-test('checkLatestRelease：nightly 轨——仅更旧/相等 nightly 或无候选 → upToDate（不降级提示）', async () => {
+test('checkLatestRelease：并集轨——仅更旧/相等 nightly 或无候选 → upToDate（不降级提示）', async () => {
   const mk = (items) =>
     checkLatestRelease({
       releaseRepo: 'a/b',
       currentVersion: '0.1.0-nightly.5',
+      preview: true,
       fetchImpl: jsonFetch(NIGHTLY_LIST_URL, items),
     });
   assert.equal((await mk([{ tag_name: 'v0.1.0-nightly.4', prerelease: true, html_url: 'u' }])).status, 'upToDate');
   assert.equal((await mk([{ tag_name: 'v0.1.0-nightly.5', prerelease: true, html_url: 'u' }])).status, 'upToDate', '相等不提示');
-  assert.equal((await mk([{ tag_name: 'v0.9.0', prerelease: false, html_url: 'u' }])).status, 'upToDate', '无轨内候选');
+  assert.equal((await mk([{ tag_name: 'v0.0.9', prerelease: false, html_url: 'u' }])).status, 'upToDate', '更旧 stable 不入提示');
   assert.equal((await mk([{ tag_name: '', prerelease: true, html_url: 'u' }])).status, 'upToDate', '脏项容忍');
 });
 
-test('checkLatestRelease：nightly 轨——网络炸/非 2xx/响应形状非法 → error 语义照旧', async () => {
+test('checkLatestRelease：并集轨——网络炸/非 2xx/响应形状非法 → error 语义照旧', async () => {
   const boom = await checkLatestRelease({
     releaseRepo: 'a/b',
     currentVersion: '0.1.0-nightly.1',
+    preview: true,
     fetchImpl: async () => {
       throw new Error('ECONNRESET 网络离线');
     },
@@ -258,6 +273,7 @@ test('checkLatestRelease：nightly 轨——网络炸/非 2xx/响应形状非法
   const e403 = await checkLatestRelease({
     releaseRepo: 'a/b',
     currentVersion: '0.1.0-nightly.1',
+    preview: true,
     fetchImpl: async () => new Response('', { status: 403 }),
   });
   assert.equal(e403.status, 'error');
@@ -265,6 +281,7 @@ test('checkLatestRelease：nightly 轨——网络炸/非 2xx/响应形状非法
   const notArray = await checkLatestRelease({
     releaseRepo: 'a/b',
     currentVersion: '0.1.0-nightly.1',
+    preview: true,
     fetchImpl: jsonFetch(NIGHTLY_LIST_URL, { message: 'unexpected object' }),
   });
   assert.equal(notArray.status, 'error');
@@ -320,19 +337,6 @@ test('checkLatestRelease：stable+预览——其余预发布（rc 等）不入�
   assert.equal(res.version, '0.1.0', 'rc 系 prerelease 非 -nightly. 排除；取真 stable');
 });
 
-test('checkLatestRelease：nightly 构件 + preview=true 仍不混 stable（形态判据优先于开关判据）', async () => {
-  const res = await checkLatestRelease({
-    releaseRepo: 'a/b',
-    currentVersion: '0.1.0-nightly.1',
-    preview: true,
-    fetchImpl: jsonFetch(NIGHTLY_LIST_URL, [
-      { tag_name: 'v0.2.0', prerelease: false, html_url: 'stable-url' },
-      { tag_name: 'v0.1.0-nightly.2', prerelease: true, html_url: 'n2' },
-    ]),
-  });
-  assert.equal(res.version, '0.1.0-nightly.2', 'nightly 构件 includeStable=false，0.2.0 stable 不得混入');
-});
-
 test('checkLatestRelease：其余预发布构件开预览也不换源（预发布纪律优先，仍 /latest 且永不提示）', async () => {
   const seen = [];
   const spy = async (url) => {
@@ -385,6 +389,34 @@ test('AtticRuntime.checkUpdate：settings.updatePreview 每次现读透传（开
   assert.equal(res.status, 'update');
   assert.equal(res.version, '0.1.0-nightly.1', '开关即选即生效（无缓存态）');
   assert.ok(seen[1].includes('per_page=30'));
+});
+
+test('AtticRuntime.checkUpdate：nightly 构件默认值跟轨（未拨过=开走列表；拨关回 /latest；拨开照旧）', async (t) => {
+  const seen = [];
+  const runtime = new AtticRuntime({
+    rootDir: tempRoot(t),
+    version: '0.1.0-nightly.20261107.2',
+    releaseRepo: 'a/b',
+    env: {},
+    fetchImpl: async (u) => {
+      seen.push(String(u));
+      return new Response(String(u).includes('per_page') ? JSON.stringify([{ tag_name: 'v0.1.0-nightly.20261108.1', prerelease: true, html_url: 'n' }]) : JSON.stringify({ tag_name: 'v0.1.0', html_url: 's' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    },
+  });
+  const dflt = await runtime.checkUpdate();
+  assert.equal(dflt.status, 'update');
+  assert.equal(dflt.version, '0.1.0-nightly.20261108.1', 'nightly 构件未拨过 = 默认开，并集轨吃新 nightly');
+  assert.ok(seen[0].includes('per_page=30'));
+  runtime.setSettings({ updatePreview: false });
+  const off = await runtime.checkUpdate();
+  assert.equal(off.status, 'update');
+  assert.equal(off.version, '0.1.0', '主动关 = /latest 纯 stable，转正即提示（回正式版出口）');
+  assert.ok(!seen[1].includes('per_page'));
+  runtime.setSettings({ updatePreview: true });
+  assert.ok((await runtime.checkUpdate()).version.includes('-nightly.'), '拨回开 = 并集轨照旧');
 });
 
 test('checkLatestRelease：请求头带 GitHub 强制的 User-Agent = Attic/<version>', async () => {

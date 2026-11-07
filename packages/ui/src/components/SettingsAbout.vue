@@ -73,6 +73,11 @@ const AGREEMENT_URL = `${REPO_URL}/blob/HEAD/USER_AGREEMENT.md`;
 // （isDemo 仅 dev 存活，顺序恒为 -dev-demo）；构建产物两态恒 false，后缀整体消失。
 const versionSuffix = `${import.meta.env.DEV ? '-dev' : ''}${isDemo() ? '-demo' : ''}`;
 
+// nightly 构件（轨判据与 runtime updateCheck.ts 同源：版本含 -nightly.）= 开关默认开
+//（未拨过时 UI 显示与 runtime 判定同步：settings 三态 undefined → 跟轨）；拨过尊重 persisted，
+// 随时可关 = 回正式版出口（stable 转正发布即提示升级换体）。
+const nightlyBuild = computed(() => /-nightly\./.test(info.value?.launcherVersion ?? ''));
+
 interface ReferenceProject {
   name: string;
   url: string;
@@ -163,9 +168,9 @@ function openUrl(url: string): void {
         </div>
       </div>
       <SettingToggle
-        :model-value="settings.updatePreview === true"
+        :model-value="settings.updatePreview ?? nightlyBuild"
         :label="t('settings.about.updatePreview.label')"
-        :desc="t('settings.about.updatePreview.desc')"
+        :desc="nightlyBuild ? t('settings.about.updatePreview.descNightly') : t('settings.about.updatePreview.desc')"
         @update:model-value="(v: boolean) => void patch({ updatePreview: v })"
       />
     </div>

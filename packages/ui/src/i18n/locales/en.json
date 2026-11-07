@@ -592,7 +592,8 @@
       },
       "updatePreview": {
         "label": "Early preview builds",
-        "desc": "When on, update checks also match the nightly prerelease track (the newest nightly is suggested; on Windows, pressing Update downloads and swaps it automatically). Silent auto-updates are unaffected; turning it off returns to the stable track."
+        "desc": "When on, update checks also match the nightly prerelease track (the newest nightly is suggested; on Windows, pressing Update downloads and swaps it automatically). Silent auto-updates are unaffected; turning it off returns to the stable track.",
+        "descNightly": "You are running a nightly build, so this switch is on by default: update checks match the nightly ∪ stable union track (whichever is newer is suggested; on Windows, pressing Update swaps it automatically). Turning it off returns to the stable track — the official release will be suggested as soon as it ships."
       },
       "legalSection": "Copyright & Legal",
       "copyrightTitle": "Copyright notice",

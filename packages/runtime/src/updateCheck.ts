@@ -1,12 +1,13 @@
 /**
  * 检查更新数据面（GitHub Releases，零依赖自包含）。
- * 事实来源按当前构件轨分流：
- * - stable 构件（版本号无 `-`）= `https://api.github.com/repos/{owner}/{repo}/releases/latest`
- *   —— /latest 端点天然排除 draft/prerelease，不消费 latest.json（无自托管清单依赖）；
- * - nightly 构件（版本号含 `-nightly.`）= `.../releases?per_page=30` 列表轨中匹配
- *   —— 候选 = prerelease=true ∧ draft≠true ∧ tag 含 `-nightly.`（跨 base 允许、永不混 stable 轨）；
- * - stable 构件开 `updatePreview`（deps.preview）= 同列表端点，候选 = stable ∪ nightly 轨取最大
- *   （plan「测试版通道与更新执行面」条②；静默通道 latest.json 不受影响）。
+ * 事实来源按 `updatePreview` 开关分流（2026-11-07 语义统一拍板：开关 = 是否继续留在测试轨，
+ * 对两种构件同一条规则；runtime 层 nightly 构件未拨过 = 默认开）：
+ * - 关 = `https://api.github.com/repos/{owner}/{repo}/releases/latest` 纯 stable 轨
+ *   —— /latest 端点天然排除 draft/prerelease；nightly 构件关 = 回正式版出口：
+ *   stable 转正发布即提示（0.1.0 > 0.1.0-nightly.X 为升级非降级），换体后体内版本变 stable 闭环；
+ * - 开 = `.../releases?per_page=30` 列表端点，候选 = stable ∪ nightly 并集取最大
+ *   （draft 恒排除；nightly 候选 = prerelease ∧ tag 含 `-nightly.`；stable 候选 = 非 prerelease ∧ tag 无 `-`；
+ *   跨 base nightly 允许；stable 转正提示不丢——并集语义对两种构件同形）。
  * semver 比较自研（semver 2.0 完整预发布序）：主段数字逐位比较（缺段按 0：1.0 == 1.0.0）；
  * tag 去 v 前缀；预发布段：有预发布 < 无预发布（0.1.0-nightly.X < 0.1.0），
  * 标识符逐个比较（纯数字按数值、字母数字按 ASCII、数字恒小于字母数字、全等则短者小）。
@@ -35,9 +36,9 @@ export interface UpdateCheckDeps {
   /** 网络注入面（与 betacraft 同款：测试/离线可换 fake fetch）。 */
   fetchImpl: FetchImpl;
   /**
-   * 提前体验测试版（settings.updatePreview 透传）：stable 构件开 = 改走列表端点，
-   * 候选集 = stable ∪ nightly 轨取最大（stable 更新提示不丢）；nightly 构件恒在轨、
-   * 本开关对其无效（形态判据 ∨ 开关判据并集）。其余预发布构件（rc/0.0.x）不受开关影响仍永不提示。
+   * 提前体验测试版（settings.updatePreview 透传，runtime 层默认值跟轨：nightly 构件未拨过视为开）：
+   * 开 = 列表端点 stable ∪ nightly 并集取最大；关 = /latest 纯 stable（nightly 构件即回正式版通道）。
+   * 其余预发布构件（rc/0.0.x 短命试装轨）不受开关影响仍永不提示（预发布纪律）。
    */
   preview?: boolean;
 }
@@ -144,13 +145,13 @@ function toUpdateResult(raw: ReleaseRaw, version: string): UpdateCheckResult {
 }
 
 /**
- * 轨中匹配：从 /releases 列表（GitHub 序 = 创建时间新在前，per_page=30 窗口）取最大候选。
- * 候选 = 非 draft ∧ [（prerelease ∧ tag 含 `-nightly.`）∨（includeStable ∧ 非 prerelease ∧ tag 无 `-`）]；
- * includeStable 由入口决定：nightly 构件 = false（永不混 stable 轨，跨 base nightly 允许）、
- * stable+预览 = true（stable ∪ nightly 并集，stable 更新提示不因开关丢失）。
+ * 并集轨匹配（preview 开时专用）：从 /releases 列表（GitHub 序 = 创建时间新在前，per_page=30 窗口）
+ * 取最大候选 = 非 draft ∧ [（prerelease ∧ tag 含 `-nightly.`）∨（非 prerelease ∧ tag 无 `-`）]
+ * —— stable ∪ nightly 并集，跨 base nightly 允许，stable 转正提示不丢。
+ * 其余预发布构件（rc/0.0.x）恒不入候选（预发布纪律）。
  * 列表空/无候选/最大者不高于 current → upToDate；响应形状非法 → error（与 /latest 路径同口径）。
  */
-async function pickTrackRelease(res: Response, current: string, includeStable: boolean): Promise<UpdateCheckResult> {
+async function pickTrackRelease(res: Response, current: string): Promise<UpdateCheckResult> {
   let list: unknown;
   try {
     list = await res.json();
@@ -168,7 +169,7 @@ async function pickTrackRelease(res: Response, current: string, includeStable: b
     if (rel.prerelease === true) {
       // 其余预发布（rc/0.0.x 短命试装轨）恒不入候选（预发布纪律）
       if (!tag.includes('-nightly.')) continue;
-    } else if (!includeStable || tag.includes('-')) {
+    } else if (tag.includes('-')) {
       continue;
     }
     const version = tag.replace(/^v/i, '');
@@ -194,11 +195,10 @@ export async function checkLatestRelease(deps: UpdateCheckDeps): Promise<UpdateC
   }
   const [owner, name] = parts as [string, string];
   const current = deps.currentVersion;
-  // 轨分流（形态判据 ∨ 开关判据并集）：nightly 构件恒走列表轨中匹配；stable 开预览也走列表
-  // （候选并集含 stable）；stable 关预览与其余预发布构件 = /latest 单请求。
-  // 预发布纪律优先于开关判据：rc/0.0.x 短命试装轨构件开预览也不换源（永不提示照旧）。
-  const nightlyTrack = current.includes('-nightly.');
-  const useList = nightlyTrack || (deps.preview === true && !current.includes('-'));
+  // 开关分流（语义统一）：开 = 列表端点并集轨（nightly/stable 构件同规则）；
+  // 关 = /latest 纯 stable（nightly 构件关即回正式版出口，转正发布提示升级）。
+  // 预发布纪律优先于开关：rc/0.0.x 短命试装轨构件开预览也不换源（永不提示照旧）。
+  const useList = deps.preview === true && (current.includes('-nightly.') || !current.includes('-'));
   const repoBase = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`;
   const url = useList ? `${repoBase}/releases?per_page=30` : `${repoBase}/releases/latest`;
   let res: Response;
@@ -217,7 +217,7 @@ export async function checkLatestRelease(deps: UpdateCheckDeps): Promise<UpdateC
     const hint = res.status === 404 ? '（仓库不存在或尚无 Release）' : res.status === 403 ? '（限流或 UA 被拒）' : '';
     return { status: 'error', message: `GitHub API HTTP ${res.status}${hint}` };
   }
-  if (useList) return pickTrackRelease(res, current, !nightlyTrack);
+  if (useList) return pickTrackRelease(res, current);
   let raw: ReleaseRaw;
   try {
     raw = (await res.json()) as ReleaseRaw;
@@ -226,9 +226,12 @@ export async function checkLatestRelease(deps: UpdateCheckDeps): Promise<UpdateC
   }
   const tag = typeof raw.tag_name === 'string' ? raw.tag_name.trim() : '';
   if (!tag) return { status: 'error', message: 'Release 响应缺少 tag_name' };
-  // 预发布纪律（见文件头）：自身为其余预发布（不含 -nightly.，0.0.x 短命试装轨手动跟 Releases 页）
-  // 或 latest tag 含 `-`（防御双保险）→ 永不提示。
-  if (current.includes('-') || tag.includes('-')) return { status: 'upToDate', current };
+  // 预发布纪律（见文件头）：自身为其余预发布（含 `-` 且不含 `-nightly.`，0.0.x 短命试装轨手动跟
+  // Releases 页）或 latest tag 含 `-`（防御双保险）→ 永不提示。
+  // nightly 构件关开关走到这里 = 合法回正式版通道：0.1.0 > 0.1.0-nightly.X 按下方数值序提示转正。
+  if ((current.includes('-') && !current.includes('-nightly.')) || tag.includes('-')) {
+    return { status: 'upToDate', current };
+  }
   const version = tag.replace(/^v/i, '');
   if (compareSemver(version, current) <= 0) return { status: 'upToDate', current };
   return toUpdateResult(raw, version);

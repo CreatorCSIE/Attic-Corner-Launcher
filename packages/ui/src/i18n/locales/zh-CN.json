@@ -503,7 +503,7 @@
         "gray": "石灰灰"
       },
       "background": "启动页背景",
-      "backgroundDesc": "自定义主页背景图（png/jpg/webp/gif/bmp，≤12MB），自动叠加暗色遮罩保证文字可读；不配置时使用主题纯色背景。",
+      "backgroundDesc": "自定义主页背景图（png/jpg/webp/gif/bmp，≤12MB），自动叠加暗色遮罩保证文字可读；不配置时使用主题纯色背景。输入框可直接填写绝对路径（即改即存），路径读不到时回落纯色。",
       "backgroundPick": "选择图片…",
       "backgroundClear": "移除背景图",
       "backgroundDefault": "未配置（纯色背景）"
@@ -565,6 +565,10 @@
         "close": "关闭",
         "ignore": "忽略此版本",
         "update": "更新",
+        "downloading": "正在下载更新",
+        "restarting": "更新器已就绪，即将自动重启…",
+        "autoUnavailable": "自动更新不可用，请从 Releases 页手动下载。",
+        "fallbackLink": "打开 Releases 页",
         "cancel": "取消",
         "ignoreHint": "忽略会把该版本记入本地单槽账：自动检查此后不再打扰（手动检查不受影响）。"
       },
@@ -577,7 +581,7 @@
       },
       "updatePreview": {
         "label": "提前体验测试版",
-        "desc": "开启后「检查更新」同时匹配 nightly 测试版轨道（提示最新一枚，构件仍需从 Releases 页手动下载）；不影响静默自动更新，关闭即回正式版轨道。"
+        "desc": "开启后「检查更新」同时匹配 nightly 测试版轨道（提示最新一枚，Windows 下点「更新」即自动下载换体重启）；不影响静默自动更新，关闭即回正式版轨道。"
       },
       "legalSection": "版权及法律声明",
       "copyrightTitle": "版权声明",

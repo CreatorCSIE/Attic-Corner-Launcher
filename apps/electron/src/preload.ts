@@ -53,6 +53,7 @@ const bridge: RendererBridge = {
   listServers: () => invoke(IPC_CHANNELS.SERVERS_LIST),
   getSystemInfo: () => invoke(IPC_CHANNELS.SYS_INFO),
   checkUpdate: () => invoke(IPC_CHANNELS.UPDATE_CHECK),
+  applyUpdate: (req) => invoke(IPC_CHANNELS.UPDATE_APPLY, req),
   openSpecialDir: (target) => invoke(IPC_CHANNELS.SHELL_OPEN_DIR, target),
   clearLogs: () => invoke(IPC_CHANNELS.LOGS_CLEAR),
   pickJavaExecutable: () => invoke(IPC_CHANNELS.DIALOG_PICK, 'java-executable'),

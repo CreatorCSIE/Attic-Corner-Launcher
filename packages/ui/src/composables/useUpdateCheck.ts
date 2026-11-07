@@ -10,7 +10,7 @@
  */
 
 import { computed, ref, watch, type Ref } from 'vue';
-import type { UpdateCheckResult } from '@attic/core-spec';
+import { IPC_EVENTS, type UpdateCheckResult } from '@attic/core-spec';
 import { shouldPromptUpdate } from '@attic/runtime/updatePolicy';
 import { useBridge } from './useBridge';
 import { useSettings } from './useSettings';
@@ -26,6 +26,16 @@ let started = false;
 // —— 弹窗状态（UpdateDialog 全局挂载消费；自动=打扰门裁决后弹，手动=恒弹） ——
 const dialogOpen = ref(false);
 const dialogResult = ref<UpdateCheckResult | null>(null);
+
+/**
+ * 应用更新执行态（弹窗「更新」钮三段态数据源）：idle → downloading（进度经
+ * DOWNLOAD_PROGRESS item='update-artifact' 透传）→ spawned（更新器已拉起，稍后关窗自退）
+ * / failed（unsupported 或 error——「打开 Releases 页」外链兜底仍在，不退出原地可重试）。
+ */
+type ApplyPhase = 'idle' | 'downloading' | 'spawned' | 'failed';
+const applyPhase = ref<ApplyPhase>('idle');
+const applyError = ref('');
+const applyProgress = ref({ done: 0, total: 0 });
 
 /**
  * 执行一次检查（自动/手动共用一条路径，返回结果供调用方决策；busy 重入返回 null = 不弹第二发）。
@@ -63,6 +73,38 @@ const hasUpdate = computed(
     result.value.status === 'update' &&
     result.value.version !== useSettings().settings.value.updateIgnoreVersion,
 );
+
+/**
+ * 应用更新（「更新」钮自动路径，执行面见 runtime updateApply.ts）：
+ * spawned = 更新器已接管，1.5s 后关主窗自退（主窗 Destroyed → app exit → sidecar 收；
+ * 更新器等 PID 消失再换体）；unsupported/error = failed 态，弹窗留在原地走外链兜底。
+ */
+async function apply(): Promise<void> {
+  const r = dialogResult.value;
+  if (!r || r.status !== 'update' || applyPhase.value === 'downloading' || applyPhase.value === 'spawned') return;
+  applyPhase.value = 'downloading';
+  applyError.value = '';
+  applyProgress.value = { done: 0, total: 0 };
+  const unsub = bridge.on(IPC_EVENTS.DOWNLOAD_PROGRESS, (p) => {
+    if (p.item === 'update-artifact') applyProgress.value = { done: p.bytesDone, total: p.bytesTotal ?? 0 };
+  });
+  try {
+    const res = await bridge.applyUpdate({ version: r.version, assets: r.assets ?? [] });
+    if (res.ok && res.value.status === 'spawned') {
+      applyPhase.value = 'spawned';
+      setTimeout(() => void bridge.windowControl('close'), 1500);
+      return;
+    }
+    applyPhase.value = 'failed';
+    applyError.value = !res.ok
+      ? res.error
+      : res.value.status === 'error'
+        ? res.value.message
+        : '';
+  } finally {
+    unsub();
+  }
+}
 
 /** 手动检查（关于页按钮入口）：无视策略与忽略账，恒显结果弹窗。 */
 async function checkManually(): Promise<void> {
@@ -119,5 +161,9 @@ export function useUpdateCheck() {
     dialogResult,
     closeDialog,
     ignoreCurrent,
+    apply,
+    applyPhase,
+    applyError,
+    applyProgress,
   };
 }

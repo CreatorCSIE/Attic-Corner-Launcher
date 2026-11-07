@@ -101,6 +101,8 @@ export const IPC_CHANNELS = {
   SYS_INFO: 'attic:sys:info',
   /** 检查更新（GitHub Releases latest；未配置/失败也以数据返回，UI 弹窗可见呈现）。 */
   UPDATE_CHECK: 'attic:update:check',
+  /** 应用更新（执行面：下载选型构件 → sha256 校验 → spawn 更新器 → 自退；仅 Windows，见 runtime updateApply.ts）。 */
+  UPDATE_APPLY: 'attic:update:apply',
   /** 打开特殊目录（数据根/日志目录；枚举参数，渲染侧不传任意路径——openPath 面收紧到白名单目标）。 */
   SHELL_OPEN_DIR: 'attic:shell:open-dir',
   /** 清理启动器日志目录（只删 launcher/logs 下的 *.log；返回删除个数）。 */
@@ -286,10 +288,36 @@ export type UpdateCheckResult =
       notes: string;
       /** 发布时间（GitHub published_at 原样 ISO 字符串，可空串）。 */
       publishedAt: string;
+      /** 构件清单（GitHub assets 原样透传，执行面选型消费；旧壳无此字段 = undefined）。 */
+      assets?: ReleaseAssetInfo[];
     }
   | { status: 'upToDate'; /** 当前版本（宿主注入）。 */ current: string }
   | { status: 'unconfigured' }
   | { status: 'error'; /** 可读失败原因（网络/HTTP 状态/响应形状/仓库格式）。 */ message: string };
+
+/** GitHub Release 构件条目（执行面选型/下载/校验的最小消费面；digest 缺位 = 空串）。 */
+export interface ReleaseAssetInfo {
+  /** 构件文件名（命名模板 attic-tauri-windows-<arch>-<ver>-{setup.exe|portable.zip}）。 */
+  name: string;
+  /** 官方域直链（browser_download_url，https + GitHub 域 = 信任锚的域面）。 */
+  url: string;
+  /** GitHub asset digest 原样（`sha256:<hex>` 形态；API 未回填 = 空串 → 执行面拒绝自动路径）。 */
+  digest: string;
+  /** 字节数（0 = 响应缺字段）。 */
+  size: number;
+}
+
+/** 应用更新请求 = 弹窗持有的 check 结果原样回传（快路径不重查 API，所见即所装）。 */
+export interface UpdateApplyRequest {
+  version: string;
+  assets: ReleaseAssetInfo[];
+}
+
+/** 应用更新结果（判别联合、不抛；unsupported/error = UI 回落外链兜底，不退出）。 */
+export type UpdateApplyResult =
+  | { status: 'spawned'; /** 更新器形态（portable = 脚本对 / installed = Inno 向导），UI 随即自退。 */ mode: 'portable' | 'installed' }
+  | { status: 'unsupported'; /** 数据面判定不进自动路径的原因码（windows-only/no-asset/no-digest/no-script）。 */ reason: string; message?: string }
+  | { status: 'error'; /** 下载/校验/spawn 失败（原地重试语义，构件已清或不完整不落盘）。 */ message: string };
 
 /** 窗口控制动作：toggle-maximize 由宿主在最大化/还原间切换。 */
 export type WindowAction = 'minimize' | 'toggle-maximize' | 'close';
@@ -397,7 +425,9 @@ export type DownloadItem =
   | 'asset'
   | 'library'
   | 'java-runtime'
-  | 'legacyfix';
+  | 'legacyfix'
+  /** 自更新构件（执行面下载腿；不进 LAUNCH_DOWNLOAD_STAGES——非启动链路）。 */
+  | 'update-artifact';
 
 /**
  * 启动补全阶段序（**= runtime.ts launch 编排实际执行序**，启动弹窗阶段行的数据驱动源；
@@ -534,6 +564,8 @@ export interface RendererBridge {
   getSystemInfo(): Promise<IpcResult<SystemInfo>>;
   /** 检查更新（GitHub Releases latest；未配置/失败也在 value 分支内，不占 error 封装）。 */
   checkUpdate(): Promise<IpcResult<UpdateCheckResult>>;
+  /** 应用更新（执行面；spawn 成功返回 spawned，UI 随即关窗自退；unsupported/error 不退出）。 */
+  applyUpdate(req: UpdateApplyRequest): Promise<IpcResult<UpdateApplyResult>>;
   /** 在系统文件管理器打开特殊目录（白名单枚举，路径宿主解析）。 */
   openSpecialDir(target: SpecialDir): Promise<IpcResult<void>>;
   /** 清理启动器日志（launcher/logs 下 *.log），返回删除个数。 */

@@ -31,6 +31,7 @@ import {
   type RendererBridge,
   type ServerListView,
   type SystemInfo,
+  type UpdateApplyResult,
   type UpdateCheckResult,
   type VersionJson,
 } from '@attic/core-spec';
@@ -116,6 +117,8 @@ const mockBridge: RendererBridge = {
   // —— 设置页宿主能力面：fs/对话框/内存/检查更新属宿主语义，浏览器无真值（err 可见失败）——
   getSystemInfo: async () => err<SystemInfo>(NO_BRIDGE),
   checkUpdate: async () => err<UpdateCheckResult>(NO_BRIDGE),
+  // 应用更新属宿主执行面：浏览器无更新器可拉（err 可见失败，UI 回落外链）。
+  applyUpdate: async () => err<UpdateApplyResult>(NO_BRIDGE),
   openSpecialDir: async () => err<void>(NO_BRIDGE),
   clearLogs: async () => err<number>(NO_BRIDGE),
   pickJavaExecutable: async () => err<string | null>(NO_BRIDGE),
@@ -166,6 +169,11 @@ function demoBridge(): RendererBridge {
       ok<UpdateCheckResult>(
         isDemoUpdate() ? demoUpdateCheck : { status: 'upToDate', current: demoSysInfo.launcherVersion },
       ),
+    // 更新执行面演练：假下载腿（1.2s 后 spawned，浏览器 windowControl close = no-op 不真退）。
+    applyUpdate: async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      return ok<UpdateApplyResult>({ status: 'spawned', mode: 'installed' });
+    },
     // 首启向导演练面：建号/目录选择器/Java 选择器给假值可走通三步。
     addAccount: async (name: string) => ok<AccountView>({ id: `demo-${name.toLowerCase()}`, name, type: 'offline' }),
     // 设备码弹窗排版面：start 回假码（demo 无事件流，停在等待态可排；cancel 可关）。

@@ -232,6 +232,8 @@ async function dispatch(method: string, params: Params): Promise<unknown> {
       return runtime.getSystemInfo();
     case C.UPDATE_CHECK:
       return runtime.checkUpdate();
+    case C.UPDATE_APPLY:
+      return runtime.applyUpdate(s(0));
     case C.LOGS_CLEAR:
       return runtime.clearLogs();
     case C.IMAGE_DATA_URL:

@@ -503,7 +503,7 @@
         "gray": "石灰灰"
       },
       "background": "啟動頁背景",
-      "backgroundDesc": "自訂首頁背景圖（png/jpg/webp/gif/bmp，≤12MB），自動疊加暗色遮罩確保文字可讀；未設定時使用主題純色背景。",
+      "backgroundDesc": "自訂首頁背景圖（png/jpg/webp/gif/bmp，≤12MB），自動疊加暗色遮罩確保文字可讀；未設定時使用主題純色背景。輸入框可直接填寫絕對路徑（即改即存），路徑讀不到時回落純色。",
       "backgroundPick": "選擇圖片…",
       "backgroundClear": "移除背景圖",
       "backgroundDefault": "未設定（純色背景）"
@@ -565,6 +565,10 @@
         "close": "關閉",
         "ignore": "忽略此版本",
         "update": "更新",
+        "downloading": "正在下載更新",
+        "restarting": "更新器已就緒，即將自動重啟…",
+        "autoUnavailable": "自動更新不可用，請從 Releases 頁手動下載。",
+        "fallbackLink": "開啟 Releases 頁",
         "cancel": "取消",
         "ignoreHint": "忽略會將該版本記入本機單槽記錄：自動檢查此後不再打擾（手動檢查不受影響）。"
       },
@@ -577,7 +581,7 @@
       },
       "updatePreview": {
         "label": "提前體驗測試版",
-        "desc": "開啟後「檢查更新」同時匹配 nightly 測試版軌道（提示最新一枚，構件仍需從 Releases 頁手動下載）；不影響靜默自動更新，關閉即回正式版軌道。"
+        "desc": "開啟後「檢查更新」同時匹配 nightly 測試版軌道（提示最新一枚，Windows 下點「更新」即自動下載換體重啟）；不影響靜默自動更新，關閉即回正式版軌道。"
       },
       "legalSection": "版權及法律聲明",
       "copyrightTitle": "版權聲明",

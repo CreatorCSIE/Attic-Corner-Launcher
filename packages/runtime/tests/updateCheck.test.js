@@ -88,6 +88,29 @@ test('checkLatestRelease：200 有新版 → update 分支字段全带出（tag 
   assert.equal(res.publishedAt, '2026-10-20T12:00:00Z');
 });
 
+test('checkLatestRelease：assets 透传（执行面消费；畸形条目丢弃、digest 缺位空串）', async () => {
+  const res = await checkLatestRelease({
+    releaseRepo: 'a/b',
+    currentVersion: '0.0.0',
+    fetchImpl: jsonFetch('https://api.github.com/repos/a/b/releases/latest', {
+      tag_name: 'v0.1.0',
+      html_url: 'u',
+      assets: [
+        { name: 'attic-tauri-windows-x64-0.1.0-portable.zip', browser_download_url: 'https://github.com/a/b/releases/download/v0.1.0/p.zip', digest: 'sha256:ab12', size: 5 },
+        { name: 'no-url-asset', digest: 'sha256:cd' },
+        { name: 1 },
+        'junk',
+        { name: 'no-digest.zip', browser_download_url: 'https://github.com/a/b/releases/download/v0.1.0/n.zip' },
+      ],
+    }),
+  });
+  assert.equal(res.status, 'update');
+  assert.deepEqual(res.assets, [
+    { name: 'attic-tauri-windows-x64-0.1.0-portable.zip', url: 'https://github.com/a/b/releases/download/v0.1.0/p.zip', digest: 'sha256:ab12', size: 5 },
+    { name: 'no-digest.zip', url: 'https://github.com/a/b/releases/download/v0.1.0/n.zip', digest: '', size: 0 },
+  ]);
+});
+
 test('checkLatestRelease：相等/更旧 → upToDate（不降级提示）', async () => {
   const mk = (tag) =>
     checkLatestRelease({

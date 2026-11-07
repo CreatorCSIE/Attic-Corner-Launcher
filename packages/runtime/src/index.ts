@@ -201,6 +201,7 @@ export {
 } from './microsoftAuth';
 export { AtticRuntime, maskSecrets, type AtticRuntimeOptions } from './runtime';
 export { compareSemver, checkLatestRelease, type UpdateCheckDeps } from './updateCheck';
+export { applyUpdate, pickUpdateAsset, type UpdateApplyDeps } from './updateApply';
 export { shouldPromptUpdate } from './updatePolicy';
 export { renderMarkdown } from './markdown';
 

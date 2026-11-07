@@ -158,6 +158,21 @@ export const demoUpdateCheck: UpdateCheckResult = {
     '```',
   ].join('\n'),
   publishedAt: '2026-10-20T12:00:00Z',
+  // 假构件清单（执行面选型演练面；applyUpdate 在 demo 直接假下载回 spawned）。
+  assets: [
+    {
+      name: 'attic-tauri-windows-x64-0.1.0-setup.exe',
+      url: 'https://github.com/CreatorCSIE/Attic-Corner-Launcher/releases/download/v0.1.0/attic-tauri-windows-x64-0.1.0-setup.exe',
+      digest: `sha256:${'0'.repeat(64)}`,
+      size: 157286400,
+    },
+    {
+      name: 'attic-tauri-windows-x64-0.1.0-portable.zip',
+      url: 'https://github.com/CreatorCSIE/Attic-Corner-Launcher/releases/download/v0.1.0/attic-tauri-windows-x64-0.1.0-portable.zip',
+      digest: `sha256:${'1'.repeat(64)}`,
+      size: 146800640,
+    },
+  ],
 };
 
 /**

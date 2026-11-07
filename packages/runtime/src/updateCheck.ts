@@ -15,7 +15,7 @@
  * UA 纪律：GitHub API 无 User-Agent 一律 403 —— 请求头带 `Attic/<version>`（契约门面注入）。
  */
 
-import type { UpdateCheckResult } from '@attic/core-spec';
+import type { ReleaseAssetInfo, UpdateCheckResult } from '@attic/core-spec';
 
 import type { FetchImpl } from './betacraft';
 
@@ -50,6 +50,25 @@ interface ReleaseRaw {
   published_at?: unknown;
   prerelease?: unknown;
   draft?: unknown;
+  assets?: unknown;
+}
+
+/** assets 原样透传（执行面选型消费）：无 name/url 的畸形条目丢弃，digest 缺位空串。 */
+function pickAssets(raw: ReleaseRaw): ReleaseAssetInfo[] {
+  const list = Array.isArray(raw.assets) ? raw.assets : [];
+  const out: ReleaseAssetInfo[] = [];
+  for (const item of list) {
+    if (!item || typeof item !== 'object') continue;
+    const a = item as { name?: unknown; browser_download_url?: unknown; digest?: unknown; size?: unknown };
+    if (typeof a.name !== 'string' || typeof a.browser_download_url !== 'string') continue;
+    out.push({
+      name: a.name,
+      url: a.browser_download_url,
+      digest: typeof a.digest === 'string' ? a.digest : '',
+      size: typeof a.size === 'number' ? a.size : 0,
+    });
+  }
+  return out;
 }
 
 function messageOf(error: unknown): string {
@@ -120,6 +139,7 @@ function toUpdateResult(raw: ReleaseRaw, version: string): UpdateCheckResult {
     url: typeof raw.html_url === 'string' ? raw.html_url : '',
     notes: typeof raw.body === 'string' ? raw.body : '',
     publishedAt: typeof raw.published_at === 'string' ? raw.published_at : '',
+    assets: pickAssets(raw),
   };
 }
 

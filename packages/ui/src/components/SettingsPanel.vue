@@ -164,6 +164,20 @@ async function clearBackground(): Promise<void> {
   const r = await patchDetailed({ backgroundImage: undefined });
   if (!r.ok) bgErr.value = r.error ?? 'save failed';
 }
+/** 背景图绝对路径输入框（即改即存 400ms 防抖，与端点键同法）：空串 = 回落纯色；
+ *  路径读不到 = 应用侧静默纯色兜底（applyBackground 语义），选择按钮仍走原生对话框。 */
+const bgField = useDebouncedField(
+  () => settings.value.backgroundImage ?? '',
+  (v) => {
+    const next = v.trim();
+    if (next === (settings.value.backgroundImage ?? '')) return;
+    void (async () => {
+      bgErr.value = '';
+      const r = await patchDetailed(next ? { backgroundImage: next } : { backgroundImage: undefined });
+      if (!r.ok) bgErr.value = r.error ?? 'save failed';
+    })();
+  },
+);
 
 // —— 反馈弹屏（功能建议 → Discussions 的 ideas 分区；Bug → Issues 空白新建页。
 // 两侧均不钉模板：仓库无 ISSUE_TEMPLATE/） ——
@@ -434,9 +448,15 @@ function feedback(url: string): void {
                   {{ t('settings.theme.backgroundClear') }}
                 </button>
               </div>
-              <p class="path mono" :title="settings.backgroundImage || ''">
-                {{ settings.backgroundImage || t('settings.theme.backgroundDefault') }}
-              </p>
+              <input
+                v-model="bgField.local.value"
+                class="input mono"
+                type="text"
+                spellcheck="false"
+                :placeholder="t('settings.theme.backgroundDefault')"
+                :title="settings.backgroundImage || ''"
+              />
+              <span v-if="bgField.savedFlash.value" class="saved-flash">{{ t('settings.saved') }}</span>
               <p v-if="bgErr" class="warn root-err" role="alert">{{ bgErr }}</p>
               <p class="row-desc">{{ t('settings.theme.backgroundDesc') }}</p>
             </div>

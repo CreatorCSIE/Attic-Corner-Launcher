@@ -18,6 +18,7 @@ import {
   type ModInstallRequest,
   type PickTarget,
   type SpecialDir,
+  type UpdateApplyRequest,
   type WindowAction,
 } from '@attic/core-spec';
 import {
@@ -447,6 +448,8 @@ app.whenReady().then(() => {
   handle(IPC_CHANNELS.SYS_INFO, () => runtime.getSystemInfo());
   // 检查更新：runtime 全分支数据化返回（unconfigured/error 也在 value 内），UI 弹窗呈现。
   handle(IPC_CHANNELS.UPDATE_CHECK, () => runtime.checkUpdate());
+  // 应用更新（执行面 Windows 快路径；runtime 共享实现，壳差异只在自退通道 = windowControl close）。
+  handle(IPC_CHANNELS.UPDATE_APPLY, (req: UpdateApplyRequest) => runtime.applyUpdate(req));
   // 打开特殊目录：白名单枚举、路径宿主解析（渲染侧给不出任意路径）；logs 未生成时先建再开。
   handle(IPC_CHANNELS.SHELL_OPEN_DIR, async (target: SpecialDir) => {
     const dir = target === 'logs-dir' ? path.join(launcherDir(runtime.root), 'logs') : runtime.root;

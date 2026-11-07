@@ -514,7 +514,7 @@
         "gray": "Stone Gray"
       },
       "background": "Home background",
-      "backgroundDesc": "Custom home page background image (png/jpg/webp/gif/bmp, ≤12MB) with an automatic dark overlay for readability; the solid theme background is used when unset.",
+      "backgroundDesc": "Custom home page background image (png/jpg/webp/gif/bmp, ≤12MB) with an automatic dark overlay for readability; the solid theme background is used when unset. The field accepts an absolute path directly (saved as you type); an unreadable path falls back to the solid background.",
       "backgroundPick": "Choose image…",
       "backgroundClear": "Remove background",
       "backgroundDefault": "Not set (solid background)"
@@ -576,6 +576,10 @@
         "close": "Close",
         "ignore": "Ignore this version",
         "update": "Update",
+        "downloading": "Downloading update",
+        "restarting": "Updater ready — restarting shortly…",
+        "autoUnavailable": "Auto-update unavailable; please download manually from the Releases page.",
+        "fallbackLink": "Open Releases page",
         "cancel": "Cancel",
         "ignoreHint": "Ignoring records this version in a single local slot: automatic checks stay silent for it (manual check is unaffected)."
       },
@@ -588,7 +592,7 @@
       },
       "updatePreview": {
         "label": "Early preview builds",
-        "desc": "When on, update checks also match the nightly prerelease track (the newest nightly is suggested; builds are downloaded manually from the Releases page). Silent auto-updates are unaffected; turning it off returns to the stable track."
+        "desc": "When on, update checks also match the nightly prerelease track (the newest nightly is suggested; on Windows, pressing Update downloads and swaps it automatically). Silent auto-updates are unaffected; turning it off returns to the stable track."
       },
       "legalSection": "Copyright & Legal",
       "copyrightTitle": "Copyright notice",

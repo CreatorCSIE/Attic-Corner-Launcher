@@ -39,6 +39,8 @@ import {
   type MsLoginEvent,
   type ModInstallRequest,
   type ServerListView,
+  type UpdateApplyRequest,
+  type UpdateApplyResult,
   type UpdateCheckResult,
   type VersionJson,
   type VersionManifest,
@@ -140,6 +142,7 @@ import {
   zuluJavaDir,
 } from './storage';
 import { checkLatestRelease, DEFAULT_RELEASE_REPO } from './updateCheck';
+import { applyUpdate } from './updateApply';
 import { canonicalLaunchMethod, detectLaunchMethod, probeIndevEntry, probePreclassicEntry } from './wrapperDetector';
 import { extractZipTo, listZipEntryNames } from './zip';
 import { findJavaExecutable, installZuluPackage, provisionArch, queryZuluPackages } from './zulu';
@@ -191,6 +194,14 @@ export interface AtticRuntimeOptions {
     sleep?: SleepFn;
     lookup?: LookupFn;
     dpapi?: DpapiDeps;
+  };
+  /**
+   * 自更新执行面测试缝：spawn 覆盖（断言参数不真起进程）/ 等待 PID 覆盖。
+   * 缺省 = 真 detached spawn + process.ppid（sidecar 的父 = 壳进程）。
+   */
+  updateDeps?: {
+    spawnImpl?: (command: string, args: string[]) => void;
+    launcherPid?: number;
   };
 }
 
@@ -283,6 +294,8 @@ export class AtticRuntime {
   private readonly platform: NodeJS.Platform;
   private readonly fetchImpl: FetchImpl;
   private readonly client: BetacraftClient;
+  /** 自更新执行面测试缝（updateApply 注入面）。 */
+  private readonly updateDeps: { spawnImpl?: (command: string, args: string[]) => void; launcherPid?: number };
   private readonly processes: GameProcessManager;
   private readonly listeners = new Map<string, Set<(payload: never) => void>>();
   private lastLaunchError: string | null = null;
@@ -334,6 +347,7 @@ export class AtticRuntime {
     this.shell = options.shell ?? 'electron';
     this.platform = options.platform ?? process.platform;
     this.msDeps = options.msDeps ?? {};
+    this.updateDeps = options.updateDeps ?? {};
     // 便携态构造期副作用（幂等、值变才写）：面包屑登记 / 只读回落标记（默认根登记簿）。
     if (this.portable?.active) syncPortableRegistry(this.defaultRoot, this.portable);
     // 端点优先级：构造参数（测试/程序化）> launcher.settings 的 endpoint.* 覆盖 > 默认。
@@ -1466,11 +1480,28 @@ export class AtticRuntime {
    * settings.updatePreview 每次现读（即选即生效，无缓存态）：stable 构件开预览 = 列表端点
    * stable ∪ nightly 轨匹配；nightly 构件恒在轨与开关无关。
    * 全分支数据化返回（unconfigured/error 也在 value 内，不抛异常）——UI 弹窗可见呈现；
-   * 动作 = 全壳统一「提示 + Releases 链接」（tauri updater plugin 闭环未接）。
+   * 动作 = 自动路径走 applyUpdate（执行面见下），unsupported/error 回落 Releases 外链。
    */
   checkUpdate(): Promise<UpdateCheckResult> {
     const preview = loadSettings(this.root)['updatePreview'] === 'true';
     return checkLatestRelease({ releaseRepo: this.releaseRepo, currentVersion: this.version, fetchImpl: this.fetchImpl, preview });
+  }
+
+  /**
+   * 应用更新（执行面 Windows 快路径，机理见 updateApply.ts）：下载腿复用 client.download
+   * （item='update-artifact' 进度事件自动透传 UI）；spawn 成功返回后由 UI 关窗自退。
+   */
+  applyUpdate(req: UpdateApplyRequest): Promise<UpdateApplyResult> {
+    return applyUpdate(req, {
+      platform: this.platform,
+      portable: this.portable?.active === true,
+      installDir: this.installDir,
+      root: this.root,
+      download: (url, destFile, asset, sha256) =>
+        this.client.download(url, destFile, 'update-artifact', asset.name, { algo: 'sha256', value: sha256 }),
+      ...(this.updateDeps.spawnImpl ? { spawnImpl: this.updateDeps.spawnImpl } : {}),
+      ...(this.updateDeps.launcherPid !== undefined ? { launcherPid: this.updateDeps.launcherPid } : {}),
+    });
   }
 
   /** 清理 launcher/logs 下的 *.log（正在被占用的文件跳过），返回删除个数。 */

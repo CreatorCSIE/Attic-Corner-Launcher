@@ -135,7 +135,7 @@ export {
   type LaunchContext,
   type AssembleOptions,
 } from './launch';
-export { classifyCrash, GameProcessManager, watchdogWindowClass, type GameProcessEvents } from './process';
+export { classifyCrash, classifyStopped, GameProcessManager, watchdogWindowClass, type GameProcessEvents } from './process';
 export { canonicalLaunchMethod, detectLaunchMethod, probeIndevEntry, probePreclassicEntry } from './wrapperDetector';
 export { extractZipTo, listZipEntryNames, readZipEntries, writeZipEntries, type ZipEntry } from './zip';
 export {

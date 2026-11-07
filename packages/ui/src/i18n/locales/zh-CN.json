@@ -412,6 +412,11 @@
     "gl-init": "GL 初始化失败",
     "lwjgl-native": "LWJGL 原生库",
     "unsatisfied-link": "本地方法未链接",
+    "null-pointer": "空指针错误",
+    "tim-sort": "TimSort 错误",
+    "index-out-of-bounds": "数组越界错误",
+    "illegal-state": "状态冲突错误",
+    "stack-overflow": "栈溢出错误",
     "unknown": "未知错误"
   },
   "launcherCrash": {

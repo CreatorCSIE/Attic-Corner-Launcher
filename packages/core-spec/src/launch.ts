@@ -35,18 +35,23 @@ export type CrashCategory =
   | 'gl-init'
   | 'lwjgl-native'
   | 'unsatisfied-link'
+  | 'null-pointer'
+  | 'tim-sort'
+  | 'index-out-of-bounds'
+  | 'illegal-state'
+  | 'stack-overflow'
   | 'unknown';
 
 export interface CrashSummary {
   category: CrashCategory;
-  /** 单行摘要（stdout/stderr 首个匹配行）。 */
+  /** 单行摘要：规则命中 = 首个匹配行；堆栈签名 = 死因块顶层 header；兜底 = 退出码行。 */
   headline: string;
 }
 
 export interface GameExit {
   code: number | null;
   signal: string | null;
-  /** 非正常退出时由崩溃分类器填充；正常退出为 null。 */
+  /** 崩溃分类器命中规则/签名时填充（含 0 码命中签名场景）；正常退出为 null。 */
   crash: CrashSummary | null;
   /** 用户主动停止（点停止按钮 / 关闭游戏窗口触发看门狗）：控制台以中性态显示最后一行日志，不报崩溃。 */
   stoppedByUser?: boolean;

@@ -423,6 +423,11 @@
     "gl-init": "GL init failed",
     "lwjgl-native": "LWJGL native",
     "unsatisfied-link": "Unsatisfied link",
+    "null-pointer": "Null pointer",
+    "tim-sort": "TimSort comparator error",
+    "index-out-of-bounds": "Index out of bounds",
+    "illegal-state": "Illegal state",
+    "stack-overflow": "Stack overflow",
     "unknown": "Unknown error"
   },
   "launcherCrash": {

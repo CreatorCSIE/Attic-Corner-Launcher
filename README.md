@@ -16,7 +16,7 @@
 Betacraft 版本 API              legacyfix javaagent
 ├── 版本清单 / 版本 JSON         ├── quirk 矩阵（游戏进程内解决）
 ├── 预 patch 客户端 jar          └── AMD 云 / 灰屏 / 鼠标 / classic-resize…
-└── 皮肤与正版验证代理端点
+└── 皮肤与 legacy 会话端点
             ↓                            ↓
       Attic 只做五件事：账户 · 版本解析 · Java 探测 · 参数拼装 · 进程生命周期
 ```
@@ -187,7 +187,7 @@ https://nightly.link/CreatorCSIE/Attic-Corner-Launcher/workflows/release/main/<�
 
 ### Q2：需要注册账号吗？没有 Microsoft 账户能玩吗？
 
-能。离线账户即可启动游戏（按用户名确定性生成 MC 格式 UUID）；皮肤与 legacy 正版验证走 Betacraft 公共代理端点。Microsoft 账户登录已实现（v0.0.9 起，设备码流程、无需内嵌浏览器），可进入要求 online-mode 正版验证的社区服务器。
+能。离线账户可启动游戏（本地单人/存档，按用户名确定性生成 MC 格式 UUID）。要进入要求 online-mode 验证的社区服务器，请使用 Microsoft 账户登录（v0.0.9 起，设备码流程、无需内嵌浏览器）；正版账户的皮肤头像自动获取。
 
 ### Q3：游戏 jar 在仓库里吗？
 

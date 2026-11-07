@@ -92,7 +92,7 @@ export interface AgentMount {
 
 /** Betacraft 扩展（来自版本 `.info` 属性文件，v1 字段集）。 */
 export interface BetacraftExtension {
-  /** 代理 JVM 参数（默认 `-Dhttp.proxyHost=betacraft.uk`），正版验证/皮肤/资产走代理。 */
+  /** 代理 JVM 参数（默认 `-Dhttp.proxyHost=betacraft.uk`），会话/皮肤/资产路由走社区端点。 */
   proxyArgs?: string[];
   /** 启动方法标记（如 `launchwrapper`、`start`）。 */
   launchMethod?: string;

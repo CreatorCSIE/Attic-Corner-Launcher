@@ -67,7 +67,7 @@ const isStackLine = (line: string): boolean => STACK_BODY.test(line) || STACK_HE
  * 命中此名单 → 不算死因（嵌套 `RuntimeException…Caused by: SocketException` 顶层仍是致命类，
  * 不受影响）。真崩于 IO 异常的罕见场景落回退出码行兜底。
  */
-const NON_FATAL_STACK = /^(?:java\.net\.(?:SocketException|ConnectException|SocketTimeoutException|UnknownHostException|NoRouteToHostException|BindException|MalformedURLException|ProtocolException|UnknownServiceException|HttpRetryException)|javax\.net\.ssl\.SSL\w+|java\.io\.(?:IOException|EOFException|FileNotFoundException|InterruptedIOException|UnsupportedEncodingException)|java\.util\.zip\.(?:ZipException|DataFormatException)|javax\.imageio\.IIOException)(?::|$)/;
+const NON_FATAL_STACK = /^(?:java\.net\.(?:SocketException|ConnectException|SocketTimeoutException|UnknownHostException|NoRouteToHostException|BindException|MalformedURLException|ProtocolException|UnknownServiceException|HttpRetryException)|javax\.net\.ssl\.SSL\w+|java\.io\.(?:IOException|EOFException|FileNotFoundException|InterruptedIOException|UnsupportedEncodingException)|java\.util\.zip\.(?:ZipException|DataFormatException)|javax\.imageio\.IIOException|de\.jarnbjo\.[\w$.]+)(?::|$)/;
 
 /**
  * 音频引擎线程噪音栈（2026-11-07 用户点名 indev-20100223 paulscode 案例；根因考古 =
@@ -79,8 +79,11 @@ const NON_FATAL_STACK = /^(?:java\.net\.(?:SocketException|ConnectException|Sock
  * 挂了游戏循环照常。判据 = 块内**全部**帧都是引擎/JDK 框架（无任何游戏代码帧）；对照
  * 同版 Minecraft.java L363-366：tick 异常 catch = GuiErrorScreen "The game broke!" +
  * return（致命），其栈必含 net.minecraft 帧，不受本闸影响。
+ * `de.jarnbjo.*`（SoundSystem 内置 ogg/flac 解码库）同族入闸（2026-11-07 c0.24-dev 实机，
+ * fork attic.7/8 修复期）：流式线程读 OGG 打 `EndOfOggStreamIOException`（截断流/非标准
+ * 收尾即抛，jarnbjo 语义如此），栈 = paulscode 帧 + jarnbjo 帧混合、无游戏帧 = 静音不死游戏。
  */
-const NOISE_ONLY_FRAMES = /^\s*at\s+(?:(?:com\.)?paulscode\.|java\.|javax\.|sun\.)/;
+const NOISE_ONLY_FRAMES = /^\s*at\s+(?:(?:com\.)?paulscode\.|de\.jarnbjo\.|java\.|javax\.|sun\.)/;
 
 const isNoiseThreadStack = (bodies: string[]): boolean =>
   bodies.length > 0 && bodies.every((line) => NOISE_ONLY_FRAMES.test(line));

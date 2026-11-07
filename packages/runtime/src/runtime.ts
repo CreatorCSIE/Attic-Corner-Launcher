@@ -744,7 +744,8 @@ export class AtticRuntime {
       this.client.emitProgress({ item: 'java-runtime', id: request.versionId, phase: 'done', bytesDone: 0 });
       context.appletClass = this.resolvePreclassicAppletClass(json);
       // c0.24 死链声音预置（F1）已退役（2026-11-07 实机矩阵绿）：fork agent 6835f41 双协议
-      // 补丁在加载期改写死链，gameDir 侧预置不再发生（历史预置残留无害）。
+      // 补丁在加载期改写死链，gameDir 侧**文件**预置不再发生（历史预置残留无害）；
+      // resources **目录**预建回归（见下方 ensureResourceDirs）——游戏 download() 不自建目录。
       const config = assembleLaunchConfig(json, context, {
         extraJvmArgs: request.extraJvmArgs,
         gameParams: request.gameParams,
@@ -796,6 +797,9 @@ export class AtticRuntime {
         }
       }
       fs.mkdirSync(context.gameDir, { recursive: true });
+      // resources 子目录预建（spawn 前，gameDir 已在位）：改写死链落盘走游戏自家 download()，
+      // 其 new FileOutputStream 无 mkdirs——用户手动清空 resources 后必撞 FNF（c0.24-dev* 实机）。
+      if (assetIndexId) this.client.ensureResourceDirs(this.root, assetIndexId, context.gameDir);
       // spawn 前最后一道闸门（防竞态）：取消落在 start 之前 = 中止；之后 = 游戏已在跑，走 KILL。
       signal.throwIfAborted();
       const session = this.processes.start(config, request.versionId);

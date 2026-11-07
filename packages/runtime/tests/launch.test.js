@@ -251,7 +251,7 @@ test('addons 注入：档案三态 + 勾选/取消按目录映射 -Dlf.*', () =>
     mainClass: 'net.minecraft.client.Minecraft',
     betacraft: {
       agentMount: [
-        { form: 'javaagent', path: 'legacyfix/legacyfix-26.11-attic.6.jar', appliesFrom: 'c0.0.13a', appliesTo: '1.3.2', quirk: 'legacyfix' },
+        { form: 'javaagent', path: 'legacyfix/legacyfix-26.11-attic.8.jar', appliesFrom: 'c0.0.13a', appliesTo: '1.3.2', quirk: 'legacyfix' },
       ],
     },
   };
@@ -260,13 +260,13 @@ test('addons 注入：档案三态 + 勾选/取消按目录映射 -Dlf.*', () =>
   assert.equal(addonsArg.length, 1);
   assert.equal(
     addonsArg[0],
-    '-Dlf.addons=/data/launcher/addons/legacyfix-addon-fullscreen-26.11-attic.6.jar,' +
-      '/data/launcher/addons/legacyfix-addon-gamemodeswitch-26.11-attic.6.jar,' +
-      '/data/launcher/addons/legacyfix-addon-quitgame-26.11-attic.6.jar',
+    '-Dlf.addons=/data/launcher/addons/legacyfix-addon-fullscreen-26.11-attic.8.jar,' +
+      '/data/launcher/addons/legacyfix-addon-gamemodeswitch-26.11-attic.8.jar,' +
+      '/data/launcher/addons/legacyfix-addon-quitgame-26.11-attic.8.jar',
   );
   const oneOn = assembleLaunchConfig(jarMountJson, { ...baseContext(), addons: ['quit-game'] });
   assert.deepEqual(oneOn.jvmArgs.filter((a) => a.startsWith('-Dlf.addons')), [
-    '-Dlf.addons=/data/launcher/addons/legacyfix-addon-quitgame-26.11-attic.6.jar',
+    '-Dlf.addons=/data/launcher/addons/legacyfix-addon-quitgame-26.11-attic.8.jar',
   ]);
   // addons=undefined（老档案无键）→ 零注入
   const noAddons = assembleLaunchConfig(jarMountJson, baseContext());

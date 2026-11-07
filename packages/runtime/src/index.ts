@@ -143,6 +143,8 @@ export {
   resolveLaunchAssetIndexId,
   AUTHORITATIVE_ASSET_INDEXES,
   planAssetObjects,
+  resourceDirsFromIndex,
+  RESOURCE_DIRS_BY_INDEX,
   ASSET_INDEXES,
   type AssetIndexEntry,
   type AssetObjectPlan,

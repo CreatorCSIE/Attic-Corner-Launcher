@@ -318,14 +318,14 @@ test('钉版换代 = 同族旧版本清仓（agent 目录旧 jar+meta 删除；�
   let fetches = 0;
   const client = new BetacraftClient({
     fetchImpl: async (url) => {
-      if (url === 'https://github.com/CreatorCSIE/legacyfix-attic/releases/download/26.11-attic.6/legacyfix-26.11-attic.6.jar') {
+      if (url === 'https://github.com/CreatorCSIE/legacyfix-attic/releases/download/26.11-attic.8/legacyfix-26.11-attic.8.jar') {
         fetches++;
         return new Response(jar, { status: 200, headers: { 'content-length': String(jar.length) } });
       }
       return new Response('not found', { status: 404 });
     },
   });
-  const rel = path.join('legacyfix', 'legacyfix-26.11-attic.6.jar');
+  const rel = path.join('legacyfix', 'legacyfix-26.11-attic.8.jar');
   const dest = await client.ensureLegacyfix(root, rel);
   assert.ok(fs.existsSync(dest));
   assert.ok(!fs.existsSync(stale), '换代后旧 agent jar 清仓');
@@ -346,16 +346,16 @@ test('addon 目录按版本全扫：所有 addon 旧版清仓（含取消勾选�
   fs.mkdirSync(dir, { recursive: true });
   const staleSame = path.join(dir, 'legacyfix-addon-fullscreen-26.10-attic.6.jar');
   const staleOther = path.join(dir, 'legacyfix-addon-quitgame-26.10-attic.6.jar');
-  const currentOther = path.join(dir, 'legacyfix-addon-gamemodeswitch-26.11-attic.6.jar');
+  const currentOther = path.join(dir, 'legacyfix-addon-gamemodeswitch-26.11-attic.8.jar');
   const manualV1 = path.join(dir, 'MyWrapperAddon.jar');
   for (const f of [staleSame, staleOther, currentOther, manualV1]) fs.writeFileSync(f, 'X');
   const jar = buildZip(['uk/betacraft/legacyfix/addon/Fullscreen.class']);
   const client = new BetacraftClient({
     fetchImpl: fakeFetch({
-      'https://github.com/CreatorCSIE/legacyfix-attic/releases/download/26.11-attic.6/legacyfix-addon-fullscreen-26.11-attic.6.jar': jar,
+      'https://github.com/CreatorCSIE/legacyfix-attic/releases/download/26.11-attic.8/legacyfix-addon-fullscreen-26.11-attic.8.jar': jar,
     }),
   });
-  await client.ensureLegacyfixAsset(root, path.join('launcher', 'addons', 'legacyfix-addon-fullscreen-26.11-attic.6.jar'), '26.11-attic.6');
+  await client.ensureLegacyfixAsset(root, path.join('launcher', 'addons', 'legacyfix-addon-fullscreen-26.11-attic.8.jar'), '26.11-attic.8');
   assert.ok(!fs.existsSync(staleSame), '同名旧版清仓');
   assert.ok(!fs.existsSync(staleOther), '其它 addon 的旧版同清（钉版全局唯一，旧版永不复用；取消勾选族没有重下触发点，只有全扫能清）');
   assert.ok(fs.existsSync(currentOther), '当前版本的其它 addon 不碰（可能被别的实例勾选）');
@@ -368,22 +368,22 @@ test('ensureLegacyfixAsset：addon jar 显式版本落位（同 release 同 URL 
   let fetches = 0;
   const client = new BetacraftClient({
     fetchImpl: async (url) => {
-      if (url === 'https://github.com/CreatorCSIE/legacyfix-attic/releases/download/26.11-attic.6/legacyfix-addon-fullscreen-26.11-attic.6.jar') {
+      if (url === 'https://github.com/CreatorCSIE/legacyfix-attic/releases/download/26.11-attic.8/legacyfix-addon-fullscreen-26.11-attic.8.jar') {
         fetches++;
         return new Response(jar, { status: 200, headers: { 'content-length': String(jar.length) } });
       }
       return new Response('not found', { status: 404 });
     },
   });
-  const rel = path.join('launcher', 'addons', 'legacyfix-addon-fullscreen-26.11-attic.6.jar');
-  const dest = await client.ensureLegacyfixAsset(root, rel, '26.11-attic.6');
-  assert.equal(dest, path.join(root, 'launcher', 'addons', 'legacyfix-addon-fullscreen-26.11-attic.6.jar'));
+  const rel = path.join('launcher', 'addons', 'legacyfix-addon-fullscreen-26.11-attic.8.jar');
+  const dest = await client.ensureLegacyfixAsset(root, rel, '26.11-attic.8');
+  assert.equal(dest, path.join(root, 'launcher', 'addons', 'legacyfix-addon-fullscreen-26.11-attic.8.jar'));
   assert.ok(fs.existsSync(`${dest}.meta`), 'meta 锚随 addon jar 同立');
   // 完好复核 = 不重下；截断（无 EOCD）= 自愈重下——与 agent jar 同一纪律
-  await client.ensureLegacyfixAsset(root, rel, '26.11-attic.6');
+  await client.ensureLegacyfixAsset(root, rel, '26.11-attic.8');
   assert.equal(fetches, 1);
   fs.writeFileSync(dest, 'TRUNC');
-  await client.ensureLegacyfixAsset(root, rel, '26.11-attic.6');
+  await client.ensureLegacyfixAsset(root, rel, '26.11-attic.8');
   assert.equal(fetches, 2);
   assert.ok(fs.readFileSync(dest).equals(jar), '自愈重下还原完整构件');
 });

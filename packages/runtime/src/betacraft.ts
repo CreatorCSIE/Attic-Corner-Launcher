@@ -14,7 +14,13 @@ import type { DownloadItem, DownloadProgressEvent, ModCategoryRaw, VersionEra, V
 
 import { resolveEndpoints, type Endpoints } from './endpoints';
 
-import { ASSET_INDEXES, planAssetObjects, resolveLaunchAssetIndexId } from './legacyAssets';
+import {
+  ASSET_INDEXES,
+  RESOURCE_DIRS_BY_INDEX,
+  planAssetObjects,
+  resolveLaunchAssetIndexId,
+  resourceDirsFromIndex,
+} from './legacyAssets';
 import { modMissingMessage, parseModCategories } from './mods';
 import { assetIndexFile, assetsDir, binDir, clientJarFile, infoFile, modJarFile } from './storage';
 
@@ -434,6 +440,33 @@ export class BetacraftClient {
     }
     await this.download(url, dest, 'asset-index', id, sha1 ? { algo: 'sha1', value: sha1 } : undefined, opts.signal);
     return id;
+  }
+
+  /**
+   * gameDir/resources 子目录预建——**为兼容无法使用 assets 体系的版本**（c0.24-dev* 即其中，
+   * 游戏只认 resources/ 落盘声音）；能用 assets 的版本不写 resources，建了无影响（2026-11-07
+   * 用户定调，零版本判断）。游戏 ThreadDownloadResources.download() 不自建目录，用户手动清空
+   * resources 后 fork agent 改写死链落盘即 FileNotFoundException。目录集以 BC v2 索引目录全
+   * 29 条烘焙表 RESOURCE_DIRS_BY_INDEX 为准（按 files.betacraft.uk/launcher/v2/assets/indexes/
+   * 详细建，不依赖索引是否已落盘）；表外索引回落本地索引解析，两边都缺 → 静默跳过。
+   * 每次启动幂等重建。
+   */
+  ensureResourceDirs(root: string, indexId: string, gameDir: string): void {
+    let dirs: readonly string[] | undefined = RESOURCE_DIRS_BY_INDEX[indexId];
+    if (!dirs) {
+      const indexFile = assetIndexFile(root, indexId);
+      if (!fs.existsSync(indexFile)) return;
+      try {
+        dirs = resourceDirsFromIndex(JSON.parse(fs.readFileSync(indexFile, 'utf8')));
+      } catch {
+        return;
+      }
+    }
+    for (const dir of dirs) {
+      fs.mkdirSync(dir ? path.join(gameDir, 'resources', ...dir.split('/')) : path.join(gameDir, 'resources'), {
+        recursive: true,
+      });
+    }
   }
 
   /**

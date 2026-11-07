@@ -151,6 +151,9 @@ export const AUTHORITATIVE_ASSET_INDEXES: Readonly<Record<string, string>> = {
 /**
  * 资产索引解析唯一权威入口（预取与启动注入共用，保证两侧同源）：
  * .info assetIndex.id > .info assets > BC v2 权威表 > legacyfix version_data 正则表；无资产 → null。
+ * `c0.24-dev*` 声音缺失（该系用 ogg = infdev 资产集，正则表按 c0.2x 族给 c0.0.22a_01 只有 wav）
+ * 属**数据侧问题**，修法 = BC `.info` 给 `assets=20100607`（本链第二级即生效），
+ * 启动器不加硬编码例外（2026-11-07 用户定调）。
  */
 export function resolveLaunchAssetIndexId(json: {
   id: string;
@@ -208,3 +211,58 @@ export function planAssetObjects(indexJson: unknown): AssetObjectPlan[] {
   }
   return plan;
 }
+
+/**
+ * 索引对象键 → 游戏 `resources/` 落盘所需的父目录集（POSIX 相对路径，'' = resources 根本身）。
+ * 用途 = 兼容无法使用 assets 体系的版本（c0.24-dev* 即其中，游戏只认 resources/；能用
+ * assets 的版本不写 resources、无影响）。游戏侧 ThreadDownloadResources.download() 直接
+ * new FileOutputStream、**不自建目录**（2026-11-07 用户实机点名：手动清空 resources 后
+ * fork agent 改写死链命中真对象，落盘仍走游戏自家写路径 → FileNotFoundException）。
+ * 启动器按本集预建目录即可根除。
+ */
+export function resourceDirsFromIndex(indexJson: unknown): string[] {
+  const dirs = new Set<string>();
+  for (const obj of planAssetObjects(indexJson)) {
+    const slash = obj.key.lastIndexOf('/');
+    dirs.add(slash < 0 ? '' : obj.key.slice(0, slash));
+  }
+  return [...dirs];
+}
+
+/**
+ * BC v2 索引目录（files.betacraft.uk/launcher/v2/assets/indexes/v2/）全 29 条的**对象键父目录集**
+ * 烘焙表（2026-11-07 逐条实拉，objects+custom 合并口径，'' = resources 根本身）。
+ * resources 预建以此为准：不依赖索引 JSON 是否已落盘（首启/网络失败也建得出），
+ * 表外索引（如 24w20a 走 piston-meta）回落本地索引解析。
+ */
+export const RESOURCE_DIRS_BY_INDEX: Readonly<Record<string, readonly string[]>> = {
+  'c0.0.22a_01': ['music', 'sound/loops', 'sound/random', 'sound/step'],
+  '20100104': ['music', 'sound/step'],
+  '20100110': ['music', 'newsound/random', 'sound/step'],
+  '20100124': ['music', 'newsound/random', 'sound/step'],
+  '20100206': ['music', 'newsound/fire', 'newsound/random', 'sound/step'],
+  '20100212': ['music', 'newsound/fire', 'newsound/liquid', 'newsound/mob', 'newsound/random', 'newsound/step', 'sound/step'],
+  '20100607': ['music', 'newsound/fire', 'newsound/liquid', 'newsound/mob', 'newsound/random', 'newsound/step', 'sound/step'],
+  'a1.0.3': ['music', 'newsound/ambient/cave', 'newsound/fire', 'newsound/liquid', 'newsound/mob', 'newsound/random', 'newsound/step', 'sound/step'],
+  'a1.0.8': ['music', 'newsound/ambient/cave', 'newsound/fire', 'newsound/liquid', 'newsound/mob', 'newsound/random', 'newsound/step', 'sound/step'],
+  'a1.0.9': ['music', 'newsound/ambient/cave', 'newsound/fire', 'newsound/liquid', 'newsound/mob', 'newsound/random', 'newsound/step', 'sound/step'],
+  'a1.0.12': ['music', 'newsound/ambient/cave', 'newsound/fire', 'newsound/liquid', 'newsound/mob', 'newsound/random', 'newsound/step', 'sound/step'],
+  'a1.0.14': ['music', 'newmusic', 'newsound/ambient/cave', 'newsound/damage', 'newsound/fire', 'newsound/liquid', 'newsound/mob', 'newsound/random', 'newsound/step', 'sound/step', 'streaming'],
+  'a1.2.0': ['music', 'newmusic', 'newsound/ambient/cave', 'newsound/damage', 'newsound/fire', 'newsound/liquid', 'newsound/mob', 'newsound/mob/ghast', 'newsound/mob/zombiepig', 'newsound/portal', 'newsound/random', 'newsound/step', 'sound/step', 'streaming'],
+  'a1.2.0_02': ['music', 'newmusic', 'newsound/ambient/cave', 'newsound/damage', 'newsound/fire', 'newsound/liquid', 'newsound/mob', 'newsound/mob/ghast', 'newsound/mob/zombiepig', 'newsound/portal', 'newsound/random', 'newsound/step', 'sound/step', 'streaming'],
+  'b1.2': ['music', 'newmusic', 'newsound/ambient/cave', 'newsound/damage', 'newsound/fire', 'newsound/liquid', 'newsound/mob', 'newsound/mob/ghast', 'newsound/mob/zombiepig', 'newsound/note', 'newsound/portal', 'newsound/random', 'newsound/step', 'sound/step', 'streaming'],
+  'b1.4': ['music', 'newmusic', 'newsound/ambient/cave', 'newsound/damage', 'newsound/fire', 'newsound/liquid', 'newsound/mob', 'newsound/mob/ghast', 'newsound/mob/wolf', 'newsound/mob/zombiepig', 'newsound/note', 'newsound/portal', 'newsound/random', 'newsound/step', 'sound/step', 'streaming'],
+  'b1.5': ['music', 'newmusic', 'newsound/ambient/cave', 'newsound/ambient/weather', 'newsound/damage', 'newsound/fire', 'newsound/liquid', 'newsound/mob', 'newsound/mob/ghast', 'newsound/mob/wolf', 'newsound/mob/zombiepig', 'newsound/note', 'newsound/portal', 'newsound/random', 'newsound/step', 'sound/step', 'streaming'],
+  'b1.7': ['music', 'newmusic', 'newsound/ambient/cave', 'newsound/ambient/weather', 'newsound/damage', 'newsound/fire', 'newsound/liquid', 'newsound/mob', 'newsound/mob/ghast', 'newsound/mob/wolf', 'newsound/mob/zombiepig', 'newsound/note', 'newsound/portal', 'newsound/random', 'newsound/step', 'newsound/tile/piston', 'sound/step', 'streaming'],
+  '1.0.0-rc1': ['music', 'newmusic', 'newsound/ambient/cave', 'newsound/ambient/weather', 'newsound/damage', 'newsound/fire', 'newsound/liquid', 'newsound/mob', 'newsound/mob/blaze', 'newsound/mob/endermen', 'newsound/mob/ghast', 'newsound/mob/magmacube', 'newsound/mob/silverfish', 'newsound/mob/wolf', 'newsound/mob/zombiepig', 'newsound/note', 'newsound/portal', 'newsound/random', 'newsound/step', 'newsound/tile/piston', 'sound/step', 'streaming'],
+  '1.2': ['music', 'newmusic', 'newsound/ambient/cave', 'newsound/ambient/weather', 'newsound/damage', 'newsound/fire', 'newsound/liquid', 'newsound/mob', 'newsound/mob/blaze', 'newsound/mob/cat', 'newsound/mob/endermen', 'newsound/mob/ghast', 'newsound/mob/irongolem', 'newsound/mob/magmacube', 'newsound/mob/silverfish', 'newsound/mob/wolf', 'newsound/mob/zombie', 'newsound/mob/zombiepig', 'newsound/note', 'newsound/portal', 'newsound/random', 'newsound/step', 'newsound/tile/piston', 'sound/step', 'streaming'],
+  '1.4': ['music', 'newmusic', 'newsound/ambient/cave', 'newsound/ambient/weather', 'newsound/damage', 'newsound/fire', 'newsound/liquid', 'newsound/mob', 'newsound/mob/blaze', 'newsound/mob/cat', 'newsound/mob/endermen', 'newsound/mob/ghast', 'newsound/mob/irongolem', 'newsound/mob/magmacube', 'newsound/mob/silverfish', 'newsound/mob/wolf', 'newsound/mob/zombie', 'newsound/mob/zombiepig', 'newsound/note', 'newsound/portal', 'newsound/random', 'newsound/step', 'newsound/tile/piston', 'sound/step', 'sound3/ambient/cave', 'sound3/ambient/weather', 'sound3/damage', 'sound3/dig', 'sound3/fire', 'sound3/fireworks', 'sound3/liquid', 'sound3/minecart', 'sound3/mob/bat', 'sound3/mob/blaze', 'sound3/mob/cat', 'sound3/mob/chicken', 'sound3/mob/cow', 'sound3/mob/creeper', 'sound3/mob/enderdragon', 'sound3/mob/endermen', 'sound3/mob/ghast', 'sound3/mob/irongolem', 'sound3/mob/magmacube', 'sound3/mob/pig', 'sound3/mob/sheep', 'sound3/mob/silverfish', 'sound3/mob/skeleton', 'sound3/mob/slime', 'sound3/mob/spider', 'sound3/mob/wither', 'sound3/mob/wolf', 'sound3/mob/zombie', 'sound3/mob/zombiepig', 'sound3/note', 'sound3/portal', 'sound3/random', 'sound3/step', 'sound3/tile/piston', 'streaming'],
+  '13w16a': ['icons', 'lang', 'music', 'records', 'sound/ambient/cave', 'sound/ambient/weather', 'sound/damage', 'sound/dig', 'sound/fire', 'sound/fireworks', 'sound/liquid', 'sound/minecart', 'sound/mob/bat', 'sound/mob/blaze', 'sound/mob/cat', 'sound/mob/chicken', 'sound/mob/cow', 'sound/mob/creeper', 'sound/mob/enderdragon', 'sound/mob/endermen', 'sound/mob/ghast', 'sound/mob/irongolem', 'sound/mob/magmacube', 'sound/mob/pig', 'sound/mob/sheep', 'sound/mob/silverfish', 'sound/mob/skeleton', 'sound/mob/slime', 'sound/mob/spider', 'sound/mob/wither', 'sound/mob/wolf', 'sound/mob/zombie', 'sound/mob/zombiepig', 'sound/note', 'sound/portal', 'sound/random', 'sound/step', 'sound/tile/piston'],
+  '13w18c': ['', 'icons', 'lang', 'music', 'records', 'sound/ambient/cave', 'sound/ambient/weather', 'sound/damage', 'sound/dig', 'sound/fire', 'sound/fireworks', 'sound/liquid', 'sound/minecart', 'sound/mob/bat', 'sound/mob/blaze', 'sound/mob/cat', 'sound/mob/chicken', 'sound/mob/cow', 'sound/mob/creeper', 'sound/mob/enderdragon', 'sound/mob/endermen', 'sound/mob/ghast', 'sound/mob/irongolem', 'sound/mob/magmacube', 'sound/mob/pig', 'sound/mob/sheep', 'sound/mob/silverfish', 'sound/mob/skeleton', 'sound/mob/slime', 'sound/mob/spider', 'sound/mob/wither', 'sound/mob/wolf', 'sound/mob/zombie', 'sound/mob/zombiepig', 'sound/note', 'sound/portal', 'sound/random', 'sound/step', 'sound/tile/piston'],
+  '13w19a': ['', 'icons', 'lang', 'music', 'records', 'sound/ambient/cave', 'sound/ambient/weather', 'sound/damage', 'sound/dig', 'sound/fire', 'sound/fireworks', 'sound/liquid', 'sound/minecart', 'sound/mob/bat', 'sound/mob/blaze', 'sound/mob/cat', 'sound/mob/chicken', 'sound/mob/cow', 'sound/mob/creeper', 'sound/mob/enderdragon', 'sound/mob/endermen', 'sound/mob/ghast', 'sound/mob/irongolem', 'sound/mob/magmacube', 'sound/mob/pig', 'sound/mob/sheep', 'sound/mob/silverfish', 'sound/mob/skeleton', 'sound/mob/slime', 'sound/mob/spider', 'sound/mob/wither', 'sound/mob/wolf', 'sound/mob/zombie', 'sound/mob/zombiepig', 'sound/note', 'sound/portal', 'sound/random', 'sound/step', 'sound/tile/piston'],
+  '13w22a': ['', 'icons', 'lang', 'music', 'records', 'sound/ambient/cave', 'sound/ambient/weather', 'sound/damage', 'sound/dig', 'sound/fire', 'sound/fireworks', 'sound/liquid', 'sound/minecart', 'sound/mob/bat', 'sound/mob/blaze', 'sound/mob/cat', 'sound/mob/chicken', 'sound/mob/cow', 'sound/mob/creeper', 'sound/mob/enderdragon', 'sound/mob/endermen', 'sound/mob/ghast', 'sound/mob/horse', 'sound/mob/horse/donkey', 'sound/mob/horse/skeleton', 'sound/mob/horse/zombie', 'sound/mob/irongolem', 'sound/mob/magmacube', 'sound/mob/pig', 'sound/mob/sheep', 'sound/mob/silverfish', 'sound/mob/skeleton', 'sound/mob/slime', 'sound/mob/spider', 'sound/mob/villager', 'sound/mob/wither', 'sound/mob/wolf', 'sound/mob/zombie', 'sound/mob/zombiepig', 'sound/note', 'sound/portal', 'sound/random', 'sound/step', 'sound/tile/piston'],
+  '13w24a': ['', 'icons', 'lang', 'music', 'records', 'sound/ambient/cave', 'sound/ambient/weather', 'sound/damage', 'sound/dig', 'sound/fire', 'sound/fireworks', 'sound/liquid', 'sound/minecart', 'sound/mob/bat', 'sound/mob/blaze', 'sound/mob/cat', 'sound/mob/chicken', 'sound/mob/cow', 'sound/mob/creeper', 'sound/mob/enderdragon', 'sound/mob/endermen', 'sound/mob/ghast', 'sound/mob/horse', 'sound/mob/horse/donkey', 'sound/mob/horse/skeleton', 'sound/mob/horse/zombie', 'sound/mob/irongolem', 'sound/mob/magmacube', 'sound/mob/pig', 'sound/mob/sheep', 'sound/mob/silverfish', 'sound/mob/skeleton', 'sound/mob/slime', 'sound/mob/spider', 'sound/mob/villager', 'sound/mob/wither', 'sound/mob/wolf', 'sound/mob/zombie', 'sound/mob/zombiepig', 'sound/note', 'sound/portal', 'sound/random', 'sound/step', 'sound/tile/piston'],
+  '1.6': ['', 'icons', 'lang', 'music', 'records', 'sound/ambient/cave', 'sound/ambient/weather', 'sound/damage', 'sound/dig', 'sound/fire', 'sound/fireworks', 'sound/liquid', 'sound/minecart', 'sound/mob/bat', 'sound/mob/blaze', 'sound/mob/cat', 'sound/mob/chicken', 'sound/mob/cow', 'sound/mob/creeper', 'sound/mob/enderdragon', 'sound/mob/endermen', 'sound/mob/ghast', 'sound/mob/horse', 'sound/mob/horse/donkey', 'sound/mob/horse/skeleton', 'sound/mob/horse/zombie', 'sound/mob/irongolem', 'sound/mob/magmacube', 'sound/mob/pig', 'sound/mob/sheep', 'sound/mob/silverfish', 'sound/mob/skeleton', 'sound/mob/slime', 'sound/mob/spider', 'sound/mob/villager', 'sound/mob/wither', 'sound/mob/wolf', 'sound/mob/zombie', 'sound/mob/zombiepig', 'sound/note', 'sound/portal', 'sound/random', 'sound/step', 'sound/tile/piston'],
+  '13w42a': ['', 'icons', 'lang', 'sounds/ambient/cave', 'sounds/ambient/weather', 'sounds/damage', 'sounds/dig', 'sounds/fire', 'sounds/fireworks', 'sounds/liquid', 'sounds/minecart', 'sounds/mob/bat', 'sounds/mob/blaze', 'sounds/mob/cat', 'sounds/mob/chicken', 'sounds/mob/cow', 'sounds/mob/creeper', 'sounds/mob/enderdragon', 'sounds/mob/endermen', 'sounds/mob/ghast', 'sounds/mob/horse', 'sounds/mob/horse/donkey', 'sounds/mob/horse/skeleton', 'sounds/mob/horse/zombie', 'sounds/mob/irongolem', 'sounds/mob/magmacube', 'sounds/mob/pig', 'sounds/mob/sheep', 'sounds/mob/silverfish', 'sounds/mob/skeleton', 'sounds/mob/slime', 'sounds/mob/spider', 'sounds/mob/villager', 'sounds/mob/wither', 'sounds/mob/wolf', 'sounds/mob/zombie', 'sounds/mob/zombiepig', 'sounds/music', 'sounds/note', 'sounds/portal', 'sounds/random', 'sounds/records', 'sounds/step', 'sounds/tile/piston'],
+  '1.7.2': ['', 'icons', 'lang', 'sounds/ambient/cave', 'sounds/ambient/weather', 'sounds/damage', 'sounds/dig', 'sounds/fire', 'sounds/fireworks', 'sounds/liquid', 'sounds/minecart', 'sounds/mob/bat', 'sounds/mob/blaze', 'sounds/mob/cat', 'sounds/mob/chicken', 'sounds/mob/cow', 'sounds/mob/creeper', 'sounds/mob/enderdragon', 'sounds/mob/endermen', 'sounds/mob/ghast', 'sounds/mob/horse', 'sounds/mob/horse/donkey', 'sounds/mob/horse/skeleton', 'sounds/mob/horse/zombie', 'sounds/mob/irongolem', 'sounds/mob/magmacube', 'sounds/mob/pig', 'sounds/mob/sheep', 'sounds/mob/silverfish', 'sounds/mob/skeleton', 'sounds/mob/slime', 'sounds/mob/spider', 'sounds/mob/villager', 'sounds/mob/wither', 'sounds/mob/wolf', 'sounds/mob/zombie', 'sounds/mob/zombiepig', 'sounds/music/game', 'sounds/music/game/creative', 'sounds/music/game/end', 'sounds/music/game/nether', 'sounds/music/menu', 'sounds/note', 'sounds/portal', 'sounds/random', 'sounds/records', 'sounds/step', 'sounds/tile/piston'],
+};

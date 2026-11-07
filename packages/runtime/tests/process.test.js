@@ -277,6 +277,29 @@ test('专类：IllegalStateException（状态冲突/重复初始化）→ illega
   assert.equal(classifyCrash(out, 1).category, 'illegal-state');
 });
 
+// —— 音频引擎线程噪音（2026-11-07 c0.24-dev 实机，fork attic.7/8 修复期；用户报「没有录入
+//    例外」：de.jarnbjo = SoundSystem 内置 ogg 解码库，流式线程读截断 OGG 即打栈，非致命）
+test('jarnbjo OGG 解码栈压尾（paulscode+de.jarnbjo 混合帧、无游戏帧）→ 不报', () => {
+  const out = [
+    'Stopping!',
+    'Exception in thread "Thread-6" de.jarnbjo.ogg.EndOfOggStreamIOException',
+    '\tat de.jarnbjo.ogg.RandomAccessOggInputStream.rawStreamRead(RandomAccessOggInputStream.java:156)',
+    '\tat com.paulscode.sound.codecs.CodecJOrbis.readStream(CodecJOrbis.java:553)',
+    '\tat com.paulscode.sound.Source.streamReadStart(Source.java:1339)',
+    '\tat com.paulscode.sound.CommandThread.run(CommandThread.java:156)',
+  ].join('\n');
+  assert.equal(classifyCrash(out, 0), null);
+  assert.equal(classifyStopped(out), null);
+});
+
+test('jarnbjo 裸头（无 Exception-in-thread 前缀）压尾 → 头类名单拦下不报', () => {
+  const out = [
+    'de.jarnbjo.ogg.EndOfOggStreamIOException',
+    '\tat com.paulscode.sound.codecs.CodecJOrbis.readStream(CodecJOrbis.java:553)',
+  ].join('\n');
+  assert.equal(classifyCrash(out, 0), null);
+});
+
 test('paulscode 音频引擎线程 NPE 压尾（全帧无游戏代码）→ 非致命噪音不报（indev-20100223 用户点名）', () => {
   const out = [
     '[12:00:00] [info] game running fine',

@@ -281,8 +281,10 @@ export const INSTANCE_ADDONS: AddonDef[] = [
   { id: 'intel', prop: 'intel', mode: 'enable' },
   // v1 addons 转正（fork legacyfix-attic 外部 addon jar，AddonLoader 经 -Dlf.addons= 装载；
   // 上游矩阵确认无对应 Patch = 真缺口，fork 任务 B 首批三枚）
-  // fullscreen 实机结论（2026-11-04，attic.4）：仅 -Dlf.deawt.disable=true 下有效，
-  // DeAWT 路径表现差 = addon×DeAWT 冲突，fork 侧迭代修复中（attic.6 续）
+  // fullscreen 终局结论（2026-11-07，attic.7 落码 a8196b2/86725af）：DeAWT 下可见窗口
+  // 归启动器、游戏 JVM 内无 java.awt.Frame 可达 = agent 侧全屏设计性不可达，
+  // addon 在该路径静默 no-op；仅非 DeAWT（-Dlf.deawt.disable=true / 原生 LWJGL）有效，
+  // DeAWT 主路径全屏归启动器侧职责（挂账）
   { id: 'fullscreen', prop: '', mode: 'enable', addonAsset: 'legacyfix-addon-fullscreen' },
   { id: 'game-mode-switch', prop: '', mode: 'enable', addonAsset: 'legacyfix-addon-gamemodeswitch' },
   { id: 'quit-game', prop: '', mode: 'enable', addonAsset: 'legacyfix-addon-quitgame' },

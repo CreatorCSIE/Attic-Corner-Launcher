@@ -7,7 +7,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const { resolveAssetIndexId, resolveLaunchAssetIndexId, AUTHORITATIVE_ASSET_INDEXES, planAssetObjects, ASSET_INDEXES, BetacraftClient } = require('../dist/index.js');
+const { resolveAssetIndexId, resolveLaunchAssetIndexId, AUTHORITATIVE_ASSET_INDEXES, planAssetObjects, resourceDirsFromIndex, RESOURCE_DIRS_BY_INDEX, ASSET_INDEXES, BetacraftClient } = require('../dist/index.js');
 
 const sha1 = (s) => crypto.createHash('sha1').update(s).digest('hex');
 
@@ -69,6 +69,19 @@ test('resolveLaunchAssetIndexId：BC v2 权威表钉死 Indev 分歧 + 四级优
   assert.equal(resolveLaunchAssetIndexId({ id: '4k-0144' }), null);
 });
 
+test('c0.24-dev* 资产索引走数据侧修法：.info assets 第二级生效，启动器不加硬编码例外', () => {
+  // 上游 BC 数据缺位时空串不短路 ?? 链（归一化后落正则表）——
+  // 实机日志 c0.24-dev7 注入 c0.0.22a_01 即此形态。
+  assert.equal(resolveLaunchAssetIndexId({ id: 'c0.24-dev7' }), 'c0.0.22a_01');
+  assert.equal(resolveLaunchAssetIndexId({ id: 'c0.24-dev7', assets: undefined }), 'c0.0.22a_01');
+  // 修法 = BC .info 填 assets=20100607（dev 系用 ogg = infdev 资产集），第二级即采纳。
+  assert.equal(resolveLaunchAssetIndexId({ id: 'c0.24-dev7', assets: '20100607' }), '20100607');
+  assert.equal(resolveLaunchAssetIndexId({ id: 'c0.24-dev7', assetIndex: { id: '20100607' } }), '20100607');
+  // 同族 c0.24_st/c0.30 本就有 wav，正则表结果不变。
+  assert.equal(resolveLaunchAssetIndexId({ id: 'c0.24_st_03' }), 'c0.0.22a_01');
+  assert.equal(resolveLaunchAssetIndexId({ id: 'c0.30-c-1900' }), 'c0.0.22a_01');
+});
+
 test('downloadAssetIndex：Indev 版本预取命中权威索引（0130 → 20100124 而非 20100212）', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'attic-idx-'));
   try {
@@ -116,6 +129,75 @@ test('planAssetObjects：objects+custom 合并（custom 覆盖同名键）、URL
   assert.equal(byKey['sound/b.ogg'].url, 'http://files.betacraft.uk/special/b.ogg'); // obj.url 最优先
   assert.equal(byKey['music/c.ogg'].url, 'http://files.betacraft.uk/special/'); // custom_url 次之
   assert.ok(!('bad/entry' in byKey));
+});
+
+test('resourceDirsFromIndex：对象键父目录集去重 + custom 段并入 + 无 hash 键不计', () => {
+  const h = sha1('x');
+  const dirs = resourceDirsFromIndex({
+    objects: {
+      'sound/ambient/cave1.ogg': { hash: h, size: 1 },
+      'sound/ambient/cave2.ogg': { hash: h, size: 1 }, // 同父去重
+      'music/tone.ogg': { hash: h, size: 1 },
+      'rootfile.png': { hash: h, size: 1 }, // 无父 → ''（resources 根本身）
+      'bad/entry': { size: 1 }, // 无 hash → 与下载计划同口径丢弃
+    },
+    custom: { 'noteblock/pling.ogg': { hash: h, size: 1 } },
+  });
+  assert.deepEqual(new Set(dirs), new Set(['sound/ambient', 'music', '', 'noteblock']));
+});
+
+test('ensureResourceDirs：表优先（20100607 无需本地索引即建全 newsound 家族面）', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'attic-res-'));
+  const gameDir = fs.mkdtempSync(path.join(os.tmpdir(), 'attic-game-'));
+  try {
+    const client = new BetacraftClient({});
+    // 烘焙表命中：本地无任何索引文件也建得出（首启/网络失败形态）。
+    client.ensureResourceDirs(root, '20100607', gameDir);
+    for (const dir of ['music', 'newsound/fire', 'newsound/liquid', 'newsound/mob', 'newsound/random', 'newsound/step', 'sound/step']) {
+      assert.ok(fs.statSync(path.join(gameDir, 'resources', ...dir.split('/'))).isDirectory(), `缺 ${dir}`);
+    }
+    // 幂等重跑不抛；用户清空 resources 后重跑即恢复。
+    client.ensureResourceDirs(root, '20100607', gameDir);
+    fs.rmSync(path.join(gameDir, 'resources'), { recursive: true, force: true });
+    client.ensureResourceDirs(root, '20100607', gameDir);
+    assert.ok(fs.existsSync(path.join(gameDir, 'resources', 'newsound', 'mob')));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(gameDir, { recursive: true, force: true });
+  }
+});
+
+test('ensureResourceDirs：表外索引回落本地解析 + 两边都缺静默', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'attic-res-'));
+  const gameDir = fs.mkdtempSync(path.join(os.tmpdir(), 'attic-game-'));
+  try {
+    fs.mkdirSync(path.join(root, 'assets', 'indexes'), { recursive: true });
+    const h = sha1('x');
+    fs.writeFileSync(
+      path.join(root, 'assets', 'indexes', 'test_idx.json'),
+      JSON.stringify({ objects: { 'sound/step/stone1.ogg': { hash: h, size: 1 }, 'music/calm.ogg': { hash: h, size: 1 } } }),
+    );
+    const client = new BetacraftClient({});
+    client.ensureResourceDirs(root, 'test_idx', gameDir);
+    assert.ok(fs.statSync(path.join(gameDir, 'resources', 'sound', 'step')).isDirectory());
+    assert.ok(fs.statSync(path.join(gameDir, 'resources', 'music')).isDirectory());
+    // 表外且本地无索引 → 静默跳过不抛。
+    client.ensureResourceDirs(root, 'no_such_idx', gameDir);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(gameDir, { recursive: true, force: true });
+  }
+});
+
+test('RESOURCE_DIRS_BY_INDEX：BC v2 目录 29 条全表内、索引 ID 均有下载元数据', () => {
+  assert.equal(Object.keys(RESOURCE_DIRS_BY_INDEX).length, 29);
+  for (const [id, dirs] of Object.entries(RESOURCE_DIRS_BY_INDEX)) {
+    assert.ok(ASSET_INDEXES[id], `表内索引缺元数据：${id}`);
+    assert.ok(dirs.length > 0, `空目录集：${id}`);
+    for (const dir of dirs) assert.ok(!dir.startsWith('/') && !dir.includes('\\') && !dir.includes('//'), `异常路径：${id}/${dir}`);
+  }
+  // 经典/infdev 年代形态抽查（c0.24-dev* 修复的落点面）。
+  assert.deepEqual(RESOURCE_DIRS_BY_INDEX['20100607'], ['music', 'newsound/fire', 'newsound/liquid', 'newsound/mob', 'newsound/random', 'newsound/step', 'sound/step']);
 });
 
 test('ASSET_INDEXES：表内引用的索引 ID 均有元数据（源表已知缺口除外）', () => {

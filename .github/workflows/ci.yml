@@ -83,7 +83,9 @@ jobs:
 
   # 更新脚本对冒烟（plan「测试版通道与更新执行面」执行面 2026-11-07）：
   # 快路径文件系统腿（验→解→等→换→启）用假 install + 假 zip 全跑通——
-  # bat 拉起的仍是真 powershell 5.1（BOM/只读变量等 PS5 坑在此绊住），pwsh 只做 CI 胶水。
+  # 全链钉死 powershell 5.1（首轮教训 2026-11-07：胶水跑 pwsh 7 会重写进程 PSModulePath，
+  # bat 拉起的 5.1 子进程继承后丢系统模块路径 → Get-FileHash CommandNotFound；且 5.1 才是
+  # 脚本对真实消费端）。胶水文面纯 ASCII（5.1 按 ANSI 误读无 BOM 临时脚本）。
   update-script-smoke:
     name: 更新脚本对冒烟（快路径换体腿）
     runs-on: windows-latest
@@ -91,17 +93,17 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: 假构件 + 换体断言
-        shell: pwsh
+        shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
           $install = Join-Path $env:RUNNER_TEMP 'attic-fake-install'
           if (Test-Path $install) { Remove-Item $install -Recurse -Force }
           New-Item -ItemType Directory -Force -Path $install | Out-Null
           Copy-Item scripts/attic-update.ps1, scripts/attic-update.bat $install
-          # 旧体 = ping.exe 冒充主程序；version.txt 三行锚与 release.yml portable 出厂面同构
+          # old body = ping.exe posing as main exe; version.txt anchor mirrors release.yml portable layout
           Copy-Item "$env:SystemRoot\System32\ping.exe" (Join-Path $install 'Attic.exe')
           Set-Content -Path (Join-Path $install 'version.txt') -Value "version=0.0.0`nexe=Attic.exe`nrepo=a/b" -Encoding ascii
-          # 假构件 zip：顶层版本目录（打包面同构）；新体 = where.exe（无参即退，不残留进程）
+          # fake artifact zip: top-level version dir (mirrors packaging); new body = where.exe (exits instantly)
           $payload = Join-Path $env:RUNNER_TEMP 'attic-fake-payload\attic-tauri-windows-x64-9.9.9'
           New-Item -ItemType Directory -Force -Path $payload | Out-Null
           Copy-Item "$env:SystemRoot\System32\where.exe" (Join-Path $payload 'Attic.exe')
@@ -110,16 +112,16 @@ jobs:
           Compress-Archive -Path $payload -DestinationPath $zip
           $sha = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash.ToLowerInvariant()
           $pingHash = (Get-FileHash "$env:SystemRoot\System32\ping.exe").Hash
-          # 反例：digest 不符 = 失败退出且旧体原封不动（WaitPid 用不存在 PID = 等待立即通过）
+          # negative: wrong digest must fail with old body untouched (WaitPid of dead PID = wait passes instantly)
           & (Join-Path $install 'attic-update.bat') -Zip $zip -WaitPid 4194304 -Sha256 ('f' * 64) | Out-Null
-          if ($LASTEXITCODE -eq 0) { throw 'digest 不符应失败' }
-          if ((Get-FileHash "$install\Attic.exe").Hash -ne $pingHash) { throw '失败路径动了旧体' }
-          # 正例：换体成功 + 脚本对/版本锚幸存（/XF 排除面）
+          if ($LASTEXITCODE -eq 0) { throw 'digest mismatch should fail' }
+          if ((Get-FileHash "$install\Attic.exe").Hash -ne $pingHash) { throw 'failure path touched old body' }
+          # positive: swap succeeds + script pair / version anchor survive (/XF exclusions)
           & (Join-Path $install 'attic-update.bat') -Zip $zip -WaitPid 4194304 -Sha256 $sha
-          if ($LASTEXITCODE -ne 0) { throw "换体腿失败 exit=$LASTEXITCODE" }
-          if (-not (Test-Path "$install\marker.txt")) { throw '新体未落位（marker 缺失）' }
-          if ((Get-FileHash "$install\Attic.exe").Hash -eq $pingHash) { throw '主程序仍是旧体' }
+          if ($LASTEXITCODE -ne 0) { throw "swap leg failed exit=$LASTEXITCODE" }
+          if (-not (Test-Path "$install\marker.txt")) { throw 'new body not in place (marker missing)' }
+          if ((Get-FileHash "$install\Attic.exe").Hash -eq $pingHash) { throw 'main exe still old body' }
           foreach ($keep in 'attic-update.ps1', 'attic-update.bat', 'version.txt') {
-            if (-not (Test-Path (Join-Path $install $keep))) { throw "换体自我清除：$keep 缺失" }
+            if (-not (Test-Path (Join-Path $install $keep))) { throw "swap self-erased: $keep missing" }
           }
-          Write-Host '[smoke] 更新脚本对换体腿通过'
+          Write-Host '[smoke] update script pair swap leg passed'

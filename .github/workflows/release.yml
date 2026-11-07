@@ -272,7 +272,7 @@ jobs:
           Copy-Item -Recurse stage\* "portable\$folder\"
           # 自更新执行面随包分发（plan.md 执行面条）：脚本对 + 版本锚（version/exe/repo，
           # 全路径自救消费；快路径脚本位 = attic-update.bat 同目录探测）。
-          Copy-Item scripts/attic-update.ps1 scripts/attic-update.bat "portable\$folder\"
+          Copy-Item scripts/attic-update.ps1, scripts/attic-update.bat "portable\$folder\"
           $mainExe = (Get-ChildItem "portable\$folder\*.exe" | Where-Object Name -ne 'node.exe' | Select-Object -First 1).Name
           if (-not $mainExe) { throw 'portable staging has no main exe for version.txt' }
           Set-Content -Path "portable\$folder\version.txt" -Encoding ascii -Value @(

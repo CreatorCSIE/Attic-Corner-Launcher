@@ -51,7 +51,7 @@ Betacraft 版本 API              legacyfix javaagent
 ### 分发（Phase 5，已投产）
 
 - **Windows Inno Setup 安装包**：三种发行形态共用一份 `installer/attic.iss`（flavor = main/electron/legacy 参数化，Inno 6.7.3 版本钉，简体中文 isl 已 vendor）；`[Code]` 层双闸 guard（主壳/Electron 壳 Win10+ / 兜底壳 Win7 SP1+、x64 载荷 IsWin64 防错装）；纯用户级安装（`PrivilegesRequired=lowest`，装 `%LOCALAPPDATA%\Programs`）；AppId 分轨可同机共存。2026-10-24 拍板 NSIS → Inno（NSIS 默认观感老旧 + builder 模板宏层崩溃史，崩溃戒律归档于 attic.iss 头注）。
-- **自动更新**：Tauri updater minisign 签名密钥已生成、release CI 全平台矩阵就绪（Windows Inno x64/arm64 + Electron 壳 x64、macOS DMG arm64、Linux deb+AppImage x86_64、兜底 legacy x64/ia32）；updater 产物 = ISCC 输出 + CI `tauri signer sign` 手动签名，升级体验为可见 Inno 向导；兜底线按设计不随自动更新。Linux 首发 Debian 系（arch/redhat 按需），linux arm64 不分发（LWJGL2 无 arm64 原生库，见 FAQ）。
+- **自动更新**：Tauri updater minisign 签名密钥已生成、release CI 全平台矩阵就绪（Windows Inno x64/arm64 + Electron 壳 x64、macOS DMG arm64、Linux deb+AppImage x86_64、兜底 legacy x64/ia32）；updater 产物 = ISCC 输出 + CI `tauri signer sign` 手动签名，升级体验 = 应用内下载 + 可见 Inno 向导（portable 形态为双击脚本换体）；兜底线按设计不随自动更新。**nightly 测试通道已投产**（`0.1.0-nightly.*`，main 每推自动产出、保留最近 14 枚）：设置页「提前体验测试版」开关 opt-in——开 = 检查更新同时匹配 nightly 与正式版（nightly 构件默认开，关 = 回正式版通道）；Windows 下点「更新」即应用内自动下载 → 校验 → 换体重启，其余平台指路 Releases 页。updater 插件的静默清单（latest.json）恒仅 stable，nightly 只走通知面。Linux 首发 Debian 系（arch/redhat 按需），linux arm64 不分发（LWJGL2 无 arm64 原生库，见 FAQ）。
 
 ### 血统
 
@@ -66,7 +66,7 @@ Betacraft 版本 API              legacyfix javaagent
 | Phase 0–2 | 脚手架 / IPC 契约 / TS 运行时 | ✅ 完成 |
 | Phase 3 | UI v0 + 设置页重写 + Mods/自定义版本 | ✅ 完成 |
 | Phase 4 | Tauri 壳 + sidecar + Electron 22 兜底壳 | ✅ 完成：真窗端到端全通（窗控/拖拽/图标/视觉收口、契约双绿），桌面手动验收通过——真窗点 Play MC 可正常启动（2026-10-24） |
-| Phase 5 | Inno Setup 安装包分发 + release CI + updater | ✅ 主通道在产：v0.0.1~v0.0.9 连续发布，全平台矩阵（Tauri/Electron/兜底 + mac arm64 + Linux deb/AppImage）+ portable + updater 签名在产；文档面已收口（Linux 已知问题清单 = FAQ Q7.5、macOS「右键打开」教程 = Q5.6） |
+| Phase 5 | Inno Setup 安装包分发 + release CI + updater | ✅ 主通道在产：v0.0.1~v0.0.13 连续发布 + 0.1.0 nightly 测试通道在产（「提前体验测试版」开关 opt-in），全平台矩阵（Tauri/Electron/兜底 + mac arm64 + Linux deb/AppImage）+ portable + updater 签名在产；文档面已收口（Linux 已知问题清单 = FAQ Q7.5、macOS「右键打开」教程 = Q5.6） |
 | Phase 6 | addons、MC 工具接入、Java 深搜（deepScan）、Discord RPC 等 | 📋 愿望池（不承诺时间）；addons 的 fork 路线已落地（`legacyfix-attic` 供给 + 本仓接线完成，实机回归矩阵进行中）；工具接入两通路已定案并补**本地化定档**（工具实现语言 Java → 启动器自身栈、现有工具 UI 全弃改启动器内重建，自 0.2.0-nightly 起开工）；Java 深搜方案已归档（配方与契约成本细则见 plan.md） |
 
 ---
@@ -230,7 +230,7 @@ Linux x86_64（deb / AppImage）是正式分发平台（Tier-2），远古链路
 
 宽高设置仅对纯 Applet 容器版本（c 系列到 1.0.5 一代）生效；a1.0.4 起游戏主窗口自管分辨率与全屏，启动器不做干预——这也是本项目不把游戏窗口嵌进启动器的原因（见"戒律"与血统说明）。
 
-### Q9：开发时 UI 显示"未检测到 IPC 桥"横幅？
+### Q9：开发时 UI 显示"当前在浏览器中打开，非启动器应用"横幅？
 
 浏览器直开 dev server（`http://localhost:5310/?demo=1`）属预期降级——demo mock 桥。走 `pnpm dev` 拉起 Electron 时若无桥，先重跑 `pnpm dev` 确认主进程产物与 UI 同为最新——`runtime` / 主进程改动是一次性编译，热更新只覆盖 UI 侧。
 

@@ -50,6 +50,8 @@ const MS_URL = {
 /** XSTS XErr 分类码（v1 MicrosoftAuth.java L67-72：2148916233=无 Xbox 档案 / 2148916238=未成年家长控制）。 */
 const XERR_NO_XBOX_PROFILE = 2148916233;
 const XERR_MINOR_PARENTAL = 2148916238;
+/** 其余注册异常族：档案创建被拒(231)/地区不支持(232)/年龄受限(234)/账户被暂停(235)/被关闭(236)/237。 */
+const XERR_REGISTRATION_FAMILY = new Set([2148916231, 2148916232, 2148916234, 2148916235, 2148916236, 2148916237]);
 
 /** 对外错误 = 分类码（脱敏硬闸：消息永不含 token 原文/响应体/URL 查询串）。 */
 export class MsAuthError extends Error {
@@ -208,6 +210,8 @@ export async function requestDeviceCode(deps: MsAuthDeps): Promise<MsDeviceCodeI
     body: `client_id=${deps.clientId}&scope=XboxLive.signin offline_access`,
   });
   const { json: body, raw } = await jsonWithRaw(res);
+  // App ID 被拒（未注册/凭据失效）= 启动器配置问题，单独出码给专文案。
+  if (str(body, 'error') === 'invalid_client') throw new MsAuthError('invalid_app');
   const deviceCode = str(body, 'device_code');
   const userCode = str(body, 'user_code');
   const verificationUri = str(body, 'verification_uri');
@@ -292,6 +296,7 @@ export async function pollDeviceToken(
     }
     if (error === 'expired_token') throw new MsAuthError('expired_token');
     if (error === 'authorization_declined' || error === 'invalid_user') throw new MsAuthError('access_denied');
+    if (error === 'invalid_client') throw new MsAuthError('invalid_app');
     throw failInternal(deps, 'poll', undefined, body, raw);
   }
 }
@@ -339,7 +344,8 @@ export async function xblAuthenticate(deps: MsAuthDeps, msAccessToken: string): 
 /**
  * XSTS（v1 XSTSAuthRequest.java + XSTSProperties.java 载荷逐字对齐：Properties={SandboxId,UserTokens:[xblToken]}、
  * RelyingParty=rp://api.minecraftservices.com/）。
- * XErr 分类：2148916233→no_xbox_profile、2148916238→minor_parental。
+ * XErr 分类：2148916233→no_xbox_profile、2148916238→minor_parental、
+ * 2148916231/232/234/235/236/237→xbox_registration（注册异常族）。
  */
 export async function xstsAuthenticate(deps: MsAuthDeps, xblToken: string): Promise<MsXblResult> {
   const res = await msFetch(deps, MS_URL.xsts, {
@@ -355,6 +361,7 @@ export async function xstsAuthenticate(deps: MsAuthDeps, xblToken: string): Prom
   const xerr = num(body, 'XErr');
   if (xerr === XERR_NO_XBOX_PROFILE) throw new MsAuthError('no_xbox_profile');
   if (xerr === XERR_MINOR_PARENTAL) throw new MsAuthError('minor_parental');
+  if (XERR_REGISTRATION_FAMILY.has(xerr ?? -1)) throw new MsAuthError('xbox_registration');
   const token = str(body, 'Token');
   const claims = body?.['DisplayClaims'];
   const xui = claims !== null && typeof claims === 'object' ? (claims as Record<string, unknown>)['xui'] : undefined;

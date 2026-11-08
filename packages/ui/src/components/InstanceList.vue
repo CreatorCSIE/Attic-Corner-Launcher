@@ -15,7 +15,9 @@ import { useI18n } from '../i18n';
 import { useInstances } from '../composables/useInstances';
 import { useSelection } from '../composables/useSelection';
 import { useBridge } from '../composables/useBridge';
+import { isDemo } from '../dev/demo';
 import ConfirmDialog from './ConfirmDialog.vue';
+import AppDialog from './AppDialog.vue';
 
 const { t } = useI18n();
 const { instances, loading, error, save, remove, rename, setAddons, openDir, activeName, setActive } = useInstances();
@@ -73,7 +75,9 @@ const existsError = computed(
     && instances.value.some((i) => i.name === newName.value.trim()),
 );
 const canSave = computed(() =>
-  hasBridge.value &&
+  // demo 覆写桥的 saveInstance 本就回声 ok（本地 CRUD 可演练），hasBridge 只认真桥——
+  // 演示模式放行保存/创建钮，排版演练不被禁用态挡住（真壳行为不变）。
+  (hasBridge.value || isDemo()) &&
   !saving.value &&
   !existsError.value &&
   // 新建态版本 = 启动页当前选中版本（无选中则不可创建，去启动页选版本即可）
@@ -196,6 +200,19 @@ function onNew(): void {
   dirError.value = null;
   flashSaved(false);
 }
+
+/** 取消新建：关弹窗并恢复浏览选中（激活优先，其次首个——与 watch instances 同一回落口径）。 */
+function cancelCreate(): void {
+  creating.value = false;
+  const fallback = instances.value.find((i) => i.name === activeName.value) ?? instances.value[0] ?? null;
+  if (fallback) onSelect(fallback);
+}
+
+// 弹窗打开即聚焦名称框（v1 showInputDialog 的默认焦点语义）
+const nameInputRef = ref<HTMLInputElement | null>(null);
+watch(creating, (v) => {
+  if (v) void nextTick(() => nameInputRef.value?.focus());
+});
 
 // 清单加载/变动后维持浏览选中：无选中 → 激活实例优先，其次首个；选中项被删 → 清空。
 watch(
@@ -493,20 +510,10 @@ async function onConfirmRemove(): Promise<void> {
           <template v-if="selected.width && selected.height"> · {{ selected.width }}×{{ selected.height }}</template>
         </p>
 
-        <form class="form card" @submit.prevent="onSave">
+        <!-- 编辑表单：新建态整体隐藏（新建走 AppDialog 弹窗，v1 语义） -->
+        <form v-if="!creating" class="form card" @submit.prevent="onSave">
           <h4 class="card-title">{{ t('instance.basic') }}</h4>
-          <div v-if="creating" class="field field--wide">
-            <label class="label" for="inst-name">{{ t('instance.name') }}</label>
-            <input
-              id="inst-name"
-              v-model="newName"
-              class="input"
-              type="text"
-              :placeholder="t('instance.namePlaceholder')"
-            />
-            <p v-if="existsError" class="field-err">{{ t('instance.exists') }}</p>
-          </div>
-          <!-- 版本不在本页展示：新建静默取启动页当前选中版本，编辑态在标题下 kind 行 -->
+          <!-- 版本不在本页展示：档案版本 = 上次启动版本（宿主回写），标题下 kind 行只读 -->
           <!-- 目录路径长（数据根/<实例名>），独占整行避免截断；JVM 参数顺延第二行 -->
           <div class="field field--full">
             <label class="label" for="inst-dir">{{ t('instance.gameDir') }}</label>
@@ -516,7 +523,8 @@ async function onConfirmRemove(): Promise<void> {
             <label class="label" for="inst-jvm">{{ t('instance.launchArgs') }}</label>
             <input id="inst-jvm" v-model="launchArgs" class="input" type="text" :placeholder="t('instance.launchArgsPlaceholder')" />
           </div>
-          <div class="field field--wide">
+          <!-- Java 路径与实例目录同为长路径字段，独占整行避免截断 -->
+          <div class="field field--full">
             <label class="label" for="inst-java">{{ t('instance.javaPath') }}</label>
             <input id="inst-java" v-model="javaPath" class="input" type="text" :placeholder="t('instance.javaPathPlaceholder')" />
           </div>
@@ -569,7 +577,7 @@ async function onConfirmRemove(): Promise<void> {
           </div>
           <div class="actions">
             <button class="primary" type="submit" :disabled="!canSave">
-              {{ creating ? t('instance.create') : t('instance.saveChanges') }}
+              {{ t('instance.saveChanges') }}
             </button>
             <span v-if="savedFlash" class="saved">{{ t('instance.saved') }}</span>
           </div>
@@ -645,6 +653,32 @@ async function onConfirmRemove(): Promise<void> {
         <p class="state-hint">{{ instances.length === 0 ? t('instance.emptyHint') : t('instance.hint') }}</p>
       </div>
     </div>
+
+    <!-- 新建实例弹窗（v1 语义 reference/betacraft-launcher InstanceList.java L49-50：
+         showInputDialog 只问名称）——其余字段出厂默认（onNew 已铺），创建后即选中进编辑表单。 -->
+    <AppDialog :open="creating" @close="cancelCreate">
+      <h3 class="dlg-title">{{ t('instance.new') }}</h3>
+      <form class="dlg-body" @submit.prevent="onSave">
+        <label class="label" for="inst-name">{{ t('instance.name') }}</label>
+        <input
+          id="inst-name"
+          ref="nameInputRef"
+          v-model="newName"
+          class="input"
+          type="text"
+          :placeholder="t('instance.namePlaceholder')"
+        />
+        <p v-if="existsError" class="field-err">{{ t('instance.exists') }}</p>
+        <p class="create-hint">{{ t('instance.createHint') }}</p>
+        <!-- 版本透明化：新建静默取启动页选中版本——明示所用版本；无选中时禁用原因可见 -->
+        <p v-if="selectedId" class="dlg-version mono">{{ t('instance.createVersion', { version: selectedId }) }}</p>
+        <p v-else class="field-err">{{ t('instance.createNoVersion') }}</p>
+        <div class="actions">
+          <button class="ghost" type="button" @click="cancelCreate">{{ t('common.cancel') }}</button>
+          <button class="primary" type="submit" :disabled="!canSave">{{ t('instance.create') }}</button>
+        </div>
+      </form>
+    </AppDialog>
 
     <!-- 删除确认（防误删）：默认只删档案；勾选才连实例目录一并删（护栏在宿主） -->
     <ConfirmDialog
@@ -836,7 +870,9 @@ async function onConfirmRemove(): Promise<void> {
   padding: var(--space-6) var(--space-3);
 }
 .info {
-  max-width: 560px;
+  /* 560→720：长 Java 路径（IDE jbr /  Program Files 系）不再截断，
+     且 jvm+java、宽+高两两同行的余量更足（窄窗 resize 时不易挤成单列）。 */
+  max-width: 720px;
   margin-inline: auto;
 }
 .head-row {
@@ -993,6 +1029,35 @@ async function onConfirmRemove(): Promise<void> {
   gap: var(--space-3);
   flex: 1 1 100%;
 }
+/* 新建弹窗（AppDialog 插槽内容）：标题 + 纵排表单体 + 取消钮 */
+.dlg-title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.dlg-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.dlg-version {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+.ghost {
+  padding: var(--space-2) var(--space-4);
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.ghost:hover {
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
 .primary {
   padding: var(--space-2) var(--space-5);
   background: var(--accent);
@@ -1025,6 +1090,13 @@ async function onConfirmRemove(): Promise<void> {
   font-size: var(--fs-xs);
   color: var(--danger);
 }
+/* 新建弹窗提示（v1 语义：只问名称，建完再配）——dlg-body gap 已管间距，无需外边距 */
+.create-hint {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
 .mono {
   font-family: var(--font-mono);
 }
@@ -1042,6 +1114,9 @@ async function onConfirmRemove(): Promise<void> {
   font-weight: 700;
   letter-spacing: 0.05em;
   color: var(--text-muted);
+  /* .form 是 flex-wrap 容器，标题作为 flex 子项只占内容宽——首字段（名称）会被挤上同一行；
+     强制独占整行（块级容器 server-card/addons 内此属性无副作用） */
+  flex: 1 1 100%;
 }
 /* 多人直连 card：本页卡距 = 各卡自带 margin-top（.form/.addons 同配方），新卡缺位即贴上一卡末端 */
 .server-card {

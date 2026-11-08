@@ -247,6 +247,34 @@ test('XErr 分类：2148916233→no_xbox_profile、2148916238→minor_parental�
   }
 });
 
+test('XErr 注册异常族 → xbox_registration（231/232/234/235/236/237，不再落 internal）', async () => {
+  for (const xerr of [2148916231, 2148916232, 2148916234, 2148916235, 2148916236, 2148916237]) {
+    const { deps: d } = makeDeps(
+      happyRoutes({ '/xsts/authorize': { status: 401, json: { XErr: xerr, Identity: 'id', Message: 'suspended' } } }),
+    );
+    await assert.rejects(
+      xstsAuthenticate(d, 'XBL-TOKEN'),
+      (e) => e instanceof MsAuthError && e.code === 'xbox_registration',
+      `XErr=${xerr} 应落 xbox_registration`,
+    );
+  }
+});
+
+test('App ID 被拒：devicecode/poll 的 invalid_client → invalid_app（启动器配置问题专码）', async () => {
+  const dc = makeDeps(happyRoutes({ '/devicecode': { status: 401, json: { error: 'invalid_client', error_description: 'AADSTS700016' } } }));
+  await assert.rejects(
+    requestDeviceCode(dc.deps),
+    (e) => e instanceof MsAuthError && e.code === 'invalid_app',
+  );
+  const pl = makeDeps(
+    happyRoutes({ '/token': { status: 400, json: { error: 'invalid_client', error_description: 'AADSTS7000215' } } }),
+  );
+  await assert.rejects(
+    pollDeviceToken(pl.deps, 'DEV', 5),
+    (e) => e instanceof MsAuthError && e.code === 'invalid_app',
+  );
+});
+
 test('profile 404 → no_minecraft（账户未持有 Java 版）', async () => {
   const { deps: d } = makeDeps(happyRoutes({ '/minecraft/profile': { status: 404, json: { error: 'NOT_FOUND' } } }));
   await assert.rejects(runAuthTail(d, { accessToken: 'MS-A', expiresIn: 3600 }), (e) => e instanceof MsAuthError && e.code === 'no_minecraft');

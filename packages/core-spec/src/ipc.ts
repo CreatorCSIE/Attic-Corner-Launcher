@@ -398,10 +398,14 @@ export type MsLoginErrorCode =
   | 'expired_token'
   /** XSTS 2148916233：账户无 Xbox 档案（需先去 xbox.com 建档）。 */
   | 'no_xbox_profile'
+  /** XSTS XErr 其余注册异常族（2148916231/232/234/235/236/237：档案创建被拒/地区不支持/年龄受限/账户被暂停/被关闭）。 */
+  | 'xbox_registration'
   /** XSTS 2148916238：未成年账户受家长控制，无法联机。 */
   | 'minor_parental'
   /** MCS profile 缺失：该账户未持有 Minecraft（Java 版）。 */
   | 'no_minecraft'
+  /** Azure 应用标识被拒（invalid_client / AADSTS700016·7000215：App ID 未注册或凭据失效，属启动器配置问题非用户账户问题）。 */
+  | 'invalid_app'
   /** 用户主动取消流（弹窗关闭/取消钮）。 */
   | 'canceled'
   /** 网络/端点不可达（白名单五域任一超时或 DNS 失败）。 */

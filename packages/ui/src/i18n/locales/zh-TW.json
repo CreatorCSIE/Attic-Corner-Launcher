@@ -39,7 +39,7 @@
     "msLogin": "使用微軟帳戶登入",
     "javaDetecting": "正在偵測 Java…",
     "javaFound": "自動選擇：{reason}",
-    "javaNone": "找不到合適的 Java 8。啟動時應用程式可自動取得，也可手動指定。",
+    "javaNone": "本機未偵測到 Java 8。首次啟動時可自動從 Zulu 來源下載 JDK，也可手動指定。",
     "javaDir": "指定 Java 目錄…",
     "javaPickHint": "點選候選可固定所選 Java；未列出時指定其 JDK 目錄。",
     "javaAuto": "繼續使用自動偵測",
@@ -105,8 +105,10 @@
         "access_denied": "授權被拒絕或未及時確認。點「重試」重新發起，並在瀏覽器中確認授權。",
         "expired_token": "裝置碼已過期。點「重試」取得新的代碼，再回瀏覽器完成授權。",
         "no_xbox_profile": "該微軟帳戶還沒有 Xbox 檔案，請先在 xbox.com 完成註冊後重試。",
+        "xbox_registration": "Xbox 註冊狀態異常（帳戶可能已被暫停、關閉，或受地區／年齡限制）。請先在 xbox.com 查看並處理帳戶狀態，再重試登入。",
         "minor_parental": "未成年帳戶需家長同意，無法用於連線驗證。請改用成人帳戶，或先在微軟家庭安全中同意。",
         "no_minecraft": "該帳戶未持有 Minecraft（Java 版）。購買後重新登入即可。",
+        "invalid_app": "啟動器的微軟應用識別碼（App ID）未註冊或已失效，被授權端點拒絕。這不是您帳戶的問題——請關注啟動器更新或向我們回饋。",
         "canceled": "登入已取消。可隨時重新發起。",
         "network": "網路連線失敗（微軟認證端點連不上）。檢查網路或代理後重試。",
         "internal": "登入流程發生未知錯誤。請稍後重試；持續失敗請提交意見回饋。"
@@ -255,6 +257,9 @@
     "new": "新增實例",
     "name": "名稱",
     "namePlaceholder": "例如：Beta 1.7.3 模組版",
+    "createHint": "建立後可在本頁繼續設定其餘項目；版本預設取啟動頁目前選中。",
+    "createVersion": "使用版本：{version}",
+    "createNoVersion": "未選取版本——請先在啟動頁選擇一個版本，再建立實例。",
     "create": "建立實例",
     "gameDir": "實例目錄",
     "gameDirPlaceholder": "留空 = 資料根/<實例名稱>",
@@ -334,7 +339,7 @@
       },
       "fullscreen": {
         "name": "全螢幕啟動",
-        "desc": "以全螢幕模式啟動遊戲（legacyfix-attic addon）。已知限制：目前僅在停用 DeAWT 時有效，DeAWT 下表現不佳（fork 修復中）。"
+        "desc": "以全螢幕模式啟動遊戲（legacyfix-attic addon）。已知限制：目前僅在停用 DeAWT 時有效，DeAWT 下表現不佳。"
       },
       "game-mode-switch": {
         "name": "遊戲模式切換",

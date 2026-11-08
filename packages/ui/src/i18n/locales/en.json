@@ -39,7 +39,7 @@
     "msLogin": "Sign in with a Microsoft account",
     "javaDetecting": "Detecting Java…",
     "javaFound": "Auto-selected: {reason}",
-    "javaNone": "No suitable Java 8 found. The app can fetch one on launch, or pick manually.",
+    "javaNone": "No Java 8 detected on this machine. The JDK can be downloaded automatically from Azul Zulu on first launch, or specify one manually.",
     "javaDir": "Choose Java folder…",
     "javaPickHint": "Click a candidate to pin it; if yours is not listed, choose its JDK folder.",
     "javaAuto": "Keep auto-detection",
@@ -105,8 +105,10 @@
         "access_denied": "Authorization was declined or not confirmed in time. Press Retry to start again, then accept in the browser.",
         "expired_token": "The device code expired. Press Retry for a fresh code, then finish authorization in the browser.",
         "no_xbox_profile": "This Microsoft account has no Xbox profile yet. Finish signing up at xbox.com, then retry.",
+        "xbox_registration": "Xbox registration is invalid (the account may be suspended, closed, or blocked by region/age limits). Check and resolve the account status at xbox.com, then sign in again.",
         "minor_parental": "Minor accounts require parental consent and can't be used for online verification. Use an adult account, or grant consent in Microsoft Family Safety first.",
         "no_minecraft": "This account doesn't own Minecraft (Java Edition). Purchase the game, then sign in again.",
+        "invalid_app": "The launcher's Microsoft app ID is unregistered or no longer valid and was rejected by the authorization endpoint. This isn't your account's fault — please watch for a launcher update or report it to us.",
         "canceled": "Sign-in was canceled. You can start again anytime.",
         "network": "Network request failed (Microsoft auth endpoints unreachable). Check your connection or proxy, then retry.",
         "internal": "An unexpected error occurred during sign-in. Try again later; report it if it keeps happening."
@@ -266,6 +268,9 @@
     "new": "New instance",
     "name": "Name",
     "namePlaceholder": "e.g. Beta 1.7.3 modded",
+    "createHint": "You can finish the rest of the settings on this page after creation; the version defaults to the one selected on the launch page.",
+    "createVersion": "Version to use: {version}",
+    "createNoVersion": "No version selected — pick a version on the launch page first, then create the instance.",
     "create": "Create instance",
     "gameDir": "Instance directory",
     "gameDirPlaceholder": "empty = <root>/<instance name>",
@@ -345,7 +350,7 @@
       },
       "fullscreen": {
         "name": "Fullscreen launch",
-        "desc": "Start the game in fullscreen mode (legacyfix-attic addon). Known limitation: currently only effective with DeAWT disabled; behaves poorly under DeAWT (fix in progress in the fork)."
+        "desc": "Start the game in fullscreen mode (legacyfix-attic addon). Known limitation: currently only effective with DeAWT disabled; behaves poorly under DeAWT."
       },
       "game-mode-switch": {
         "name": "Game mode switch",

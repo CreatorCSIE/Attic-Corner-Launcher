@@ -631,7 +631,6 @@ async function onConfirmRemove(): Promise<void> {
             <div class="addon-info">
               <span class="addon-name">
                 {{ t(`instance.addonList.${def.id}.name`) }}
-                <span v-if="def.placeholder" class="addon-soon">{{ t('instance.addonSoon') }}</span>
               </span>
               <p class="addon-desc">{{ t(`instance.addonList.${def.id}.desc`) }}</p>
             </div>
@@ -639,7 +638,7 @@ async function onConfirmRemove(): Promise<void> {
               <input
                 type="checkbox"
                 :checked="addonsSel.includes(def.id)"
-                :disabled="def.placeholder || !hasBridge"
+                :disabled="!hasBridge"
                 @change="toggleAddon(def.id)"
               />
               <span class="track" />
@@ -1160,15 +1159,6 @@ async function onConfirmRemove(): Promise<void> {
   gap: var(--space-2);
   font-weight: 600;
   color: var(--text-primary);
-}
-.addon-soon {
-  padding: 1px 6px;
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text-muted);
-  background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
 }
 .addon-desc {
   margin: 2px 0 0;

@@ -31,7 +31,7 @@
     "dirLocalHint": "游戏数据放在程序目录旁的 .attic——整个文件夹拷到哪，数据就跟到哪。",
     "dirLocalFallback": "程序目录当前不可写，数据暂落标准位置（顶栏有「数据未随盘」徽标）。",
     "dirDefaultHintPortable": "游戏数据放在用户目录——便携包保持轻量，但数据不随盘走。",
-    "dirCustomHintPortable": "任选位置——指针写进便携包的 portable.ini 随盘携带；换机后相对位按程序目录重新解析。",
+    "dirCustomHintPortable": "任选位置——所选位置记录在便携包的 portable.ini 里随盘携带；换机后相对路径会按程序目录重新定位。",
     "accountsHave": "已有账户：",
     "accountsEmpty": "还没有账户——创建一个离线账户即可开始。",
     "accountsName": "Minecraft 离线用户名（3–16 位，只可使用字母、数字和下划线）",
@@ -52,7 +52,7 @@
   },
   "portable": {
     "warnNonAscii": "数据根路径含非 ASCII 字符——老 Java 8/LWJGL2 可能因此乱码或启动失败（仅警示，不拦截）。",
-    "warnSpace": "数据根路径含空格——部分老启动链路对空格敏感（仅警示，不拦截）。",
+    "warnSpace": "数据根路径含空格——部分老版本启动流程对空格敏感（仅警示，不拦截）。",
     "warnLong": "数据根路径过长（≥240 字符）——可能触碰 260 上限导致文件操作失败（仅警示，不拦截）。",
     "fallbackBadge": "数据未随盘",
     "fallbackTooltip": "程序目录不可写，数据暂存于：{path}",
@@ -144,7 +144,7 @@
     "launchMethodRequired": "launch-method 为必填项，其余字段选填（留空保存为 `key=`）。",
     "detectedHint": "检测到启动方式：{method}（保存后写入 .info）。",
     "notDetected": "未能自动检测启动方式，请手动填写 launch-method 或 main-class。",
-    "modHint": "模组版本的 .info 由 Mods 仓库托管：此处仅可查看详情与删除（删除会同步清除安装登记），编辑已禁用。",
+    "modHint": "模组版本的 .info 由 Mods 仓库托管：此处仅可查看详情与删除（删除会同时清除模组页的安装记录），编辑已禁用。",
     "save": "保存",
     "saving": "保存中…",
     "saved": "已保存",
@@ -196,10 +196,10 @@
     "dialog": {
       "targetVersion": "目标版本",
       "manualHint": "未能自动匹配到本地版本，请手动选择要启动的版本。",
-      "outOfRangeHint": "该服务器要求 {version}（协议 {protocol}），当前版本库中没有能与之握手成功的客户端。",
+      "outOfRangeHint": "该服务器要求 {version}（协议 {protocol}），当前版本库中没有能连上它的客户端版本。",
       "copyAddress": "复制服务器地址",
       "copied": "已复制",
-      "customMatchHint": "匹配到的版本为模组/自定义客户端，将以它进入本服务器。",
+      "customMatchHint": "匹配到的版本为模组/自定义客户端，将使用它加入该服务器。",
       "pickVersion": "选择版本",
       "onlineModeWarn": "当前账户为离线账户，不满足该服务器的正版验证要求，可能无法进入。",
       "launchFailed": "启动失败",
@@ -210,7 +210,7 @@
   },
   "external": {
     "openError": "无法打开外部链接",
-    "openErrorHint": "请检查系统是否配置了默认浏览器（未注册 http/https 关联时宿主会拒绝打开）。",
+    "openErrorHint": "请检查系统是否配置了默认浏览器（未关联 http/https 时启动器无法打开链接）。",
     "close": "关闭"
   },
   "confirmDialog": {
@@ -219,7 +219,7 @@
     "busy": "删除中…"
   },
   "bridge": {
-    "missing": "未检测到 IPC 桥——当前为浏览器直开模式，数据为模拟值，无法启动游戏。"
+    "missing": "当前在浏览器中打开，非启动器应用——数据为模拟值，无法启动游戏。"
   },
   "common": {
     "loading": "加载中…",
@@ -238,12 +238,12 @@
     "pick": "选择版本",
     "pickHint": "点击展开版本列表。",
     "pin": "固定展开面板",
-    "unpin": "取消固定（选完自动收起）",
+    "unpin": "取消固定",
     "collapse": "收起面板"
   },
   "instance": {
     "empty": "还没有实例",
-    "emptyHint": "新建实例可为每个版本保留独立的实例目录。",
+    "emptyHint": "每个实例有独立的游戏目录和设置，互不干扰。",
     "noMatch": "没有匹配的实例",
     "noMatchHint": "换个关键词试试。",
     "list": "实例列表",
@@ -252,86 +252,85 @@
     "pickHint": "点击展开实例列表。",
     "versionNone": "未选择版本",
     "pin": "固定展开面板",
-    "unpin": "取消固定（选完自动收起）",
+    "unpin": "取消固定",
     "collapse": "收起面板",
     "new": "新建实例",
     "name": "名称",
-    "namePlaceholder": "例如：Beta 1.7.3 模组版",
+    "namePlaceholder": "例如：MyNewInstance",
     "createHint": "创建后可在本页继续配置其余项；版本默认取启动页当前选中。",
     "createVersion": "使用版本：{version}",
     "createNoVersion": "未选中版本——请先在启动页选择一个版本，再创建实例。",
     "create": "创建实例",
     "gameDir": "实例目录",
-    "gameDirPlaceholder": "留空 = 数据根/<实例名>",
+    "gameDirPlaceholder": "留空 = 数据目录/<实例名>",
     "launchArgs": "JVM 参数",
     "launchArgsPlaceholder": "例如：-Xmx1G",
-    "width": "窗口宽",
-    "height": "窗口高",
+    "width": "窗口宽度",
+    "height": "窗口高度",
     "saveChanges": "保存修改",
     "hint": "从左侧选择实例，或新建一个。",
-    "active": "激活中",
-    "activate": "设为启动实例",
-    "activateHint": "启动页的播放按钮将使用该实例。",
+    "active": "当前",
+    "activate": "设为当前实例",
+    "activateHint": "启动页的启动按钮将使用该实例配置。",
     "openDir": "打开实例目录",
-    "rename": "改名",
+    "rename": "重命名",
     "delete": "删除实例",
     "deleteDialog": {
       "title": "删除实例",
-      "message": "将删除实例「{name}」的档案。",
-      "withFiles": "同时删除实例目录（含存档，不可恢复）"
+      "message": "将删除实例「{name}」的记录。",
+      "withFiles": "同时删除实例目录（含存档、配置文件等，不可恢复）"
     },
     "basic": "基本设置",
     "addons": "Addons",
-    "addonSoon": "即将推出",
     "server": {
       "title": "多人直连",
       "label": "服务器地址",
       "portLabel": "端口",
-      "placeholder": "ip 或域名，例如 mc.example.com",
-      "desc": "端口留空 = 服务器缺省 25565。配置后每次启动前会询问是否直连该服务器（一次性注入 --server/--port，不改本档案）。",
+      "placeholder": "IP 或域名，例如 mc.example.com",
+      "desc": "端口留空 = 默认端口 25565。配置后每次启动前会询问是否直连该服务器；直连只当次生效，不写入实例设置。",
       "save": "保存直连设置",
-      "invalid": "地址格式非法（ip/域名，可含 :端口）或端口超出 1-65535"
+      "invalid": "地址格式不正确（ip/域名，可含 :端口）或端口超出 1-65535"
     },
     "addonList": {
       "vsync": {
         "name": "垂直同步",
-        "desc": "让画面渲染与显示器刷新率同步，减少撕裂（-Dlf.vsync）。"
+        "desc": "让画面渲染与显示器刷新率同步，减少撕裂。"
       },
       "visualizer": {
-        "name": "无限地图可视化器",
-        "desc": "以俯瞰世界的无限地图可视化器启动本次游戏，仅 inf-20100616 至 b1.3 前后有效（-Dlf.visualizer，不写实例档案）。"
+        "name": "无限地图预览器",
+        "desc": "以俯瞰世界的无限地图预览器启动本次游戏，仅 inf-20100616 至 b1.2_02 有效。"
       },
       "modloader": {
-        "name": "ModLoader 兼容",
-        "desc": "让 Risugami 的 ModLoader 在 Java 9+ 下正常工作（-Dlf.modloader）。"
+        "name": "ModLoader Java 9+ 支持",
+        "desc": "让 Risugami 的 ModLoader 在 Java 9+ 下正常工作。"
       },
       "beta-forge": {
-        "name": "Beta Forge 兼容",
-        "desc": "让 b1.7.3–b1.8.1 的 Forge 在 Java 9+ 下正常工作（-Dlf.beta-forge）。"
+        "name": "Beta Forge Java 9+ 支持",
+        "desc": "让 b1.7.3–b1.8.1 的 Forge 在 Java 9+ 下正常工作。"
       },
       "bouncycastle": {
         "name": "Bouncy Castle",
-        "desc": "强制启用 Bouncy Castle 加密库，需 classpath 已含 bcprov/bcutil/bctls（-Dlf.bouncycastle）。"
+        "desc": "强制启用 Bouncy Castle 加密库（仅对自带该库的版本有效，其余版本开了也无感）。"
       },
       "show-notice": {
         "name": "1.6 发布公告",
-        "desc": "保留 1.5.2 里「Minecraft 1.6 is out」的弹窗公告（-Dlf.showNotice）。"
+        "desc": "保留 1.5.2 里「Minecraft 1.6 is out」的弹窗公告。"
       },
       "demo": {
-        "name": "试玩模式",
-        "desc": "以历史试玩（Demo）模式启动，复刻 12w16a–1.5.2 的试玩限制（-Dlf.demo）；其余版本该项无效果。"
+        "name": "演示模式",
+        "desc": "以演示模式启动，仅支持 12w16a–1.5.2 版本。"
       },
       "intel": {
         "name": "Intel 显卡修复",
-        "desc": "修复老 Intel GPU 的多纹理渲染错乱（glActiveTexture 前补发 glClientActiveTexture，b1.9–1.7.10）（-Dlf.intel）。"
+        "desc": "修复老 Intel GPU 的多纹理渲染错乱（花屏/贴图丢失）。"
       },
       "skins": {
         "name": "皮肤处理",
-        "desc": "LegacyFix 接管皮肤与个人资料；与皮肤模组冲突时关闭（默认开启）。"
+        "desc": "修复老版本的皮肤显示；与某些皮肤模组冲突时可关闭（默认开启）。"
       },
       "proxy": {
         "name": "网络代理",
-        "desc": "接管全部 HTTP/HTTPS 请求以支撑部分修复；关闭后相关修复失效（默认开启）。"
+        "desc": "游戏的全部联网请求经内置代理转发，多项修复依赖这条通道；关闭后相关修复失效（默认开启）。"
       },
       "server-auth": {
         "name": "服务器加入认证",
@@ -339,26 +338,26 @@
       },
       "fullscreen": {
         "name": "全屏启动",
-        "desc": "以全屏模式启动游戏（legacyfix-attic addon）。已知限制：目前仅在停用 DeAWT 时有效，DeAWT 下表现不佳。"
+        "desc": "以全屏模式启动游戏。已知限制：目前仅在停用 DeAWT 时有效，DeAWT 下表现不佳。"
       },
       "game-mode-switch": {
         "name": "游戏模式切换",
-        "desc": "Classic 里按键切换创造/生存模式（legacyfix-attic addon）。"
+        "desc": "把游戏切到当前未启用的模式：生存版本进创造，创造版本进生存。仅部分 Classic/Indev/Infdev 版本有效，仅单人模式下生效。"
       },
       "quit-game": {
-        "name": "快捷退出",
-        "desc": "游戏内一键退出台阶（legacyfix-attic addon）。"
+        "name": "退出按钮",
+        "desc": "游戏内新增退出按钮（Quit Game），仅对 Applet 启动有效。"
       }
     },
     "javaPath": "Java 路径",
     "javaPathPlaceholder": "留空 = 全局自动检测",
     "intelFix": {
-      "name": "Intel 显卡修复",
-      "desc": "Windows 下注入 -XX:HeapDumpPath 堆快照路径（v1 intelFix，默认开）。"
+      "name": "老 Intel 显卡兼容修复",
+      "desc": "老 Intel 显卡兼容修复（仅 Windows，默认开启）：固定 JVM 堆转储的输出路径，规避部分老驱动下的启动崩溃。"
     },
     "forceUpdate": {
       "name": "强制更新",
-      "desc": "启动时重新下载版本文件（jar/库/资产），即使本地已存在（v1 Force Update）。"
+      "desc": "启动时重新下载该版本的游戏文件（jar/库/资产）并覆盖本地，即使已存在——文件损坏时可用它修复。默认关闭。"
     },
     "exists": "该名称的实例已存在，请直接编辑或换一个名称。",
     "saved": "已保存"
@@ -378,12 +377,12 @@
     "serverDialog": {
       "title": "直连服务器",
       "message": "当前实例配置了直连地址 {server}。本次启动是否直连该服务器？",
-      "manualHint": "该版本支持经典多人联机。输入服务器地址可本次启动直连（一次性，不写入实例档案）。",
+      "manualHint": "该版本支持经典多人联机。输入服务器地址可本次启动直连（一次性，不保存到实例设置）。",
       "direct": "直连启动",
       "single": "单人启动",
       "cancel": "取消"
     },
-    "visualizerOff": "选中版本的本地 jar 不含无限地图预览类（或未下载），暂不可用",
+    "visualizerOff": "该版本不含无限地图预览器（或未下载），暂不可用",
     "dialog": {
       "title": "启动游戏",
       "cancel": "取消",
@@ -416,7 +415,7 @@
     "out-of-memory": "内存溢出",
     "gl-init": "GL 初始化失败",
     "lwjgl-native": "LWJGL 原生库",
-    "unsatisfied-link": "本地方法未链接",
+    "unsatisfied-link": "本地库加载失败",
     "null-pointer": "空指针错误",
     "tim-sort": "TimSort 错误",
     "index-out-of-bounds": "数组越界错误",
@@ -430,19 +429,19 @@
     "close": "关闭"
   },
   "crashHint": {
-    "tim-sort": "老版本游戏内的排序比较器不满足 JDK 7+ 默认 TimSort 的契约校验（已知问题）。\n解决办法：在实例的「JVM 参数」一栏（或设置页「全局 JVM 参数」）添加 -Djava.util.Arrays.useLegacyMergeSort=true，保存后重新启动，即可恢复旧版归并排序、绕过该崩溃。",
-    "stack-overflow-a123": "Alpha 1.2.3 的树叶枯萎逻辑存在官方已知缺陷：递归深度守卫被世界通知链反复归零，进入含树木的区块即无限递归栈溢出（100% 触发，JVM 参数无法规避）。\n解决办法 = 换版本：Alpha 1.2.3_01（官方已禁用枯萎，不再崩溃）或 Beta 1.1 及以上（官方结构性重写，树叶可正常枯萎）。",
-    "indev-huge-worldgen": "Indev 0.31 系构建的通病：世界生成所用的天光传播队列容量硬编码（295936），不随世界尺寸扩容——创建 Huge 世界必在首次天光初始化时越界崩溃，JVM 参数无法规避。\n建议不要创建 Huge 世界：世界尺寸选 Small/Normal，或改用更后期的 Indev/Infdev 构建。",
-    "classic-death-screen-ioob": "Classic 生存测试死亡结算屏的版本缺陷：死亡屏从暂停屏裁剪而来、按钮索引未随新列表重编号——打开结算屏即越界访问第三个按钮，0.26–0.30 均带此雷且从未修复（Indev 起此屏随 GUI 重写退役）。0.26 还原件无守卫，死亡必崩；0.27–0.30 该行包在「未登录」守卫内，仅无会话状态会崩（本启动器常规恒注入会话参数）。JVM 参数无法规避。\n建议＝核对启动器是否正常注入会话参数（username/sessionid）——0.27–0.30 仅无会话状态会崩。"
+    "tim-sort": "老版本游戏内的排序代码与 JDK 7+ 的新排序算法冲突（已知问题）。\n解决办法：在实例的「JVM 参数」一栏（或设置页「全局 JVM 参数」）添加 -Djava.util.Arrays.useLegacyMergeSort=true，保存后重新启动，即可恢复旧版归并排序、绕过该崩溃。",
+    "stack-overflow-a123": "Alpha 1.2.3 的树叶枯萎逻辑存在官方已知缺陷：递归保护被反复重置，进入含树木的区块即无限递归崩溃（100% 触发，JVM 参数无法规避）。\n解决办法 = 换版本：Alpha 1.2.3_01（官方已禁用枯萎，不再崩溃）或 Beta 1.1 及以上（官方结构性重写，树叶可正常枯萎）。",
+    "indev-huge-worldgen": "Indev 0.31 系构建的通病：世界生成所用的内部队列容量写死、不随世界尺寸扩容——创建 Huge 世界必在生成阶段越界崩溃，JVM 参数无法规避。\n建议不要创建 Huge 世界：世界尺寸选 Small/Normal，或改用更后期的 Indev/Infdev 构建。",
+    "classic-death-screen-ioob": "Classic 生存测试死亡结算屏的版本缺陷：死亡屏由暂停屏裁剪而来、按钮索引未随新列表重新编号——打开结算屏即越界访问第三个按钮，0.26–0.30 均存在且从未修复（Indev 起此屏随 GUI 重写退役）。0.26 恢复了无保护的原版代码，死亡必崩；0.27–0.30 该行包在「未登录」判断内，仅无会话状态会崩（本启动器正常启动都会携带会话参数）。JVM 参数无法规避。\n建议＝核对启动器是否正常携带会话参数（username/sessionid）——0.27–0.30 仅无会话状态会崩。"
   },
   "launcherCrash": {
-    "liveTitle": "渲染层错误（已记入启动器日志）",
+    "liveTitle": "启动器界面出错（已记入日志）",
     "lastTitle": "上次启动异常退出",
     "copy": "复制诊断信息",
     "copied": "已复制",
     "openLogs": "打开日志文件夹",
     "report": "去 GitHub 报告",
-    "reportNoRepo": "未配置仓库，诊断信息已复制到剪贴板",
+    "reportNoRepo": "未配置 GitHub 仓库，诊断信息已复制到剪贴板",
     "dismiss": "忽略"
   },
   "settings": {
@@ -470,7 +469,7 @@
       "dataRootDesc": "所有游戏版本、实例与下载文件的存放位置。",
       "open": "打开",
       "change": "更换…",
-      "rootPending": "已设定新的数据根，下次启动应用后生效：{path}",
+      "rootPending": "已设定新的数据目录，下次启动应用后生效：{path}",
       "logs": "启动器日志",
       "logsClear": "清理日志",
       "clearConfirmTitle": "清理日志",
@@ -486,7 +485,7 @@
     },
     "theme": {
       "presets": "预设主题",
-      "presetsDesc": "一键写入配色方案+强调色组合，即时生效并保存；下方任一控件改动即进入自定义。背景图不参与预设，不受切换影响。",
+      "presetsDesc": "一键写入配色方案+强调色组合，即时生效并保存。背景图不参与预设，不受切换影响。",
       "custom": "自定义",
       "presetNames": {
         "attic": "默认",
@@ -508,23 +507,23 @@
         "gray": "石灰灰"
       },
       "background": "启动页背景",
-      "backgroundDesc": "自定义主页背景图（png/jpg/webp/gif/bmp，≤12MB），自动叠加暗色遮罩保证文字可读；不配置时使用主题纯色背景。输入框可直接填写绝对路径（即改即存），路径读不到时回落纯色。",
+      "backgroundDesc": "自定义主页背景图（png/jpg/webp/gif/bmp，≤12MB），自动叠加暗色遮罩保证文字可读；不配置时使用主题纯色背景。输入框可直接填写绝对路径（填写后立即保存），路径读不到时改用纯色背景。",
       "backgroundPick": "选择图片…",
       "backgroundClear": "移除背景图",
-      "backgroundDefault": "未配置（纯色背景）"
+      "backgroundDefault": "未配置"
     },
     "launch": {
       "integrity": "启动前完整性校验",
-      "integrityDesc": "核对本地游戏 jar 的 sha1，发现缺失或损坏时按补全策略处理。",
+      "integrityDesc": "启动前核对本地游戏文件是否完整；发现缺失或损坏时，按下方设置自动补全或仅报错。",
       "fixMissing": "自动补全缺失文件",
       "fixMissingDesc": "发现问题时自动重新下载；关闭后仅报错，不改动本地文件。",
       "minimize": "启动成功后最小化",
       "minimizeDesc": "游戏启动后把启动器主窗最小化到后台。",
       "consoleOnLaunch": "启动时自动打开控制台窗",
-      "consoleOnLaunchDesc": "游戏启动成功后唤起独立控制台窗，实时查看 LegacyFix 与游戏日志。测试启动不受此开关影响，始终打开。",
-      "server": "关卡存档服务器",
-      "serverPlaceholder": "留空 = LegacyFix 首次询问",
-      "serverDesc": "LegacyFix 的 lf.proxy.levelServer：URL = 在线关卡存档；local = 强制本地单人存档。",
+      "consoleOnLaunchDesc": "游戏启动成功后唤起独立控制台，实时查看游戏日志。测试启动不受此开关影响，始终打开。",
+      "server": "存档服务器选择",
+      "serverPlaceholder": "留空 = 首次启动时询问",
+      "serverDesc": "Classic 的存档去向：填服务器地址 = 存档上传到在线关卡服务器；填 local = 强制只存本地。留空时首次启动会询问。",
       "memory": "内存分配",
       "memoryManual": "手动（固定上限）",
       "memoryAuto": "自动（按本机内存估算）",
@@ -533,7 +532,7 @@
       "memoryAutoEst": "自动模式按本机总内存估算，当前约 {mb} MB。",
       "jvmGlobal": "全局 JVM 参数",
       "jvmGlobalPlaceholder": "例如：-XX:+UseSerialGC -Dfile.encoding=UTF-8",
-      "jvmGlobalDesc": "注入在固定堆参数之后、实例参数之前；实例级同名参数按后者生效覆盖全局。"
+      "jvmGlobalDesc": "会排在内存参数之后、实例设置里的 JVM 参数之前；两处填了同名参数时，以实例设置里的为准。"
     },
     "java": {
       "auto": "自动检测",
@@ -541,11 +540,11 @@
       "refresh": "刷新检测",
       "import": "导入 Java…",
       "noneDetected": "未检测到可用 Java",
-      "usedFallback": "正在使用 32 位兜底运行时",
+      "usedFallback": "正在使用内置 32 位 Java",
       "manualCurrent": "当前手动指定：",
       "noCandidates": "暂无检测到的 Java 安装",
       "autoLockHint": "自动模式下候选列表只读；切换为手动后可点选具体安装。",
-      "probeDetails": "探测细节（失败候选与诊断）",
+      "probeDetails": "检测详情（含失败候选与诊断）",
       "source": {
         "manual": "手动",
         "env": "环境变量",
@@ -565,7 +564,7 @@
         "upToDate": "当前已是最新版本（v{version}）。",
         "found": "发现新版本 v{version}！",
         "published": "发布于 {date}",
-        "unconfigured": "尚未配置发布仓库（owner/repo），无法检查更新。",
+        "unconfigured": "尚未配置 GitHub 仓库，无法检查更新。",
         "failed": "检查更新失败：{message}",
         "close": "关闭",
         "ignore": "忽略此版本",
@@ -575,7 +574,7 @@
         "autoUnavailable": "自动更新不可用，请从 Releases 页手动下载。",
         "fallbackLink": "打开 Releases 页",
         "cancel": "取消",
-        "ignoreHint": "忽略会把该版本记入本地单槽账：自动检查此后不再打扰（手动检查不受影响）。"
+        "ignoreHint": "忽略后启动器会记住这个版本，自动检查不再提示它（手动检查不受影响）；以后发布更新的版本仍会提示。"
       },
       "updateSection": "启动器更新",
       "updatePolicy": {
@@ -586,8 +585,8 @@
       },
       "updatePreview": {
         "label": "提前体验测试版",
-        "desc": "开启后「检查更新」同时匹配 nightly 测试版轨道（提示最新一枚，Windows 下点「更新」即自动下载换体重启）；不影响静默自动更新，关闭即回正式版轨道。",
-        "descNightly": "当前运行的就是测试版构件，本开关默认开启：「检查更新」匹配 nightly ∪ 正式版并集轨道（谁更新提示谁，Windows 下点「更新」即自动换体）。关闭 = 回正式版轨道，正式版发布后即提示升级。"
+        "desc": "开启后「检查更新」同时匹配 nightly 测试版（提示最新一枚，Windows 下点「更新」即自动下载更新并重启）；只改变匹配范围、不改变检查时机，关闭即回正式版通道。",
+        "descNightly": "当前运行的就是 nightly 测试版，本开关默认开启：「检查更新」同时匹配测试版与正式版，谁更新提示谁（Windows 下点「更新」即自动下载更新并重启）。关闭 = 只查正式版，正式版发布后会提示你升级。"
       },
       "legalSection": "版权及法律声明",
       "copyrightTitle": "版权声明",
@@ -599,11 +598,11 @@
       "view": "查看",
       "refsSection": "引用的项目",
       "ref": {
-        "betacraft": "上游 Betacraft v1 启动器——版本清单、.info 形状与启动语义的事实源。",
+        "betacraft": "上游 Betacraft v1 启动器——版本清单、.info 格式与启动行为的参照来源。",
         "legacyfix": "远古版本兼容性修复模组——所有 -Dlf.* 行为开关的来源。",
         "mcanextgen": "已归档的前身仓库——Java 探测与远古版本 JVM 参数知识的继承来源。",
         "blockhelm": "设置页与关于页版式的 UI 蓝本。",
-        "hmcl": "JavaFX 桌面启动器——断网头像兜底的原版 UUID 默认皮肤选型算法取自其 TexturesLoader 实现。",
+        "hmcl": "JavaFX 桌面启动器——断网时默认头像（原版 UUID 皮肤）的选型算法取自其 TexturesLoader 实现。",
         "vue": "前端框架——界面渲染与响应式状态。",
         "electron": "桌面壳——主进程、原生对话框与文件系统访问。",
         "tauri": "桌面壳——Rust 窗层 + Node sidecar，系统 WebView 渲染。",

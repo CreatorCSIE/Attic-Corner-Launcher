@@ -199,7 +199,7 @@ export function assembleLaunchConfig(
   // addonAsset 项走 jar 形态通道（下方 -Dlf.addons=），不吃属性开关。
   if (context.addons) {
     for (const def of INSTANCE_ADDONS) {
-      if (def.placeholder || def.addonAsset) continue;
+      if (def.addonAsset) continue;
       const on = context.addons.includes(def.id);
       if ((def.mode === 'enable') === on) jvmArgs.push(`-Dlf.${def.prop}`);
     }

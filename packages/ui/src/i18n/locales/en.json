@@ -31,7 +31,7 @@
     "dirLocalHint": "Game data lives in .attic beside the app folder — copy the folder anywhere and the data follows.",
     "dirLocalFallback": "The app folder is not writable right now — data temporarily lives in the standard location (see the title-bar badge).",
     "dirDefaultHintPortable": "Game data lives in your user profile — the portable folder stays light, but the data does not travel with it.",
-    "dirCustomHintPortable": "Pick any location — the pointer is written into portable.ini inside the pack and travels with it; relative paths resolve against the app folder.",
+    "dirCustomHintPortable": "Pick any location — the chosen location is recorded in portable.ini inside the portable pack and travels with it; after moving to another machine, relative paths are relocated against the app folder.",
     "accountsHave": "Existing accounts:",
     "accountsEmpty": "No account yet — create an offline one to start playing.",
     "accountsName": "Minecraft username (3–16 chars)",
@@ -52,7 +52,7 @@
   },
   "portable": {
     "warnNonAscii": "Data root path contains non-ASCII characters — legacy Java 8 / LWJGL2 may garble or fail to launch (warning only).",
-    "warnSpace": "Data root path contains spaces — some legacy launch chains mishandle them (warning only).",
+    "warnSpace": "Data root path contains spaces — some old versions' launch flows are sensitive to spaces (warning only).",
     "warnLong": "Data root path is very long (240+ chars) — it may hit the 260 limit and break file operations (warning only).",
     "fallbackBadge": "Data not portable",
     "fallbackTooltip": "App folder is not writable — data temporarily lives at: {path}",
@@ -144,7 +144,7 @@
     "launchMethodRequired": "launch-method is required; other fields are optional (left blank saves as `key=`).",
     "detectedHint": "Detected launch method: {method} (saved into .info).",
     "notDetected": "Could not detect a launch method; set launch-method or main-class manually.",
-    "modHint": "This mod version’s .info is managed by the Mods repository: only viewing details and deleting are available here (deleting also clears the install registry). Editing is disabled.",
+    "modHint": "The .info of a mod version is hosted by the Mods repository: here you can only view details or delete it (deleting also clears the install record on the Mods page). Editing is disabled.",
     "save": "Save",
     "saving": "Saving…",
     "saved": "Saved",
@@ -196,7 +196,7 @@
     "dialog": {
       "targetVersion": "Target version",
       "manualHint": "No local version matched automatically; pick the version to launch.",
-      "outOfRangeHint": "This server wants {version} (protocol {protocol}) — no client in the current version library can complete the handshake.",
+      "outOfRangeHint": "This server requires {version} (protocol {protocol}) — the current version library has no client version that can connect to it.",
       "copyAddress": "Copy server address",
       "copied": "Copied",
       "customMatchHint": "The matched version is a mod/custom client — it will be used to join this server.",
@@ -210,7 +210,7 @@
   },
   "external": {
     "openError": "Could not open external link",
-    "openErrorHint": "Check that a default browser is configured on your system (the host refuses to open when no http/https association is registered).",
+    "openErrorHint": "Check that a default browser is configured on your system (links can't be opened without an http/https association).",
     "close": "Close"
   },
   "confirmDialog": {
@@ -219,7 +219,7 @@
     "busy": "Deleting…"
   },
   "bridge": {
-    "missing": "No IPC bridge — running in a plain browser. Data is mocked; launch is unavailable."
+    "missing": "Opened in a browser, not the launcher app — data is simulated and the game cannot be launched."
   },
   "common": {
     "loading": "Loading…",
@@ -249,12 +249,12 @@
     "pick": "Pick a version",
     "pickHint": "Click to expand the version list.",
     "pin": "Keep panel expanded",
-    "unpin": "Unpin (collapse after picking)",
+    "unpin": "Unpin",
     "collapse": "Collapse panel"
   },
   "instance": {
     "empty": "No instances yet",
-    "emptyHint": "Create one to keep a separate instance directory per version.",
+    "emptyHint": "Each instance has its own game directory and settings, kept fully independent of the others.",
     "noMatch": "No instances match",
     "noMatchHint": "Try a different search term.",
     "list": "Instance list",
@@ -263,43 +263,42 @@
     "pickHint": "Click to expand the instance list.",
     "versionNone": "No version selected",
     "pin": "Keep panel expanded",
-    "unpin": "Unpin (collapse after picking)",
+    "unpin": "Unpin",
     "collapse": "Collapse panel",
     "new": "New instance",
     "name": "Name",
-    "namePlaceholder": "e.g. Beta 1.7.3 modded",
+    "namePlaceholder": "e.g. MyNewInstance",
     "createHint": "You can finish the rest of the settings on this page after creation; the version defaults to the one selected on the launch page.",
     "createVersion": "Version to use: {version}",
     "createNoVersion": "No version selected — pick a version on the launch page first, then create the instance.",
     "create": "Create instance",
     "gameDir": "Instance directory",
-    "gameDirPlaceholder": "empty = <root>/<instance name>",
+    "gameDirPlaceholder": "empty = <data dir>/<instance name>",
     "launchArgs": "JVM arguments",
     "launchArgsPlaceholder": "e.g. -Xmx1G",
     "width": "Window width",
     "height": "Window height",
     "saveChanges": "Save changes",
     "hint": "Pick an instance on the left, or create a new one.",
-    "active": "Active",
-    "activate": "Set as launch instance",
-    "activateHint": "The Play button on the launch page will use this instance.",
+    "active": "Current",
+    "activate": "Set as current instance",
+    "activateHint": "The launch button on the launch page will use this instance's settings.",
     "openDir": "Open instance directory",
     "rename": "Rename",
     "delete": "Delete instance",
     "deleteDialog": {
       "title": "Delete instance",
-      "message": "This removes the profile of instance \"{name}\".",
-      "withFiles": "Also delete the instance directory (saves included, not recoverable)"
+      "message": "This removes the saved settings of instance \"{name}\".",
+      "withFiles": "Also delete the instance directory (saves and config files included, not recoverable)"
     },
     "basic": "Basic settings",
     "addons": "Addons",
-    "addonSoon": "Coming soon",
     "server": {
       "title": "Multiplayer Direct Connect",
       "label": "Server address",
       "portLabel": "Port",
-      "placeholder": "ip or hostname, e.g. mc.example.com",
-      "desc": "Blank port = server default 25565. When set, the launch screen asks whether to join this server directly (one-off --server/--port injection; this profile is not modified).",
+      "placeholder": "IP or hostname, e.g. mc.example.com",
+      "desc": "Blank port = the default port 25565. Once set, you are asked before each launch whether to join this server directly; the direct connect applies to that launch only and is not saved into the instance settings.",
       "save": "Save direct-connect setting",
       "invalid": "Invalid address (ip/hostname, optional :port) or port out of range (1-65535)"
     },
@@ -309,8 +308,8 @@
         "desc": "Sync rendering with the display refresh rate to reduce tearing (-Dlf.vsync)."
       },
       "visualizer": {
-        "name": "Infinite Map Visualizer",
-        "desc": "Launch this session with the bird-eye view Infinite Map Visualizer; only meaningful around inf-20100616 to b1.3 (-Dlf.visualizer, not persisted to the instance)."
+        "name": "Infinite Map Previewer",
+        "desc": "Launch this session with the bird-eye view Infinite Map Previewer; only meaningful for inf-20100616 to b1.2_02 (-Dlf.visualizer, not persisted to the instance)."
       },
       "modloader": {
         "name": "ModLoader support",
@@ -389,12 +388,12 @@
     "serverDialog": {
       "title": "Join Server Directly",
       "message": "The active instance has a direct-connect address configured: {server}. Join this server on this launch?",
-      "manualHint": "This version supports classic multiplayer. Enter a server address to join directly on this launch (one-off; not saved to the instance profile).",
+      "manualHint": "This version supports classic multiplayer. Enter a server address to join directly on this launch (one-off; not saved to the instance settings).",
       "direct": "Direct connect",
       "single": "Singleplayer",
       "cancel": "Cancel"
     },
-    "visualizerOff": "The selected version jar does not contain the visualizer class (or is not downloaded yet)",
+    "visualizerOff": "This version doesn't include the Infinite Map Previewer (or isn't downloaded yet); unavailable",
     "dialog": {
       "title": "Launching Game",
       "cancel": "Cancel",
@@ -427,7 +426,7 @@
     "out-of-memory": "Out of memory",
     "gl-init": "GL init failed",
     "lwjgl-native": "LWJGL native",
-    "unsatisfied-link": "Unsatisfied link",
+    "unsatisfied-link": "Native library load failed",
     "null-pointer": "Null pointer",
     "tim-sort": "TimSort comparator error",
     "index-out-of-bounds": "Index out of bounds",
@@ -441,13 +440,13 @@
     "close": "Close"
   },
   "crashHint": {
-    "tim-sort": "The game's sort comparator violates the contract enforced by TimSort (default since JDK 7) — a known issue on legacy versions.\nFix: add -Djava.util.Arrays.useLegacyMergeSort=true to the instance's JVM arguments (or Global JVM arguments in Settings), save, and relaunch to restore the legacy merge sort and work around this crash.",
-    "stack-overflow-a123": "Alpha 1.2.3 ships a known official bug in its leaf-decay logic: the recursion depth guard is reset to zero by the world notification chain, so entering a chunk with trees causes unbounded recursion and a stack overflow (100% reproducible; no JVM flag can work around it).\nFix = switch versions: Alpha 1.2.3_01 (decay disabled officially, no crash) or Beta 1.1+ (structurally rewritten; leaves decay correctly).",
-    "indev-huge-worldgen": "A defect shared by all Indev 0.31 builds: the skylight propagation queue used during world generation has a hardcoded capacity (295936) that does not scale with world size — creating a Huge world always crashes out of bounds during the first skylight pass, and no JVM flag can work around it.\nRecommendation: do not create Huge worlds; pick Small/Normal, or move to a later Indev/Infdev build.",
-    "classic-death-screen-ioob": "A version defect of the Classic Survival Test death screen: it was trimmed from the pause screen without renumbering the button indices, so opening it accesses a third button out of bounds — every build from 0.26 to 0.30 carries the unfixed landmine (Indev retired the screen in its GUI rewrite). The 0.26 reconstruction runs it unguarded, so every death crashes; on 0.27–0.30 the line sits behind an \"if not logged in\" guard and only crashes without a session (this launcher normally always injects session arguments). No JVM flag can work around it.\nRecommendation: verify the launcher is injecting session arguments (username/sessionid) correctly — on 0.27–0.30 the crash only happens without a session."
+    "tim-sort": "The sorting code in old game versions conflicts with the new sorting algorithm introduced in JDK 7+ (a known issue).\nFix: add -Djava.util.Arrays.useLegacyMergeSort=true to the instance's JVM arguments (or Global JVM arguments in Settings), save, and relaunch to restore the legacy merge sort and work around this crash.",
+    "stack-overflow-a123": "Alpha 1.2.3 ships an officially known defect in its leaf-decay logic: the recursion guard keeps being reset, so entering a chunk with trees causes unbounded recursion and a crash (100% reproducible; no JVM flag can work around it).\nFix = switch versions: Alpha 1.2.3_01 (decay disabled officially, no crash) or Beta 1.1+ (structurally rewritten; leaves decay correctly).",
+    "indev-huge-worldgen": "A defect shared by all Indev 0.31 builds: the internal queue used during world generation has a fixed capacity that does not scale with world size — creating a Huge world always crashes out of bounds during generation, and no JVM flag can work around it.\nRecommendation: do not create Huge worlds; pick Small/Normal, or move to a later Indev/Infdev build.",
+    "classic-death-screen-ioob": "A version defect of the Classic Survival Test death screen: it was trimmed from the pause screen without renumbering the button indices, so opening it accesses a third button out of bounds — every build from 0.26 to 0.30 has it and it was never fixed (Indev retired the screen in its GUI rewrite). 0.26 restored the unprotected original code, so every death crashes; on 0.27–0.30 the line sits inside a \"not logged in\" check and only crashes without a session (this launcher normally launches with session arguments). No JVM flag can work around it.\nRecommendation: verify the launcher is passing session arguments (username/sessionid) correctly — on 0.27–0.30 the crash only happens without a session."
   },
   "launcherCrash": {
-    "liveTitle": "Renderer error (logged to launcher log)",
+    "liveTitle": "Launcher UI error (recorded in the log)",
     "lastTitle": "Launcher exited abnormally last run",
     "copy": "Copy diagnostics",
     "copied": "Copied",
@@ -519,7 +518,7 @@
         "gray": "Stone Gray"
       },
       "background": "Home background",
-      "backgroundDesc": "Custom home page background image (png/jpg/webp/gif/bmp, ≤12MB) with an automatic dark overlay for readability; the solid theme background is used when unset. The field accepts an absolute path directly (saved as you type); an unreadable path falls back to the solid background.",
+      "backgroundDesc": "Custom home page background image (png/jpg/webp/gif/bmp, ≤12MB) with an automatic dark overlay for readability; the solid theme background is used when unset. The field accepts an absolute path directly (saved immediately once entered); if the path cannot be read, it falls back to the solid background.",
       "backgroundPick": "Choose image…",
       "backgroundClear": "Remove background",
       "backgroundDefault": "Not set (solid background)"
@@ -552,11 +551,11 @@
       "refresh": "Refresh",
       "import": "Import Java…",
       "noneDetected": "No usable Java detected",
-      "usedFallback": "Using 32-bit fallback runtime",
+      "usedFallback": "Using the built-in 32-bit Java",
       "manualCurrent": "Manually set to:",
       "noCandidates": "No Java installations detected",
       "autoLockHint": "The candidate list is read-only in auto mode; switch to manual to pick an install.",
-      "probeDetails": "Probe details (failures & diagnostics)",
+      "probeDetails": "Detection details (including failed candidates and diagnostics)",
       "source": {
         "manual": "manual",
         "env": "env",
@@ -597,8 +596,8 @@
       },
       "updatePreview": {
         "label": "Early preview builds",
-        "desc": "When on, update checks also match the nightly prerelease track (the newest nightly is suggested; on Windows, pressing Update downloads and swaps it automatically). Silent auto-updates are unaffected; turning it off returns to the stable track.",
-        "descNightly": "You are running a nightly build, so this switch is on by default: update checks match the nightly ∪ stable union track (whichever is newer is suggested; on Windows, pressing Update swaps it automatically). Turning it off returns to the stable track — the official release will be suggested as soon as it ships."
+        "desc": "When on, update checks also match nightly builds (the newest nightly is suggested; on Windows, pressing Update downloads the update and restarts automatically). It only changes what is matched, not when checks happen; turning it off returns to the stable channel.",
+        "descNightly": "You are running a nightly build, so this switch is on by default: update checks match both nightly and stable builds and suggest whichever is newer (on Windows, pressing Update downloads the update and restarts automatically). Turning it off = stable only — once a stable release ships, you will be prompted to upgrade."
       },
       "legalSection": "Copyright & Legal",
       "copyrightTitle": "Copyright notice",
@@ -610,11 +609,11 @@
       "view": "View",
       "refsSection": "Referenced projects",
       "ref": {
-        "betacraft": "Upstream Betacraft v1 launcher — source of truth for version lists, .info shape and launch semantics.",
+        "betacraft": "Upstream Betacraft v1 launcher — the reference source for version lists, the .info format and launch behavior.",
         "legacyfix": "Legacy compatibility mod — origin of every -Dlf.* behavior switch.",
         "mcanextgen": "Archived predecessor repo — inherited Java detection and legacy JVM-argument knowledge.",
         "blockhelm": "UI blueprint for the settings and about page layouts.",
-        "hmcl": "JavaFX launcher — the vanilla UUID default-skin selection behind our offline avatar fallback comes from its TexturesLoader.",
+        "hmcl": "JavaFX desktop launcher — the selection algorithm for the default avatar when offline (the vanilla UUID skin) comes from its TexturesLoader implementation.",
         "vue": "Frontend framework — rendering and reactive state.",
         "electron": "Desktop shell — main process, native dialogs and file system access.",
         "tauri": "Desktop shell — Rust window layer with a Node sidecar on the system WebView.",

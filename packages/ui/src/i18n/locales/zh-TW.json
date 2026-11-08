@@ -31,7 +31,7 @@
     "dirLocalHint": "遊戲資料放在程式目錄旁的 .attic——整個資料夾複製到哪裡，資料就跟到哪裡。",
     "dirLocalFallback": "程式目錄目前不可寫入，資料暫存於標準位置（頂欄有「資料未隨碟」徽章）。",
     "dirDefaultHintPortable": "遊戲資料放在使用者目錄——可攜包保持輕量，但資料不隨碟走。",
-    "dirCustomHintPortable": "任選位置——指標寫進可攜包的 portable.ini 隨碟攜帶；換機後相對路徑依程式目錄重新解析。",
+    "dirCustomHintPortable": "任選位置——所選位置記錄在可攜包的 portable.ini 裡隨碟攜帶；換機後相對路徑會依程式目錄重新定位。",
     "accountsHave": "已有帳戶：",
     "accountsEmpty": "還沒有帳戶——建立一個離線帳戶即可開始。",
     "accountsName": "Minecraft 使用者名稱（3–16 位）",
@@ -52,7 +52,7 @@
   },
   "portable": {
     "warnNonAscii": "資料根路徑含非 ASCII 字元——舊版 Java 8/LWJGL2 可能因此亂碼或啟動失敗（僅警示，不攔截）。",
-    "warnSpace": "資料根路徑含空格——部分舊啟動流程對空格敏感（僅警示，不攔截）。",
+    "warnSpace": "資料根路徑含空格——部分舊版啟動流程對空格敏感（僅警示，不攔截）。",
     "warnLong": "資料根路徑過長（≥240 字元）——可能觸及 260 上限導致檔案操作失敗（僅警示，不攔截）。",
     "fallbackBadge": "資料未隨碟",
     "fallbackTooltip": "程式目錄不可寫入，資料暫存於：{path}",
@@ -144,7 +144,7 @@
     "launchMethodRequired": "launch-method 為必填欄位，其餘欄位選填（留空儲存為 `key=`）。",
     "detectedHint": "偵測到啟動方式：{method}（儲存後寫入 .info）。",
     "notDetected": "無法自動偵測啟動方式，請手動填寫 launch-method 或 main-class。",
-    "modHint": "模組版本的 .info 由 Mods 倉庫託管：此處僅可查看詳細資訊與刪除（刪除會同步清除安裝登記），編輯已停用。",
+    "modHint": "模組版本的 .info 由 Mods 倉庫託管：此處僅可查看詳細資訊與刪除（刪除會同時清除模組頁的安裝記錄），編輯已停用。",
     "save": "儲存",
     "saving": "儲存中…",
     "saved": "已儲存",
@@ -196,10 +196,10 @@
     "dialog": {
       "targetVersion": "目標版本",
       "manualHint": "無法自動對應到本機版本，請手動選擇要啟動的版本。",
-      "outOfRangeHint": "該伺服器要求 {version}（協定 {protocol}），目前版本庫中沒有能與其握手成功的客戶端。",
+      "outOfRangeHint": "該伺服器要求 {version}（協定 {protocol}），目前版本庫中沒有能連上它的客戶端版本。",
       "copyAddress": "複製伺服器位址",
       "copied": "已複製",
-      "customMatchHint": "對應到的版本為模組/自訂客戶端，將以其進入本伺服器。",
+      "customMatchHint": "匹配到的版本為模組/自訂客戶端，將使用它加入該伺服器。",
       "pickVersion": "選擇版本",
       "onlineModeWarn": "目前帳戶為離線帳戶，不符合該伺服器的正版驗證要求，可能無法進入。",
       "launchFailed": "啟動失敗",
@@ -210,7 +210,7 @@
   },
   "external": {
     "openError": "無法開啟外部連結",
-    "openErrorHint": "請檢查系統是否設定了預設瀏覽器（未註冊 http/https 關聯時宿主程式會拒絕開啟）。",
+    "openErrorHint": "請檢查系統是否設定了預設瀏覽器（未關聯 http/https 時啟動器無法開啟連結）。",
     "close": "關閉"
   },
   "confirmDialog": {
@@ -219,7 +219,7 @@
     "busy": "刪除中…"
   },
   "bridge": {
-    "missing": "未偵測到 IPC 橋——目前為瀏覽器直開模式，資料為模擬值，無法啟動遊戲。"
+    "missing": "目前以瀏覽器開啟，並非啟動器應用——資料為模擬值，無法啟動遊戲。"
   },
   "common": {
     "loading": "載入中…",
@@ -238,12 +238,12 @@
     "pick": "選擇版本",
     "pickHint": "點擊展開版本清單。",
     "pin": "固定展開面板",
-    "unpin": "取消固定（選完自動收起）",
+    "unpin": "取消固定",
     "collapse": "收起面板"
   },
   "instance": {
     "empty": "還沒有實例",
-    "emptyHint": "新增實例可為每個版本保留獨立的實例目錄。",
+    "emptyHint": "每個實例都有獨立的遊戲目錄與設定，互不干擾。",
     "noMatch": "沒有符合的實例",
     "noMatchHint": "換個關鍵字試試。",
     "list": "實例清單",
@@ -252,45 +252,44 @@
     "pickHint": "點擊展開實例清單。",
     "versionNone": "未選擇版本",
     "pin": "固定展開面板",
-    "unpin": "取消固定（選完自動收起）",
+    "unpin": "取消固定",
     "collapse": "收起面板",
     "new": "新增實例",
     "name": "名稱",
-    "namePlaceholder": "例如：Beta 1.7.3 模組版",
+    "namePlaceholder": "例如：MyNewInstance",
     "createHint": "建立後可在本頁繼續設定其餘項目；版本預設取啟動頁目前選中。",
     "createVersion": "使用版本：{version}",
     "createNoVersion": "未選取版本——請先在啟動頁選擇一個版本，再建立實例。",
     "create": "建立實例",
     "gameDir": "實例目錄",
-    "gameDirPlaceholder": "留空 = 資料根/<實例名稱>",
+    "gameDirPlaceholder": "留空 = 資料目錄/<實例名稱>",
     "launchArgs": "JVM 參數",
     "launchArgsPlaceholder": "例如：-Xmx1G",
     "width": "視窗寬度",
     "height": "視窗高度",
     "saveChanges": "儲存修改",
     "hint": "從左側選擇實例，或新增一個。",
-    "active": "使用中",
-    "activate": "設為啟動實例",
-    "activateHint": "啟動頁的播放按鈕將使用此實例。",
+    "active": "目前",
+    "activate": "設為目前實例",
+    "activateHint": "啟動頁的啟動按鈕將使用此實例設定。",
     "openDir": "開啟實例目錄",
-    "rename": "改名",
+    "rename": "重新命名",
     "delete": "刪除實例",
     "deleteDialog": {
       "title": "刪除實例",
-      "message": "將刪除實例「{name}」的檔案。",
-      "withFiles": "同時刪除實例目錄（含存檔，無法復原）"
+      "message": "將刪除實例「{name}」的記錄。",
+      "withFiles": "同時刪除實例目錄（含存檔、設定檔等，無法復原）"
     },
     "basic": "基本設定",
     "addons": "Addons",
-    "addonSoon": "即將推出",
     "server": {
       "title": "多人直連",
       "label": "伺服器位址",
       "portLabel": "連接埠",
-      "placeholder": "ip 或網域，例如 mc.example.com",
-      "desc": "連接埠留空 = 伺服器預設 25565。設定後每次啟動前會詢問是否直連該伺服器（一次性注入 --server/--port，不改本檔案）。",
+      "placeholder": "IP 或網域，例如 mc.example.com",
+      "desc": "連接埠留空 = 預設連接埠 25565。設定後每次啟動前會詢問是否直連該伺服器；直連僅當次生效，不寫入實例設定。",
       "save": "儲存直連設定",
-      "invalid": "位址格式不合法（ip/網域，可含 :連接埠）或連接埠超出 1-65535"
+      "invalid": "位址格式不正確（ip/網域，可含 :連接埠）或連接埠超出 1-65535"
     },
     "addonList": {
       "vsync": {
@@ -298,8 +297,8 @@
         "desc": "讓畫面渲染與螢幕更新率同步，減少撕裂（-Dlf.vsync）。"
       },
       "visualizer": {
-        "name": "無限地圖視覺化器",
-        "desc": "以俯瞰世界的無限地圖視覺化器啟動本次遊戲，僅 inf-20100616 至 b1.3 前後有效（-Dlf.visualizer，不寫實例檔案）。"
+        "name": "無限地圖預覽器",
+        "desc": "以俯瞰世界的無限地圖預覽器啟動本次遊戲，僅 inf-20100616 至 b1.2_02 有效（-Dlf.visualizer，不寫實例檔案）。"
       },
       "modloader": {
         "name": "ModLoader 相容",
@@ -378,12 +377,12 @@
     "serverDialog": {
       "title": "直連伺服器",
       "message": "目前實例已設定直連位址 {server}。本次啟動是否直連該伺服器？",
-      "manualHint": "該版本支援經典多人連線。輸入伺服器位址可於本次啟動直連（一次性，不寫入實例檔案）。",
+      "manualHint": "該版本支援經典多人連線。輸入伺服器位址可於本次啟動直連（一次性，不寫入實例設定）。",
       "direct": "直連啟動",
       "single": "單人啟動",
       "cancel": "取消"
     },
-    "visualizerOff": "所選版本的本機 jar 不含無限地圖預覽類別（或未下載），暫不可用",
+    "visualizerOff": "該版本不含無限地圖預覽器（或未下載），暫不可用",
     "dialog": {
       "title": "啟動遊戲",
       "cancel": "取消",
@@ -416,7 +415,7 @@
     "out-of-memory": "記憶體溢位",
     "gl-init": "GL 初始化失敗",
     "lwjgl-native": "LWJGL 原生函式庫",
-    "unsatisfied-link": "本機方法未連結",
+    "unsatisfied-link": "本機函式庫載入失敗",
     "null-pointer": "空指標錯誤",
     "tim-sort": "TimSort 錯誤",
     "index-out-of-bounds": "陣列越界錯誤",
@@ -430,13 +429,13 @@
     "close": "關閉"
   },
   "crashHint": {
-    "tim-sort": "老版本遊戲內的排序比較器不滿足 JDK 7+ 預設 TimSort 的契約校驗（已知問題）。\n解決方法：在實例的「JVM 參數」一欄（或設定頁「全域 JVM 參數」）新增 -Djava.util.Arrays.useLegacyMergeSort=true，儲存後重新啟動，即可恢復舊版歸併排序、繞過該崩潰。",
-    "stack-overflow-a123": "Alpha 1.2.3 的樹葉枯萎邏輯存在官方已知缺陷：遞迴深度守衛被世界通知鏈反覆歸零，進入含樹木的區塊即無限遞迴棧溢位（100% 觸發，JVM 參數無法規避）。\n解決方法＝換版本：Alpha 1.2.3_01（官方已停用枯萎，不再崩潰）或 Beta 1.1 及以上（官方結構性重寫，樹葉可正常枯萎）。",
-    "indev-huge-worldgen": "Indev 0.31 系構建的通病：世界生成所用的天光傳播佇列容量硬編碼（295936），不隨世界尺寸擴容——建立 Huge 世界必在首次天光初始化時越界崩潰，JVM 參數無法規避。\n建議不要建立 Huge 世界：世界尺寸選 Small/Normal，或改用更後期的 Indev/Infdev 構建。",
-    "classic-death-screen-ioob": "Classic 生存測試死亡結算屏的版本缺陷：死亡屏從暫停屏裁剪而來、按鈕索引未隨新列表重新編號——開啟結算屏即越界存取第三個按鈕，0.26–0.30 皆帶此雷且從未修正（Indev 起此屏隨 GUI 重寫退役）。0.26 還原件無守衛，死亡必崩；0.27–0.30 該行包在「未登入」守衛內，僅無會話狀態會崩（本啟動器常規恆注入會話參數）。JVM 參數無法規避。\n建議＝核對啟動器是否正常注入會話參數（username/sessionid）——0.27–0.30 僅無會話狀態會崩。"
+    "tim-sort": "老版本遊戲內的排序程式碼與 JDK 7+ 的新排序演算法衝突（已知問題）。\n解決方法：在實例的「JVM 參數」一欄（或設定頁「全域 JVM 參數」）新增 -Djava.util.Arrays.useLegacyMergeSort=true，儲存後重新啟動，即可恢復舊版歸併排序、繞過該崩潰。",
+    "stack-overflow-a123": "Alpha 1.2.3 的樹葉枯萎邏輯存在官方已知缺陷：遞迴保護被反覆重置，進入含樹木的區塊即無限遞迴崩潰（100% 觸發，JVM 參數無法規避）。\n解決方法＝換版本：Alpha 1.2.3_01（官方已停用枯萎，不再崩潰）或 Beta 1.1 及以上（官方結構性重寫，樹葉可正常枯萎）。",
+    "indev-huge-worldgen": "Indev 0.31 系構建的通病：世界生成所用的內部佇列容量寫死、不隨世界尺寸擴容——建立 Huge 世界必在生成階段越界崩潰，JVM 參數無法規避。\n建議不要建立 Huge 世界：世界尺寸選 Small/Normal，或改用更後期的 Indev/Infdev 構建。",
+    "classic-death-screen-ioob": "Classic 生存測試死亡結算屏的版本缺陷：死亡屏從暫停屏裁剪而來、按鈕索引未隨新清單重新編號——開啟結算屏即越界存取第三個按鈕，0.26–0.30 皆存在且從未修正（Indev 起此屏隨 GUI 重寫退役）。0.26 恢復了無保護的原版程式碼，死亡必崩；0.27–0.30 該行包在「未登入」判斷內，僅無會話狀態會崩（本啟動器正常啟動都會攜帶會話參數）。JVM 參數無法規避。\n建議＝核對啟動器是否正常攜帶會話參數（username/sessionid）——0.27–0.30 僅無會話狀態會崩。"
   },
   "launcherCrash": {
-    "liveTitle": "渲染層錯誤（已記入啟動器日誌）",
+    "liveTitle": "啟動器介面出錯（已記入日誌）",
     "lastTitle": "上次啟動異常退出",
     "copy": "複製診斷資訊",
     "copied": "已複製",
@@ -508,7 +507,7 @@
         "gray": "石灰灰"
       },
       "background": "啟動頁背景",
-      "backgroundDesc": "自訂首頁背景圖（png/jpg/webp/gif/bmp，≤12MB），自動疊加暗色遮罩確保文字可讀；未設定時使用主題純色背景。輸入框可直接填寫絕對路徑（即改即存），路徑讀不到時回落純色。",
+      "backgroundDesc": "自訂首頁背景圖（png/jpg/webp/gif/bmp，≤12MB），自動疊加暗色遮罩確保文字可讀；未設定時使用主題純色背景。輸入框可直接填寫絕對路徑（填寫後立即儲存），路徑讀不到時改用純色背景。",
       "backgroundPick": "選擇圖片…",
       "backgroundClear": "移除背景圖",
       "backgroundDefault": "未設定（純色背景）"
@@ -541,11 +540,11 @@
       "refresh": "重新偵測",
       "import": "匯入 Java…",
       "noneDetected": "未偵測到可用的 Java",
-      "usedFallback": "正在使用 32 位元備援執行時",
+      "usedFallback": "正在使用內建 32 位元 Java",
       "manualCurrent": "目前手動指定：",
       "noCandidates": "暫無偵測到的 Java 安裝",
       "autoLockHint": "自動模式下候選清單唯讀；切換為手動後可點選具體安裝。",
-      "probeDetails": "偵測細節（失敗候選與診斷）",
+      "probeDetails": "偵測詳細資訊（含失敗候選與診斷）",
       "source": {
         "manual": "手動",
         "env": "環境變數",
@@ -586,8 +585,8 @@
       },
       "updatePreview": {
         "label": "提前體驗測試版",
-        "desc": "開啟後「檢查更新」同時匹配 nightly 測試版軌道（提示最新一枚，Windows 下點「更新」即自動下載換體重啟）；不影響靜默自動更新，關閉即回正式版軌道。",
-        "descNightly": "當前運行的就是測試版構件，本開關默認開啟：「檢查更新」匹配 nightly ∪ 正式版並集軌道（誰更新提示誰，Windows 下點「更新」即自動換體）。關閉 = 回正式版軌道，正式版發布後即提示升級。"
+        "desc": "開啟後「檢查更新」同時匹配 nightly 測試版（提示最新一枚，Windows 下點「更新」即自動下載更新並重啟）；只改變匹配範圍、不改變檢查時機，關閉即回正式版通道。",
+        "descNightly": "目前執行的就是 nightly 測試版，本開關預設開啟：「檢查更新」同時匹配測試版與正式版，誰更新提示誰（Windows 下點「更新」即自動下載更新並重啟）。關閉 = 只查正式版，正式版發布後會提示你升級。"
       },
       "legalSection": "版權及法律聲明",
       "copyrightTitle": "版權聲明",
@@ -599,11 +598,11 @@
       "view": "檢視",
       "refsSection": "引用的專案",
       "ref": {
-        "betacraft": "上游 Betacraft v1 啟動器——版本清單、.info 形狀與啟動語義的事實來源。",
+        "betacraft": "上游 Betacraft v1 啟動器——版本清單、.info 格式與啟動行為的參照來源。",
         "legacyfix": "遠古版本相容性修復模組——所有 -Dlf.* 行為開關的來源。",
         "mcanextgen": "已歸檔的前身倉庫——Java 偵測與遠古版本 JVM 參數知識的繼承來源。",
         "blockhelm": "設定頁與關於頁版式的 UI 藍本。",
-        "hmcl": "JavaFX 桌面啟動器——斷網頭像備援的原版 UUID 預設皮膚選型演算法取自其 TexturesLoader 實作。",
+        "hmcl": "JavaFX 桌面啟動器——斷網時預設頭像（原版 UUID 皮膚）的選型演算法取自其 TexturesLoader 實作。",
         "vue": "前端框架——介面渲染與響應式狀態。",
         "electron": "桌面殼——主程序、原生對話方塊與檔案系統存取。",
         "tauri": "桌面殼——Rust 視窗層 + Node sidecar，系統 WebView 渲染。",

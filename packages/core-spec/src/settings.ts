@@ -238,7 +238,6 @@ export function parseServerAddress(raw: string): { host: string; port?: number }
  * 实例 addon 目录（数据驱动）：id 入 v1 `addons` 档案键，
  * prop/mode 映射 legacyfix 的 -Dlf.* 开关（事实源：legacyfix docs/Additional settings.md）。
  * mode=enable：勾选才注入 prop；mode=disable：取消才注入（功能默认开，如皮肤/代理）。
- * placeholder：v1 addons 有、legacyfix 无对应开关 → UI 占位禁用，不参与装配。
  * uiSection：渲染归属——'basic'=实例页基本设置 card，'launchmenu'=启动页「≡」菜单
  * （动作项：点击 = `LaunchRequest.visualizer` 一次性启动，不读写档案），缺省 'addons'=Addons card。
  * 仅影响 UI 布局，数据模型不变。
@@ -246,10 +245,9 @@ export function parseServerAddress(raw: string): { host: string; port?: number }
  */
 export interface AddonDef {
   id: string;
-  /** legacyfix JVM 属性名（不含 `-Dlf.` 前缀）；placeholder 项为空串。 */
+  /** legacyfix JVM 属性名（不含 `-Dlf.` 前缀）；jar 形态（addonAsset）项为空串。 */
   prop: string;
   mode: 'enable' | 'disable';
-  placeholder?: boolean;
   uiSection?: 'basic' | 'addons' | 'launchmenu';
   /** jar 内条目路径（如 `net/minecraft/isom/IsomPreviewApplet.class`）；uiSection=launchmenu 时提供。 */
   probeClass?: string;
@@ -300,4 +298,4 @@ export const INSTANCE_ADDONS: AddonDef[] = [
 ];
 
 /** 新建实例的默认勾选集 = 默认开功能全开（与 legacyfix 自身缺省一致）。 */
-export const DEFAULT_ADDONS: string[] = INSTANCE_ADDONS.filter((a) => a.mode === 'disable' && !a.placeholder).map((a) => a.id);
+export const DEFAULT_ADDONS: string[] = INSTANCE_ADDONS.filter((a) => a.mode === 'disable').map((a) => a.id);

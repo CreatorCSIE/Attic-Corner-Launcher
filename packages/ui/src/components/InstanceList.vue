@@ -42,6 +42,8 @@ const serverHost = ref('');
 const serverPort = ref('');
 const width = ref<number | ''>(854);
 const height = ref<number | ''>(480);
+// 窗口标题自定义（Attic 扩展键 title；空 = 不携带 = 游戏自题）
+const windowTitle = ref('');
 // intelFix 缺键 = 开；forceUpdate（Attic 扩展键）缺省 = 关
 const intelFix = ref(true);
 const forceUpdate = ref(false);
@@ -94,6 +96,7 @@ function loadForm(inst: InstanceView): void {
   serverPort.value = sm?.[2] ?? '';
   width.value = inst.width ?? 854;
   height.value = inst.height ?? 480;
+  windowTitle.value = inst.title ?? '';
   // 无 addons 键的老档案：展示按默认开集（与 legacyfix 缺省行为一致，保存时显式落键）
   addonsSel.value = inst.addons ? [...inst.addons] : [...DEFAULT_ADDONS];
   // 缺键语义：intelFix 缺省开、forceUpdate 缺省关
@@ -194,6 +197,7 @@ function onNew(): void {
   serverPort.value = '';
   width.value = 854;
   height.value = 480;
+  windowTitle.value = '';
   addonsSel.value = [...DEFAULT_ADDONS];
   intelFix.value = true;
   forceUpdate.value = false;
@@ -263,6 +267,9 @@ function currentView(): InstanceView {
   const h = Number(height.value);
   if (Number.isFinite(w) && w > 0) inst.width = w;
   if (Number.isFinite(h) && h > 0) inst.height = h;
+  // 窗口标题：trim 非空才落键（空 = 不携带 = 宿主清空删键，游戏自题）
+  const titleVal = windowTitle.value.trim();
+  if (titleVal) inst.title = titleVal;
   return inst;
 }
 
@@ -535,6 +542,10 @@ async function onConfirmRemove(): Promise<void> {
           <div class="field field--num">
             <label class="label" for="inst-h">{{ t('instance.height') }}</label>
             <input id="inst-h" v-model.number="height" class="input" type="number" min="1" step="1" />
+          </div>
+          <div class="field field--wide">
+            <label class="label" for="inst-title">{{ t('instance.windowTitle') }}</label>
+            <input id="inst-title" v-model="windowTitle" class="input" type="text" :placeholder="t('instance.windowTitlePlaceholder')" />
           </div>
           <!-- 开关组：两开关（Intel 修复/强制更新）+ 高频 addon 四项。
                addon 项数据仍是 addonsSel 数组（-Dlf.* 注入链不动），仅渲染归属换到基本设置。 -->

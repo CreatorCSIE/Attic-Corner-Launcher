@@ -423,6 +423,32 @@ test('intelFix/forceUpdate：档案回环 + 视图透传 + win32 门控注入/�
   assert.ok(!cfgLx.jvmArgs.some((a) => a.includes('HeapDumpPath')));
 });
 
+test('title：档案回环 + 视图透传 + dryRun 注入 -Dlf.title（trim 后非空即传）；缺键不注入、清空删键', async (t) => {
+  const root = tempRoot(t);
+  ensureLayout(root);
+  fs.writeFileSync(path.join(jsonsDir(root), 'b1.7.3.info'), 'launch-method=indev\n');
+  const rt = new AtticRuntime({ rootDir: root, platform: 'win32', fetchImpl: () => Promise.reject(new Error('offline')) });
+  rt.addAccount('Tester');
+  const java = 'C:\\Java\\jdk1.8\\bin\\java.exe';
+
+  // 落键原样存（trim 归装配侧），视图透传，dryRun 链路注入 trim 后的值
+  rt.saveInstance({ name: 'it', version: 'b1.7.3', title: '  Attic 小窗  ' });
+  assert.equal(loadInstance(root, 'it').title, '  Attic 小窗  ', 'title 原样落档案');
+  assert.equal(rt.listInstances().find((i) => i.name === 'it').title, '  Attic 小窗  ');
+  const cfg = await rt.dryRunLaunch({ versionId: 'b1.7.3', instanceId: 'it', javaPath: java });
+  assert.ok(cfg.jvmArgs.includes('-Dlf.title=Attic 小窗'));
+
+  // 缺键 = 不注入（新建档案无 title 键）
+  const cfgNone = await rt.dryRunLaunch({ versionId: 'b1.7.3', instanceId: 'i0', javaPath: java });
+  assert.ok(!cfgNone.jvmArgs.some((a) => a.startsWith('-Dlf.title')));
+
+  // 视图字段显式缺席 = 清空删键（与 javaPath 同语义），随之停注入
+  rt.saveInstance({ name: 'it', version: 'b1.7.3' });
+  assert.equal(loadInstance(root, 'it').title, undefined);
+  const cfgCleared = await rt.dryRunLaunch({ versionId: 'b1.7.3', instanceId: 'it', javaPath: java });
+  assert.ok(!cfgCleared.jvmArgs.some((a) => a.startsWith('-Dlf.title')));
+});
+
 test('launch() 入口回写：启动失败也已落盘建档+版本（实例列表延迟修复的宿主侧契约）', async (t) => {
   const root = tempRoot(t);
   ensureLayout(root);

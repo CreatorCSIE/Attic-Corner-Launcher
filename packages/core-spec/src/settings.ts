@@ -219,6 +219,12 @@ export interface InstanceView {
    * （经典多人 launchMethod 数据表）时仍询问（弹窗现场填地址、一次性），否则直接单人启动。
    */
   server?: string;
+  /**
+   * 窗口标题自定义（Attic 扩展键，原样存；v1 无对应物）。trim 后非空 = 启动时 jvmArgs 追加
+   * `-Dlf.title=<title>`（legacyfix-attic fork Agent.java L81-98：DeAWT 与原生 LWJGL 双路强制
+   * 窗口标题）；缺键/空 = 不传该属性，游戏自题。
+   */
+  title?: string;
 }
 
 /**

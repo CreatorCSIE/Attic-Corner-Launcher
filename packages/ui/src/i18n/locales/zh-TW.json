@@ -267,6 +267,8 @@
     "launchArgsPlaceholder": "例如：-Xmx1G",
     "width": "視窗寬度",
     "height": "視窗高度",
+    "windowTitle": "視窗標題",
+    "windowTitlePlaceholder": "留空 = 遊戲預設標題；填寫後啟動時強制使用該標題",
     "saveChanges": "儲存修改",
     "hint": "從左側選擇實例，或新增一個。",
     "active": "目前",

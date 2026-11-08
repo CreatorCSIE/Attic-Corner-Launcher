@@ -148,6 +148,7 @@ export function instanceViewFromConfig(config: {
   javaPath?: string;
   addons?: string;
   server?: string;
+  title?: string;
   intelFix?: boolean;
   forceUpdate?: boolean;
 }): InstanceView {
@@ -165,5 +166,7 @@ export function instanceViewFromConfig(config: {
   if (config.forceUpdate !== undefined) view.forceUpdate = config.forceUpdate;
   // 直连地址：空串 = 无效值（视图不携带，保存即删键）
   if (config.server) view.server = config.server;
+  // 窗口标题：同 server 纪律（空串 = 无效值不携带）
+  if (config.title) view.title = config.title;
   return view;
 }

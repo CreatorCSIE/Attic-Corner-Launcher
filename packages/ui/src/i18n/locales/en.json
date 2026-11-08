@@ -278,6 +278,8 @@
     "launchArgsPlaceholder": "e.g. -Xmx1G",
     "width": "Window width",
     "height": "Window height",
+    "windowTitle": "Window title",
+    "windowTitlePlaceholder": "Leave empty for the game's default title. When set, the launcher forces this window title on launch.",
     "saveChanges": "Save changes",
     "hint": "Pick an instance on the left, or create a new one.",
     "active": "Current",

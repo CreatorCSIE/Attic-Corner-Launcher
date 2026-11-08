@@ -1647,6 +1647,8 @@ export class AtticRuntime {
       addons: view.addons?.join(','),
       // Attic 扩展键：直连地址原样存（undefined = 清空删键，与 javaPath 同语义）
       server: view.server,
+      // Attic 扩展键：窗口标题原样存（undefined = 清空删键；trim 后非空才注入，见 launch.ts）
+      title: view.title,
       // v1 同名键 intelFix（缺键 = v1 缺省 true，视图 undefined 不落键）；forceUpdate = Attic 扩展键
       intelFix: view.intelFix,
       forceUpdate: view.forceUpdate,
@@ -1853,6 +1855,8 @@ export class AtticRuntime {
       visualizer: request.visualizer === true ? true : undefined,
       // 一次性直连（启动询问弹窗「直连」才带键，来源 = 档案 server；拼装器解析）
       server: request.server,
+      // 窗口标题自定义（档案 Attic 扩展键透传；trim 判定归拼装器，launch.ts 注入 -Dlf.title）
+      title: instance.title,
       width: instance.width,
       height: instance.height,
       assetsDir: path.join(this.root, 'assets'),

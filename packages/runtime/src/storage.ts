@@ -200,6 +200,8 @@ export interface InstanceConfig {
   server?: string;
   /** Attic 扩展键（v1 无对应物——v1 是全局 static）：启动时旁路「已存在即复用」强制重下。 */
   forceUpdate?: boolean;
+  /** Attic 扩展键（v1 无对应物）：窗口标题自定义，原样存（非空 = 启动注入 -Dlf.title）。 */
+  title?: string;
 }
 
 const INSTANCE_FILE = (root: string, name: string): string => path.join(instancesDir(root), `${name}.txt`);
@@ -258,7 +260,7 @@ export function loadInstance(root: string, name: string): InstanceConfig | null 
   if (width !== undefined) config.width = width;
   const height = toNumber(props['height']);
   if (height !== undefined) config.height = height;
-  for (const key of ['javaPath', 'addons', 'server'] as const) {
+  for (const key of ['javaPath', 'addons', 'server', 'title'] as const) {
     if (props[key] !== undefined) config[key] = props[key];
   }
   for (const key of ['proxy', 'keepopen', 'RPC', 'intelFix', 'console', 'isJavaPathNew', 'forceUpdate'] as const) {
@@ -355,6 +357,7 @@ export function saveInstance(root: string, config: InstanceConfig): void {
     javaPath: config.javaPath,
     addons: config.addons,
     server: config.server,
+    title: config.title,
     width: config.width === undefined ? undefined : String(config.width),
     height: config.height === undefined ? undefined : String(config.height),
   };

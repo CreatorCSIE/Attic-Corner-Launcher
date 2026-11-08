@@ -346,6 +346,16 @@ test('intelFix：true = -XX:HeapDumpPath 置 jvmArgs 首位（v1 javapath 后首
   }
 });
 
+test('title：档案窗口标题 → 注入 -Dlf.title=<title>（trim 后非空即传，args 直传不转义）；空串/纯空白/缺键不注入', () => {
+  const versionJson = { id: 'b1.7.3', mainClass: 'net.minecraft.client.Minecraft' };
+  const on = assembleLaunchConfig(versionJson, { ...baseContext(), title: '  Attic 小窗 = 1  ' });
+  assert.ok(on.jvmArgs.includes('-Dlf.title=Attic 小窗 = 1'));
+  for (const ctx of [{}, { title: '' }, { title: '   ' }]) {
+    const off = assembleLaunchConfig(versionJson, { ...baseContext(), ...ctx });
+    assert.ok(!off.jvmArgs.some((a) => a.startsWith('-Dlf.title')));
+  }
+});
+
 function baseContext() {
   return {
     javaPath: '/opt/java/zulu8/bin/java',

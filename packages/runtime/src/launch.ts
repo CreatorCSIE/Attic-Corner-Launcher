@@ -55,6 +55,10 @@ export interface LaunchContext {
    * 解析注入 gameArgs `--server <host> --port <n>`（端口恒显式传，缺省 25565 由本侧注入）；
    * 非法格式 = 忽略仅诊断，不拦启动。 */
   server?: string;
+  /** 窗口标题自定义（实例档案 Attic 扩展键 title 透传）：trim 后非空 = jvmArgs 追加
+   * `-Dlf.title=<title>`（legacyfix-attic fork Agent.java L81-98，DeAWT 与原生 LWJGL 双路强制
+   * 窗口标题）；缺键/空白 = 不传该属性，游戏自题。 */
+  title?: string;
 }
 
 export interface AssembleOptions {
@@ -234,6 +238,11 @@ export function assembleLaunchConfig(
   // 属性优先于 gameDir/legacyfix/level-server.txt（LevelProxyConfig 源码）：
   // 设置里有值即直通覆盖，用户无需删 txt 重触发一次性对话框；缺省不传，保留 LegacyFix 原行为。
   if (context.levelServer) jvmArgs.push(`-Dlf.proxy.levelServer=${context.levelServer}`);
+  // 窗口标题自定义（档案 title 透传，trim 后非空即传；args 数组直传无需引号转义）：
+  // fork Agent.java L81-98 = DeAWT 与原生 LWJGL 双路强制标题，且注册在 DeAwtPatch setTitle 钩
+  // 之后——getTitle 捕获仍得游戏原题（按标题的版本探测不受影响）。缺键/空白 = 不传，游戏自题。
+  const lfTitle = context.title?.trim();
+  if (lfTitle) jvmArgs.push(`-Dlf.title=${lfTitle}`);
   // 版本钉：legacyfix 的按版本等值补丁（Classic15aServerPortPatch.shouldApply 判
   // lf.version=="c0.0.15a"）在 Agent.premain 的 Patcher.apply 决策——早于 main 的 --version
   // 解析与游戏窗口标题探测（两条晚到的注入通道都追不上决策点）。-Dlf.* 走 Agent 静态块

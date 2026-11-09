@@ -232,8 +232,12 @@ export function syncPortableRegistry(defaultRoot: string, resolution: PortableRe
  * temp 守卫特征判定（宿主 boot 消费）：exeDir 命中 %TEMP%/%TMP% 前缀
  * 或 `Rar$`/`7z$`/`WinRar$` 特征段（压缩软件就地解体的目录指纹）。
  * 「exe 旁无既有 .attic」条件归宿主（与判定式合取后才拒启）。
+ * AppImage 豁免（与 tauri 壳 temp_trap_hit 同款口径）：`APPIMAGE` env 在场 = 从 temp
+ * 运行是 runtime 设计内正当形态（挂载态 `/tmp/.mount_*`、extract-and-run 态
+ * `$TMPDIR/appimage_extracted_*`），数据根落用户目录不随 temp 蒸发，不得误杀。
  */
 export function looksLikeTempExtraction(exeDir: string, env: NodeJS.ProcessEnv = process.env): boolean {
+  if (env.APPIMAGE !== undefined) return false;
   const resolved = path.resolve(exeDir).toLowerCase();
   for (const key of ['TEMP', 'TMP'] as const) {
     const tmp = env[key];

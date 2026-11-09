@@ -159,6 +159,20 @@ test('looksLikeTempExtraction：TEMP/TMP 前缀与压缩软件特征段命中，
   assert.equal(looksLikeTempExtraction('D:\\Attic\\app', { TEMP: 'C:\\Windows\\Temp', TMP: 'C:\\Windows\\Temp' }), false);
 });
 
+test('looksLikeTempExtraction：AppImage 豁免（APPIMAGE 在场 = temp 运行是设计内形态）', () => {
+  // 挂载态 / extract-and-run 态两形态都命中 temp 前缀，但 APPIMAGE env 在场 → 放行
+  assert.equal(
+    looksLikeTempExtraction('/tmp/.mount_atticZ1X2o3/usr/bin', { APPIMAGE: '/home/u/attic.AppImage', TMP: '/tmp' }),
+    false,
+  );
+  assert.equal(
+    looksLikeTempExtraction('/tmp/appimage_extracted_abc123/usr/bin', { APPIMAGE: '/home/u/attic.AppImage', TMP: '/tmp' }),
+    false,
+  );
+  // 无 APPIMAGE 标记（手工解包到 temp）→ 守卫照常命中
+  assert.equal(looksLikeTempExtraction('/tmp/attic/usr/bin', { TMP: '/tmp' }), true);
+});
+
 // ---------- 指针面 / 落锚 / 登记簿 ----------
 
 test('writePortablePointer：rootDir 写/清 + 未知键保留 + 自愈态显式报错', (t) => {

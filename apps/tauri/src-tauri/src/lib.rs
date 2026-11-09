@@ -232,7 +232,14 @@ fn portable_launch_env() -> Option<(PathBuf, Option<PathBuf>)> {
 /// exeDir 命中 temp 目录前缀或 `Rar$`/`7z$`/`WinRar$` 特征段 ∧ exe 旁无既有 `.attic` → true。
 /// 防压缩包内直接双击：只抽 exe → marker 没跟出来判成安装态写 %APPDATA%；
 /// 整目录抽到 temp → 数据随 temp 蒸发——两坑同由本守卫在 boot 拒服务。
+/// AppImage 豁免：`APPIMAGE` env 在场（runtime 挂载态与 extract-and-run 态都注入）时，
+/// 从 temp 运行是设计内正当形态——挂载点 `/tmp/.mount_*`、解包位 `$TMPDIR/appimage_extracted_*`
+/// 必命中旧守卫，而数据根落用户目录并不随 temp 蒸发（2026-11-09 xrdp Debian 13 实测定案：
+/// 守卫误杀 → 藏窗 + 拒 spawn sidecar → 白屏）。
 fn temp_trap_hit() -> bool {
+    if std::env::var_os("APPIMAGE").is_some() {
+        return false;
+    }
     let Some(exe_dir) = std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.to_path_buf())) else {
         return false;
     };

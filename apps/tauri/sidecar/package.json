@@ -8,6 +8,7 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "build": "node scripts/bundle.mjs",
+    "cli": "node dist/cli.cjs",
     "test": "node scripts/bundle.mjs && node --test"
   },
   "dependencies": {

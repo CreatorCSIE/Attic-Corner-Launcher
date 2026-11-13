@@ -7,7 +7,7 @@
  * `<root>/legacyfix/legacyfix-<版本>.jar`（数据供给面从 fork GitHub Release 下载，path 相对数据根）。
  * 文件名钉版 = 显式升级通道：旧版构件名不同 → `ensureLegacyfix` 的「存在即复用」自然失配
  * 重下新版；且与 Release asset 名精确同名，命中构件匹配主支（非 legacyfix* 前缀兜底）。
- * 钉版 `26.11-attic.8` = fork（CreatorCSIE/legacyfix-attic）构件要点：基 = 上游 26.11
+ * 钉版 `26.11-attic.10` = fork（CreatorCSIE/legacyfix-attic）构件要点：基 = 上游 26.11
  * （c0.0.15a 非 5565 端口补丁/DemoPatch/Infdev visualizer 重实现全在），attic 增量 =
  * DeAwt setLocation 源码化（启动器层二进制补丁退役）、AddonLoader + `-Dlf.addons=` 外部
  * addon 机制（同 release 挂 `legacyfix-addon-{fullscreen,gamemodeswitch,quitgame}-<版本>.jar`）、
@@ -23,6 +23,11 @@
  * jar 不再短路整条直接补丁矩阵，此前 Patcher/addons/重定义全跳、游戏裸奔）。
  * 同版并落 fullscreen 终局结论（a8196b2/86725af）：DeAWT 下 agent 侧 AWT 全屏不可达 =
  * 设计使然，addon 在该路径静默 no-op，全屏归启动器侧职责。
+ * attic.9（d5d4854）= c0.24-dev assetIndex 例外拆除——启动器已直传 `-Dlf.assetIndex`，
+ * fork 侧硬编码让位。attic.10（09537dc）= **CtClass 池头插输入字节**，保上游
+ * `-javaagent` 织入存活：此前 legacyfix 重建被 patch 类时吞掉第三方 agent（如 ASM
+ * ClassFileTransformer 观测层）的织入产物 = MCWorldAgent 交接案卷定罪的本因，
+ * 观测层 agent 自此前置/后置位皆可生效（规范用法仍 = 尾注入，见 attic-cli --jvm-arg）。
  */
 
 import type { AgentMount } from '@attic/core-spec';
@@ -35,21 +40,21 @@ import type { AgentMount } from '@attic/core-spec';
 export const DEFAULT_AGENT_MOUNTS: AgentMount[] = [
   {
     form: 'javaagent',
-    path: 'legacyfix/legacyfix-26.11-attic.8.jar',
+    path: 'legacyfix/legacyfix-26.11-attic.10.jar',
     appliesFrom: 'c0.0.13a',
     appliesTo: '1.3.2',
     quirk: 'legacyfix',
   },
   {
     form: 'coremod',
-    path: 'legacyfix/legacyfix-26.11-attic.8.jar',
+    path: 'legacyfix/legacyfix-26.11-attic.10.jar',
     appliesFrom: '1.4-pre',
     appliesTo: '1.4.7',
     quirk: 'legacyfix',
   },
   {
     form: 'mod',
-    path: 'legacyfix/legacyfix-26.11-attic.8.jar',
+    path: 'legacyfix/legacyfix-26.11-attic.10.jar',
     appliesFrom: '1.5',
     appliesTo: '1.5.2',
     quirk: 'legacyfix',

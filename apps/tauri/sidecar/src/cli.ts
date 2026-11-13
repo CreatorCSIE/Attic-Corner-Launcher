@@ -41,18 +41,22 @@ const runtime = new AtticRuntime({
 interface Parsed {
   positional: string[];
   flags: Map<string, string | boolean>;
+  /** `--jvm-arg` 可重复通道（按传入顺序保序）。 */
+  jvmArgs: string[];
 }
 
 function parseArgs(argv: string[]): Parsed {
   const positional: string[] = [];
   const flags = new Map<string, string | boolean>();
+  const jvmArgs: string[] = [];
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i] ?? '';
     if (a === '--dry-run') flags.set('dry-run', true);
+    else if (a === '--jvm-arg') jvmArgs.push(argv[(i += 1)] ?? '');
     else if (a.startsWith('--')) flags.set(a.slice(2), argv[(i += 1)] ?? '');
     else positional.push(a);
   }
-  return { positional, flags };
+  return { positional, flags, jvmArgs };
 }
 
 function usage(message?: string): never {
@@ -61,8 +65,12 @@ function usage(message?: string): never {
     [
       '用法：',
       '  attic-cli instances',
-      '  attic-cli launch <实例名> [--account <id>] [--dry-run]',
+      '  attic-cli launch <实例名> [--account <id>] [--java <路径>] [--jvm-arg <参数>]… [--dry-run]',
       '  attic-cli launch --version <版本id> [--account <id>] [--dry-run]   （缺省实例）',
+      '',
+      '  --jvm-arg 可重复：按序追加到最终 jvmArgs 末尾（legacyfix javaagent 之后），',
+      '             与库层 extraJvmArgs 同语义——第三方 agent 须注册在修复层之后的顺序要求由它满足。',
+      '  --java 钉死 JDK 路径（透传 LaunchRequest.javaPath，旁路自动探测）。',
       '',
       '说明：launch 阻塞至游戏退出（输出直通 stdout/stderr，Ctrl+C = 用户停止）；',
       '      --dry-run 只组装并打印 LaunchConfig JSON，不下载不 spawn。',
@@ -83,7 +91,7 @@ async function cmdInstances(): Promise<void> {
 }
 
 async function cmdLaunch(parsed: Parsed): Promise<void> {
-  const { positional, flags } = parsed;
+  const { positional, flags, jvmArgs } = parsed;
   const instanceName = positional[0];
   const versionFlag = typeof flags.get('version') === 'string' ? (flags.get('version') as string) : undefined;
   const accountFlag = typeof flags.get('account') === 'string' ? (flags.get('account') as string) : undefined;
@@ -109,10 +117,13 @@ async function cmdLaunch(parsed: Parsed): Promise<void> {
     versionId = view.version;
     instanceId = view.name;
   }
+  const javaFlag = typeof flags.get('java') === 'string' ? (flags.get('java') as string) : undefined;
   const request: LaunchRequest = {
     versionId,
     ...(instanceId ? { instanceId } : {}),
     ...(accountFlag ? { accountId: accountFlag } : {}),
+    ...(javaFlag ? { javaPath: javaFlag } : {}),
+    ...(jvmArgs.length > 0 ? { extraJvmArgs: jvmArgs } : {}),
   };
 
   if (dryRun) {

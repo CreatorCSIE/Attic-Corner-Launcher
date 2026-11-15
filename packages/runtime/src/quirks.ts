@@ -28,9 +28,22 @@
  * `-javaagent` 织入存活：此前 legacyfix 重建被 patch 类时吞掉第三方 agent（如 ASM
  * ClassFileTransformer 观测层）的织入产物 = MCWorldAgent 交接案卷定罪的本因，
  * 观测层 agent 自此前置/后置位皆可生效（规范用法仍 = 尾注入，见 attic-cli --jvm-arg）。
+ * infdev-windowfix（独立 javaagent 仓 CreatorCSIE/infdev-0627-deawt-fix，构件名钉版）=
+ * 受害集 {inf-20100627, inf-20100629} 在 legacyfix attic.10 下的窗口/鼠标症状修复（抓鼠锁死 /
+ * ✕ 关窗进程不自退 / 拉伸 resize 无反应 / ESC 菜单光标不释放）。**单版本钉两条**（appliesFrom=
+ * appliesTo）：受害集是实机扫界钉死的两个孤立版本、非区间，形态与 legacyfix 三条区间条目不同。
+ * **必须排三条 legacyfix 条目之后**：数组顺序即注入序（launch.ts javaagent 展开按挂载序迭代），
+ * 尾注入依赖 attic.10 CtClass 池头插保证第三方 agent 织入存活（MCWorldAgent 同链验证）。
+ * 构件要点：指纹自门控按 legacyfix 补丁后字节形态定义——非受害版逐项判决 + 直通，双保险
+ * （挂载未钉 + 门控不中）。0.0.13 = 案结版（§3o 实机全绿）：jar 397156B，
+ * sha256 25ef556b05a6122ba2910db0f100359d917c0ef36bc3a19926f522d892b48015，
+ * 落 `<root>/windowfix/`（ensureInfdevWindowfix 直链下载，钉版指纹表见 betacraft.ts）。
  */
 
 import type { AgentMount } from '@attic/core-spec';
+
+/** infdev-windowfix 挂载的 quirk 标识（quirks 表 / 装配过滤 / 落位下载分派共用的唯一事实源）。 */
+export const INFDEV_WINDOWFIX_QUIRK = 'infdev-windowfix';
 
 /**
  * 边界 id 均取 betacraft 清单实存值：`c0.0.13a`/`1.4`/`1.7.10` 不在清单，
@@ -58,5 +71,20 @@ export const DEFAULT_AGENT_MOUNTS: AgentMount[] = [
     appliesFrom: '1.5',
     appliesTo: '1.5.2',
     quirk: 'legacyfix',
+  },
+  // infdev-windowfix 两条单版本钉条目：位置 = 注入序（尾注入，必须排 legacyfix 之后，见头注）。
+  {
+    form: 'javaagent',
+    path: 'windowfix/infdev-windowfix-0.0.13.jar',
+    appliesFrom: 'inf-20100627',
+    appliesTo: 'inf-20100627',
+    quirk: INFDEV_WINDOWFIX_QUIRK,
+  },
+  {
+    form: 'javaagent',
+    path: 'windowfix/infdev-windowfix-0.0.13.jar',
+    appliesFrom: 'inf-20100629',
+    appliesTo: 'inf-20100629',
+    quirk: INFDEV_WINDOWFIX_QUIRK,
   },
 ];

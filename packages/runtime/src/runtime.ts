@@ -104,7 +104,7 @@ import {
   writePortablePointer,
   type PortableResolution,
 } from './portable';
-import { DEFAULT_AGENT_MOUNTS } from './quirks';
+import { DEFAULT_AGENT_MOUNTS, INFDEV_WINDOWFIX_QUIRK } from './quirks';
 import {
   assetsDir,
   binDir,
@@ -768,7 +768,12 @@ export class AtticRuntime {
       // agentMount 落位：javaagent/Applet 容器需要 jar 本体在位；coremod/mod 复制进游戏目录。
       signal.throwIfAborted();
       for (const mount of config.agentMount) {
-        const source = await this.client.ensureLegacyfix(this.root, mount.path, signal);
+        // quirk 分派下载通道：windowfix 构件名不满足 legacyfix 版本正则，走钉版指纹直链
+        // （ensureInfdevWindowfix，WINDOWFIX_PINS 校验）；开关关/版本不命中时条目已被装配过滤剔除，不进本环。
+        const source =
+          mount.quirk === INFDEV_WINDOWFIX_QUIRK
+            ? await this.client.ensureInfdevWindowfix(this.root, mount.path, signal)
+            : await this.client.ensureLegacyfix(this.root, mount.path, signal);
         if (mount.form === 'javaagent') continue;
         const targetDir = path.join(context.gameDir, mount.form === 'coremod' ? 'coremods' : 'mods');
         fs.mkdirSync(targetDir, { recursive: true });
@@ -1651,6 +1656,8 @@ export class AtticRuntime {
       title: view.title,
       // v1 同名键 intelFix（缺键 = v1 缺省 true，视图 undefined 不落键）；forceUpdate = Attic 扩展键
       intelFix: view.intelFix,
+      // Attic 扩展键 windowFix（缺键 = 缺省 true，视图 undefined 不落键，同 intelFix 语义）
+      windowFix: view.windowFix,
       forceUpdate: view.forceUpdate,
     });
     return view;
@@ -1851,6 +1858,8 @@ export class AtticRuntime {
       addons: instance.addons?.split(',').map((s) => s.trim()).filter(Boolean),
       // v1 intelFix 缺键 = true（Instance.java newInstance 缺省）；win32 门控在此（launch.ts 保持平台中性）
       intelFix: this.platform === 'win32' && instance.intelFix !== false,
+      // windowFix 缺键 = 开（关 = 逃生门）；缺省解析在此，滤挂载归拼装器（launch.ts，同 intelFix 分工）
+      windowFix: instance.windowFix !== false,
       // 一次性可视化器（「≡」菜单动作项）：true 才带键，false/缺省不落（dryRun/launch 同走此路）
       visualizer: request.visualizer === true ? true : undefined,
       // 一次性直连（启动询问弹窗「直连」才带键，来源 = 档案 server；拼装器解析）

@@ -423,6 +423,37 @@ test('intelFix/forceUpdate：档案回环 + 视图透传 + win32 门控注入/�
   assert.ok(!cfgLx.jvmArgs.some((a) => a.includes('HeapDumpPath')));
 });
 
+test('windowFix：档案回环 + 视图透传 + 缺键缺省开（windowfix 挂载在场）/关 = 只滤 windowfix（legacyfix 不动）', async (t) => {
+  const root = tempRoot(t);
+  ensureLayout(root);
+  fs.writeFileSync(path.join(jsonsDir(root), 'b1.7.3.info'), 'launch-method=indev\n');
+  const rt = new AtticRuntime({ rootDir: root, platform: 'win32', fetchImpl: () => Promise.reject(new Error('offline')) });
+  rt.addAccount('Tester');
+  const java = 'C:\\Java\\jdk1.8\\bin\\java.exe';
+
+  // 缺键 = 缺省开：新建实例无 windowFix 键 → windowfix javaagent 挂载在场（尾注入于 legacyfix 之后）
+  const cfgDef = await rt.dryRunLaunch({ versionId: 'b1.7.3', instanceId: 'wfix', javaPath: java });
+  const wfIdx = cfgDef.jvmArgs.findIndex((a) => a.includes('windowfix/infdev-windowfix-0.0.13.jar'));
+  const lfIdx = cfgDef.jvmArgs.findIndex((a) => a.startsWith('-javaagent:') && a.includes('legacyfix-26.11-attic.10.jar'));
+  assert.ok(wfIdx >= 0 && lfIdx >= 0 && wfIdx > lfIdx, '缺省开：windowfix 尾注入');
+
+  // 显式关：视图 → 档案 → 上下文链路上只滤 windowfix，legacyfix 挂载不受影响
+  rt.saveInstance({ name: 'wfix', version: 'b1.7.3', windowFix: false });
+  const view = rt.listInstances().find((i) => i.name === 'wfix');
+  assert.equal(view.windowFix, false);
+  assert.equal(loadInstance(root, 'wfix').windowFix, false, 'windowFix 应落档案键');
+  const cfgOff = await rt.dryRunLaunch({ versionId: 'b1.7.3', instanceId: 'wfix', javaPath: java });
+  assert.ok(!cfgOff.jvmArgs.some((a) => a.includes('infdev-windowfix')));
+  assert.ok(!cfgOff.agentMount.some((m) => m.quirk === 'infdev-windowfix'));
+  assert.ok(cfgOff.jvmArgs.some((a) => a.includes('legacyfix-26.11-attic.10.jar')), '关不影响 legacyfix');
+
+  // 只关 windowFix 不写 intelFix：缺键回落视图（UI 按缺省开展示）
+  rt.saveInstance({ name: 'wfix2', version: 'b1.7.3', windowFix: false });
+  const v2 = rt.listInstances().find((i) => i.name === 'wfix2');
+  assert.equal(v2.windowFix, false);
+  assert.equal(v2.intelFix, undefined);
+});
+
 test('title：档案回环 + 视图透传 + dryRun 注入 -Dlf.title（trim 后非空即传）；缺键不注入、清空删键', async (t) => {
   const root = tempRoot(t);
   ensureLayout(root);

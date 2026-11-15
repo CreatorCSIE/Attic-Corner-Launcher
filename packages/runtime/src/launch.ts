@@ -6,6 +6,7 @@
 import { INSTANCE_ADDONS, type AgentMount, type LaunchConfig, type VersionJson } from '@attic/core-spec';
 
 import { resolveLaunchAssetIndexId } from './legacyAssets';
+import { INFDEV_WINDOWFIX_QUIRK } from './quirks';
 
 /** 拼装输入：宿主侧运行上下文（binPool/versionOrder 由运行时注入）。 */
 export interface LaunchContext {
@@ -45,6 +46,12 @@ export interface LaunchContext {
    * L576-578 紧跟 javapath 之后的首位语义）。
    */
   intelFix?: boolean;
+  /**
+   * Infdev 窗口修复开关（实例档案 `windowFix` 键语义，缺键 = 开，缺省解析归宿主 buildContext）。
+   * false = 从挂载集滤掉 quirk=infdev-windowfix 条目（-javaagent 尾注入与落位下载一并消失，
+   * legacyfix 条目不受影响）；true/缺省 = 保留（版本未钉 inf-20100627/29 时区间过滤天然不命中）。
+   */
+  windowFix?: boolean;
   /** 实例勾选的 addon id 集（宿主从档案透传）；按目录映射注入 -Dlf.* 开关。
    * undefined = 档案无 addons 键（老档案）→ 零注入，行为与 legacyfix 自身缺省一致。 */
   addons?: string[];
@@ -175,13 +182,18 @@ export function assembleLaunchConfig(
   // deawt 保持开启（窗口正常）：游戏走 LWJGL 窗口，关窗后进程 MainWindowHandle 归零，
   // 壳侧窗口看门狗据此判定"用户关窗"并 kill（classic 循环不检查 isCloseRequested，进程不自退）。
   const isAppletContainer = mainClass === APPLET_LAUNCHER_CLASS;
-  const mounts = filterAgentMounts(
+  // 挂载序 = javaagent 注入序（下方展开按本序迭代）：quirks 表把 windowfix 排 legacyfix 之后 = 尾注入。
+  let mounts = filterAgentMounts(
     versionJson.betacraft?.agentMount ?? [],
     versionJson.id,
     context.versionOrder,
     versionJson.betacraft?.baseVersion,
     opts.onDiagnostic,
   );
+  // windowFix 关（逃生门）= 只滤 infdev-windowfix 条目，legacyfix 三条不动；缺键 = 开（宿主已解析缺省）。
+  if (context.windowFix === false) {
+    mounts = mounts.filter((mount) => mount.quirk !== INFDEV_WINDOWFIX_QUIRK);
+  }
 
   // ---------- jvmArgs 固定组（顺序即契约） ----------
   const jvmArgs: string[] = [];

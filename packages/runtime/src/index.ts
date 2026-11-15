@@ -101,7 +101,7 @@ export {
   CRASH_DIALOG_STACK_MAX,
   type CrashBundleInput,
 } from './crash';
-export { DEFAULT_AGENT_MOUNTS } from './quirks';
+export { DEFAULT_AGENT_MOUNTS, INFDEV_WINDOWFIX_QUIRK } from './quirks';
 export {
   BetacraftClient,
   parseVersionList,

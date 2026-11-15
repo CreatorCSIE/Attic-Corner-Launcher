@@ -29,6 +29,8 @@ export interface EndpointOverrides {
   filesBase?: string;
   /** legacyfix GitHub Release API；缺省 = betacraftuk/legacyfix latest。 */
   legacyfixRelease?: string;
+  /** infdev-windowfix GitHub Release 直链 base；缺省 = CreatorCSIE/infdev-0627-deawt-fix download base。 */
+  windowfixRelease?: string;
   /** Azul Zulu 元数据 API。 */
   zuluMetadata?: string;
   /** Betacraft mod 仓库列表（getmods.jsp JSON）；缺省 = `http://api.betacraft.uk/getmods.jsp`。 */
@@ -207,6 +209,12 @@ export interface InstanceView {
    * 缺键 = true（v1 语义）。
    */
   intelFix?: boolean;
+  /**
+   * Infdev 窗口修复（Attic 扩展键；v1 无对应物）。inf-20100627/inf-20100629 在 legacyfix
+   * attic.10 下的窗口/鼠标症状修复 agent（windowfix/infdev-windowfix-<钉版>.jar 尾注入，
+   * 挂载表见 runtime/quirks.ts）。缺键 = true（缺省开；关 = 逃生门，复现现状形态）。
+   */
+  windowFix?: boolean;
   /**
    * 强制更新（Attic 扩展键；v1 是全局 static，本设计判定为实例属性落实例）。
    * true = 启动时旁路 jar/库/资产的「已存在即复用」检查重下。

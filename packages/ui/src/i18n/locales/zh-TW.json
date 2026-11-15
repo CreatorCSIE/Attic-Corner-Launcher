@@ -357,6 +357,10 @@
       "name": "Intel 顯示卡修復",
       "desc": "Windows 下注入 -XX:HeapDumpPath 堆疊快照路徑（v1 intelFix，預設開啟）。"
     },
+    "windowFix": {
+      "name": "Infdev 窗口修復",
+      "desc": "為 inf-20100627 / inf-20100629 掛載 infdev-windowfix 修復 agent（預設開啟）：修復鎖鼠、關窗不自退、拉伸無反應、ESC 選單滑鼠不釋放。僅命中這兩個版本，關閉 = 恢復原狀（逃生門）。"
+    },
     "forceUpdate": {
       "name": "強制更新",
       "desc": "啟動時重新下載版本檔案（jar/函式庫/資產），即使本機已存在（v1 Force Update）。"

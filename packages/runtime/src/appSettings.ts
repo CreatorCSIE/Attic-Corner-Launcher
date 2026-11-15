@@ -11,6 +11,7 @@ const ENDPOINT_KEYS: (keyof EndpointOverrides)[] = [
   'versionList',
   'filesBase',
   'legacyfixRelease',
+  'windowfixRelease',
   'zuluMetadata',
 ];
 const THEMES: ThemeMode[] = ['dark', 'light', 'system'];
@@ -150,6 +151,7 @@ export function instanceViewFromConfig(config: {
   server?: string;
   title?: string;
   intelFix?: boolean;
+  windowFix?: boolean;
   forceUpdate?: boolean;
 }): InstanceView {
   const view: InstanceView = { name: config.name, version: config.version };
@@ -163,6 +165,7 @@ export function instanceViewFromConfig(config: {
     view.addons = config.addons.split(',').map((s) => s.trim()).filter(Boolean);
   }
   if (config.intelFix !== undefined) view.intelFix = config.intelFix;
+  if (config.windowFix !== undefined) view.windowFix = config.windowFix;
   if (config.forceUpdate !== undefined) view.forceUpdate = config.forceUpdate;
   // 直连地址：空串 = 无效值（视图不携带，保存即删键）
   if (config.server) view.server = config.server;

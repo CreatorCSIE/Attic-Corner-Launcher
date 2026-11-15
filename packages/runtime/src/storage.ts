@@ -192,6 +192,8 @@ export interface InstanceConfig {
   keepopen?: boolean;
   RPC?: boolean;
   intelFix?: boolean;
+  /** Attic 扩展键（v1 无对应物）：Infdev 窗口修复 agent 开关，缺键 = 开（关 = 滤 windowfix 挂载）。 */
+  windowFix?: boolean;
   console?: boolean;
   javaPath?: string;
   isJavaPathNew?: boolean;
@@ -263,7 +265,7 @@ export function loadInstance(root: string, name: string): InstanceConfig | null 
   for (const key of ['javaPath', 'addons', 'server', 'title'] as const) {
     if (props[key] !== undefined) config[key] = props[key];
   }
-  for (const key of ['proxy', 'keepopen', 'RPC', 'intelFix', 'console', 'isJavaPathNew', 'forceUpdate'] as const) {
+  for (const key of ['proxy', 'keepopen', 'RPC', 'intelFix', 'windowFix', 'console', 'isJavaPathNew', 'forceUpdate'] as const) {
     const b = toBool(props[key]);
     if (b !== undefined) config[key] = b;
   }
@@ -361,7 +363,7 @@ export function saveInstance(root: string, config: InstanceConfig): void {
     width: config.width === undefined ? undefined : String(config.width),
     height: config.height === undefined ? undefined : String(config.height),
   };
-  for (const key of ['proxy', 'keepopen', 'RPC', 'intelFix', 'console', 'isJavaPathNew', 'forceUpdate'] as const) {
+  for (const key of ['proxy', 'keepopen', 'RPC', 'intelFix', 'windowFix', 'console', 'isJavaPathNew', 'forceUpdate'] as const) {
     const v = config[key];
     managed[key] = v === undefined ? undefined : String(v);
   }

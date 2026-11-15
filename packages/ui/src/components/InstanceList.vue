@@ -44,8 +44,9 @@ const width = ref<number | ''>(854);
 const height = ref<number | ''>(480);
 // 窗口标题自定义（Attic 扩展键 title；空 = 不携带 = 游戏自题）
 const windowTitle = ref('');
-// intelFix 缺键 = 开；forceUpdate（Attic 扩展键）缺省 = 关
+// intelFix 缺键 = 开；windowFix（Infdev 窗口修复）缺键 = 开；forceUpdate（Attic 扩展键）缺省 = 关
 const intelFix = ref(true);
+const windowFix = ref(true);
 const forceUpdate = ref(false);
 const newName = ref('');
 const saving = ref(false);
@@ -99,8 +100,9 @@ function loadForm(inst: InstanceView): void {
   windowTitle.value = inst.title ?? '';
   // 无 addons 键的老档案：展示按默认开集（与 legacyfix 缺省行为一致，保存时显式落键）
   addonsSel.value = inst.addons ? [...inst.addons] : [...DEFAULT_ADDONS];
-  // 缺键语义：intelFix 缺省开、forceUpdate 缺省关
+  // 缺键语义：intelFix 缺省开、windowFix 缺省开、forceUpdate 缺省关
   intelFix.value = inst.intelFix !== false;
+  windowFix.value = inst.windowFix !== false;
   forceUpdate.value = inst.forceUpdate === true;
   dirError.value = null;
   flashSaved(false);
@@ -200,6 +202,7 @@ function onNew(): void {
   windowTitle.value = '';
   addonsSel.value = [...DEFAULT_ADDONS];
   intelFix.value = true;
+  windowFix.value = true;
   forceUpdate.value = false;
   dirError.value = null;
   flashSaved(false);
@@ -249,8 +252,9 @@ function currentView(): InstanceView {
     version: creating.value ? (selectedId.value as string) : (selected.value as InstanceView).version,
     // addons 恒发送当前勾选集（保存即显式落键；老档案首保语义不变——默认开集=legacyfix 缺省）
     addons: [...addonsSel.value],
-    // 双开关仅在偏离缺省时落键（intelFix 缺省开、forceUpdate 缺省关；缺键 = 宿主补默认）
+    // 三开关仅在偏离缺省时落键（intelFix/windowFix 缺省开、forceUpdate 缺省关；缺键 = 宿主补默认）
     ...(intelFix.value ? {} : { intelFix: false }),
+    ...(windowFix.value ? {} : { windowFix: false }),
     ...(forceUpdate.value ? { forceUpdate: true } : {}),
   };
   if (gameDir.value.trim()) inst.gameDir = gameDir.value.trim();
@@ -547,7 +551,7 @@ async function onConfirmRemove(): Promise<void> {
             <label class="label" for="inst-title">{{ t('instance.windowTitle') }}</label>
             <input id="inst-title" v-model="windowTitle" class="input" type="text" :placeholder="t('instance.windowTitlePlaceholder')" />
           </div>
-          <!-- 开关组：两开关（Intel 修复/强制更新）+ 高频 addon 四项。
+          <!-- 开关组：三开关（Intel 修复/Infdev 窗口修复/强制更新）+ 高频 addon 四项。
                addon 项数据仍是 addonsSel 数组（-Dlf.* 注入链不动），仅渲染归属换到基本设置。 -->
           <div class="toggles">
             <div class="addon-row">
@@ -557,6 +561,16 @@ async function onConfirmRemove(): Promise<void> {
               </div>
               <label class="switch">
                 <input v-model="intelFix" type="checkbox" :disabled="!hasBridge" />
+                <span class="track" />
+              </label>
+            </div>
+            <div class="addon-row">
+              <div class="addon-info">
+                <span class="addon-name">{{ t('instance.windowFix.name') }}</span>
+                <p class="addon-desc">{{ t('instance.windowFix.desc') }}</p>
+              </div>
+              <label class="switch">
+                <input v-model="windowFix" type="checkbox" :disabled="!hasBridge" />
                 <span class="track" />
               </label>
             </div>

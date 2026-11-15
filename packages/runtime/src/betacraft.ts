@@ -186,6 +186,14 @@ interface LegacyfixMeta {
   size: number;
 }
 
+/**
+ * infdev-windowfix 钉版指纹表（构件名钉版 = 显式升级通道，同 legacyfix 纪律；表外版本 = 显式报错，
+ * 升级必须 quirks.ts 挂载条目与本表同回合钉死——sha256+size 取上游 Release 实构件，案卷 §3o）。
+ */
+const WINDOWFIX_PINS: Record<string, { sha256: string; size: number }> = {
+  '0.0.13': { sha256: '25ef556b05a6122ba2910db0f100359d917c0ef36bc3a19926f522d892b48015', size: 397156 },
+};
+
 /** 流式读文件算哈希（sha1 校验 jar 用）。 */
 export function hashFile(file: string, algo: 'sha1' | 'sha256'): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -579,6 +587,53 @@ export class BetacraftClient {
     // 钉版换代 = 旧版本清仓（agent 换代/损坏重下后触发）。
     this.sweepLegacyfixStale(path.dirname(dest), file, version);
     return dest;
+  }
+
+  /**
+   * infdev-windowfix 钉版直链下载 → `<root>/windowfix/…`（relPath 来自 agentMount.path，
+   * 文件名 `infdev-windowfix-<version>.jar` 携带的版本号 = 唯一事实源，tag = `v<version>`）。
+   * 与 ensureLegacyfixAsset 的本地锚自愈（TOFU）不同：本构件有钉版官方指纹（WINDOWFIX_PINS）——
+   * 下载即按钉死 sha256 校验（download 的 hash 通道），存在即复用三级校验（size → EOCD → sha256）
+   * 同样对表；`.meta` 照写（格式与 legacyfix 锚点一致：小写 sha + size JSON，外部工具链统一读）。
+   * 事件 item 沿用 'legacyfix'（agentMount 落位阶段的既有进度桶，不扩 DownloadItem/阶段清单）。
+   */
+  async ensureInfdevWindowfix(root: string, relPath: string, signal?: AbortSignal): Promise<string> {
+    const file = path.basename(relPath);
+    const version = /^infdev-windowfix-(.+)\.jar$/i.exec(file)?.[1];
+    if (!version) throw new Error(`无法从 agentMount 文件名解析 infdev-windowfix 版本（应为 infdev-windowfix-<version>.jar）：${file}`);
+    const pin = WINDOWFIX_PINS[version];
+    if (!pin) throw new Error(`infdev-windowfix 版本 ${version} 不在钉版指纹表（升级须 quirks.ts 挂载条目与 WINDOWFIX_PINS 同回合钉版）`);
+    const dest = path.join(root, relPath);
+    if (fs.existsSync(dest)) {
+      const size = fs.statSync(dest).size;
+      this.emit({ item: 'legacyfix', id: file, phase: 'queued', bytesDone: 0, bytesTotal: size });
+      if (await this.windowfixIntact(dest, pin)) {
+        this.emit({ item: 'legacyfix', id: file, phase: 'done', bytesDone: size, bytesTotal: size });
+        this.sweepLegacyfixStale(path.dirname(dest), file, version);
+        return dest;
+      }
+      // 残缺/篡改自愈：本体+锚点一并删除，走下方重下通道（download 的 sha256 闸门兜底上游换件）。
+      fs.rmSync(dest, { force: true });
+      fs.rmSync(`${dest}.meta`, { force: true });
+    }
+    await this.download(
+      `${this.endpoints.windowfixRelease}/v${version}/${file}`,
+      dest,
+      'legacyfix',
+      file,
+      { algo: 'sha256', value: pin.sha256 },
+      signal,
+    );
+    await this.writeLegacyfixMeta(dest);
+    this.sweepLegacyfixStale(path.dirname(dest), file, version);
+    return dest;
+  }
+
+  /** 存在即复用完整性校验（对钉版指纹表，非本地 meta 锚）：size 对钉 → EOCD 截断探测 → sha256 全量比对。 */
+  private async windowfixIntact(dest: string, pin: { sha256: string; size: number }): Promise<boolean> {
+    if (!zipHasEocd(dest)) return false;
+    if (fs.statSync(dest).size !== pin.size) return false;
+    return (await hashFile(dest, 'sha256')) === pin.sha256;
   }
 
   /**

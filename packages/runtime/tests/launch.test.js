@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { assembleLaunchConfig, filterAgentMounts, APPLET_LAUNCHER_CLASS } = require('../dist/index.js');
+const { assembleLaunchConfig, filterAgentMounts, APPLET_LAUNCHER_CLASS, DEFAULT_AGENT_MOUNTS, INFDEV_WINDOWFIX_QUIRK } = require('../dist/index.js');
 
 const FIXTURES_DIR = path.join(path.dirname(require.resolve('@attic/core-spec/package.json')), 'fixtures');
 
@@ -344,6 +344,43 @@ test('intelFix：true = -XX:HeapDumpPath 置 jvmArgs 首位（v1 javapath 后首
     assert.ok(!off.jvmArgs.some((a) => a.includes('HeapDumpPath')));
     assert.equal(off.jvmArgs[0], '-Xmx1024m');
   }
+});
+
+test('quirks 挂载表：infdev-windowfix 条目排全部 legacyfix 条目之后（数组顺序 = javaagent 注入序，尾注入）', () => {
+  const quirks = DEFAULT_AGENT_MOUNTS.map((m) => m.quirk);
+  assert.ok(quirks.lastIndexOf('legacyfix') < quirks.indexOf(INFDEV_WINDOWFIX_QUIRK));
+  assert.deepEqual(
+    DEFAULT_AGENT_MOUNTS.filter((m) => m.quirk === INFDEV_WINDOWFIX_QUIRK).map((m) => [m.form, m.appliesFrom, m.appliesTo]),
+    [
+      ['javaagent', 'inf-20100627', 'inf-20100627'],
+      ['javaagent', 'inf-20100629', 'inf-20100629'],
+    ],
+  );
+});
+
+test('windowFix：缺键/true = windowfix 挂载保留且 -javaagent 排 legacyfix 之后（尾注入）；false = 只滤 windowfix，legacyfix 不动', () => {
+  const versionJson = {
+    id: 'inf-20100629',
+    mainClass: 'net.minecraft.client.Minecraft',
+    betacraft: {
+      agentMount: [
+        { form: 'javaagent', path: 'legacyfix/legacyfix-26.11-attic.10.jar', appliesFrom: 'c0.0.13a', appliesTo: '1.3.2', quirk: 'legacyfix' },
+        { form: 'javaagent', path: 'windowfix/infdev-windowfix-0.0.13.jar', appliesFrom: 'inf-20100629', appliesTo: 'inf-20100629', quirk: INFDEV_WINDOWFIX_QUIRK },
+      ],
+    },
+  };
+  const ctx = () => ({ ...baseContext(), versionOrder: ['c0.0.13a', 'inf-20100627', 'inf-20100629', 'b1.7.3', '1.5.2'] });
+  for (const windowFix of [true, undefined]) {
+    const cfg = assembleLaunchConfig(versionJson, { ...ctx(), windowFix });
+    const lf = cfg.jvmArgs.findIndex((a) => a.startsWith('-javaagent:/data/legacyfix/'));
+    const wf = cfg.jvmArgs.findIndex((a) => a.startsWith('-javaagent:/data/windowfix/'));
+    assert.ok(lf >= 0 && wf > lf, `windowFix=${windowFix}：两 agent 都在场且 windowfix 尾注入`);
+    assert.equal(cfg.agentMount.filter((m) => m.quirk === INFDEV_WINDOWFIX_QUIRK).length, 1);
+  }
+  const off = assembleLaunchConfig(versionJson, { ...ctx(), windowFix: false });
+  assert.ok(!off.jvmArgs.some((a) => a.includes('infdev-windowfix')), '关 = -javaagent 尾注入消失');
+  assert.ok(off.jvmArgs.some((a) => a.startsWith('-javaagent:/data/legacyfix/')), '关不影响 legacyfix');
+  assert.deepEqual(off.agentMount.map((m) => m.quirk), ['legacyfix']);
 });
 
 test('title：档案窗口标题 → 注入 -Dlf.title=<title>（trim 后非空即传，args 直传不转义）；空串/纯空白/缺键不注入', () => {

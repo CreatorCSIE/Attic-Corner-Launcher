@@ -22,6 +22,13 @@ export interface Endpoints {
    * （launcher.settings）仍可指回上游 betacraftuk/legacyfix。
    */
   legacyfixRelease: string;
+  /**
+   * infdev-windowfix GitHub Release **直链 base**（拼 `<base>/v<version>/<asset>`，version 取自
+   * agentMount 文件名 = 钉版唯一事实源；同 legacyfix 纪律不走 api.github.com 限流通道）。
+   * 缺省源 = `CreatorCSIE/infdev-0627-deawt-fix`（tag 带 v 前缀、构件名不带：v0.0.13 →
+   * infdev-windowfix-0.0.13.jar）。`endpoint.windowfixRelease` 覆盖键（launcher.settings）可指镜像。
+   */
+  windowfixRelease: string;
   /** Azul Zulu 元数据 API。 */
   zuluMetadata: string;
   /** Betacraft mod 仓库列表（JSON `ModCategory[]`，v1 ModsRepository.java L41 同源端点）。 */
@@ -46,6 +53,7 @@ export const DEFAULT_ENDPOINTS: Endpoints = {
   versionJson: (id: string) => `${FILES_BASE}/jsons/${encodeURIComponent(id)}.info`,
   assetIndex: (id: string) => `${FILES_BASE}/indexes/${encodeURIComponent(id)}.json`,
   legacyfixRelease: 'https://github.com/CreatorCSIE/legacyfix-attic/releases/download',
+  windowfixRelease: 'https://github.com/CreatorCSIE/infdev-0627-deawt-fix/releases/download',
   zuluMetadata: 'https://api.azul.com/metadata/v1/zulu/packages/',
   modsList: 'http://api.betacraft.uk/getmods.jsp',
   serverList: 'http://api.betacraft.uk/v2/legacy_server_list',
@@ -71,6 +79,7 @@ export function endpointsFromOverrides(overrides: EndpointOverrides = {}): Endpo
     versionJson: (id: string) => `${base}/jsons/${encodeURIComponent(id)}.info`,
     assetIndex: (id: string) => `${base}/indexes/${encodeURIComponent(id)}.json`,
     legacyfixRelease: overrides.legacyfixRelease ?? DEFAULT_ENDPOINTS.legacyfixRelease,
+    windowfixRelease: overrides.windowfixRelease ?? DEFAULT_ENDPOINTS.windowfixRelease,
     zuluMetadata: overrides.zuluMetadata ?? DEFAULT_ENDPOINTS.zuluMetadata,
     modsList: overrides.modsList ?? DEFAULT_ENDPOINTS.modsList,
     serverList: overrides.serverList ?? DEFAULT_ENDPOINTS.serverList,

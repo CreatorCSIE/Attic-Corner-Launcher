@@ -368,6 +368,10 @@
       "name": "Intel Graphics Fix",
       "desc": "Injects -XX:HeapDumpPath on Windows to guard against Intel GPU heap-dump failures (v1 intelFix, on by default)."
     },
+    "windowFix": {
+      "name": "Infdev Window Fix",
+      "desc": "Attaches the infdev-windowfix agent to inf-20100627 / inf-20100629 (on by default): fixes mouse grab, close-window not exiting, broken resize and ESC-menu cursor release. Only those two versions are affected; turning it off restores current behavior (escape hatch)."
+    },
     "forceUpdate": {
       "name": "Force Update",
       "desc": "Re-download version files (jar/libraries/assets) on launch even when already present locally (v1 Force Update)."

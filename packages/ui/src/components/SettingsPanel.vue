@@ -35,6 +35,7 @@ const ENDPOINT_KEYS: (keyof EndpointOverrides)[] = [
   'versionList',
   'filesBase',
   'legacyfixRelease',
+  'windowfixRelease',
   'zuluMetadata',
 ];
 
